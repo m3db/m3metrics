@@ -25,10 +25,16 @@ type objectType int
 const (
 	// Current version for encoding unaggregated metrics
 	unaggregatedVersion int = 1
+
+	// Current version for encoding aggregated metrics
+	aggregatedVersion int = 1
+
+	// Current metric version
+	metricVersion int = 1
 )
 
 const (
-	unknownType = iota
+	unknownType objectType = iota
 
 	// Root object type
 	rootObjectType
@@ -37,11 +43,13 @@ const (
 	counterWithPoliciesType
 	batchTimerWithPoliciesType
 	gaugeWithPoliciesType
+	rawMetricWithPolicyType
 
 	// Object types not exposed to the encoder interface
 	counterType
 	batchTimerType
 	gaugeType
+	metricType
 	policyType
 	knownResolutionType
 	unknownResolutionType
@@ -59,9 +67,11 @@ const (
 	numCounterWithPoliciesFields    = 2
 	numBatchTimerWithPoliciesFields = 2
 	numGaugeWithPoliciesFields      = 2
+	numRawMetricWithPolicyFields    = 2
 	numCounterFields                = 2
 	numBatchTimerFields             = 2
 	numGaugeFields                  = 2
+	numMetricFields                 = 3
 	numPolicyFields                 = 2
 	numKnownResolutionFields        = 2
 	numUnknownResolutionFields      = 3
@@ -71,6 +81,7 @@ const (
 	numCustomVersionedPolicyFields  = 3
 )
 
+// NB(xichen): use a slice instead of a map to avoid lookup overhead
 var numObjectFields []int
 
 func numFieldsForType(objType objectType) int {
@@ -83,13 +94,16 @@ func setNumFieldsForType(objType objectType, numFields int) {
 
 func init() {
 	numObjectFields = make([]int, int(numObjectTypes))
+
 	setNumFieldsForType(rootObjectType, numRootObjectFields)
 	setNumFieldsForType(counterWithPoliciesType, numCounterWithPoliciesFields)
 	setNumFieldsForType(batchTimerWithPoliciesType, numBatchTimerWithPoliciesFields)
 	setNumFieldsForType(gaugeWithPoliciesType, numGaugeWithPoliciesFields)
+	setNumFieldsForType(rawMetricWithPolicyType, numRawMetricWithPolicyFields)
 	setNumFieldsForType(counterType, numCounterFields)
 	setNumFieldsForType(batchTimerType, numBatchTimerFields)
 	setNumFieldsForType(gaugeType, numGaugeFields)
+	setNumFieldsForType(metricType, numMetricFields)
 	setNumFieldsForType(policyType, numPolicyFields)
 	setNumFieldsForType(knownResolutionType, numKnownResolutionFields)
 	setNumFieldsForType(unknownResolutionType, numUnknownResolutionFields)
@@ -97,5 +111,4 @@ func init() {
 	setNumFieldsForType(unknownRetentionType, numKnownRetentionFields)
 	setNumFieldsForType(defaultVersionedPoliciesType, numDefaultVersionedPolicyFields)
 	setNumFieldsForType(customVersionedPoliciesType, numCustomVersionedPolicyFields)
-
 }

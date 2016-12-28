@@ -42,14 +42,22 @@ func NewPooledBufferedEncoder(p BufferedEncoderPool) BufferedEncoder {
 	}
 }
 
+// Bytes returns the buffer data
+func (enc BufferedEncoder) Bytes() []byte { return enc.Buffer.Bytes() }
+
 // Reset resets the buffered encoder
-func (enc BufferedEncoder) Reset() {
+func (enc *BufferedEncoder) Reset() {
+	enc.closed = false
 	enc.Buffer.Truncate(0)
 }
 
 // Close returns the buffered encoder to the pool if possible
-func (enc BufferedEncoder) Close() {
+func (enc *BufferedEncoder) Close() {
+	if enc.closed {
+		return
+	}
+	enc.closed = true
 	if enc.pool != nil {
-		enc.pool.Put(enc)
+		enc.pool.Put(*enc)
 	}
 }

@@ -21,25 +21,25 @@
 package msgpack
 
 import (
-	"errors"
-
 	"github.com/m3db/m3metrics/pool"
 	xpool "github.com/m3db/m3x/pool"
 )
 
 const (
-	defaultIgnoreHigherVersion = true
-)
+	// Whether the iterator should ignore higher-than-supported version
+	// by default for unaggregated metrics
+	defaultUnaggregatedIgnoreHigherVersion = false
 
-var (
-	errNoFloatsPool   = errors.New("no floats pool")
-	errNoPoliciesPool = errors.New("no policies pool")
+	// Whether the iterator should ignore higher-than-supported version
+	// by default for aggregated metrics
+	defaultAggregatedIgnoreHigherVersion = false
 )
 
 type unaggregatedIteratorOptions struct {
 	ignoreHigherVersion bool
 	floatsPool          xpool.FloatsPool
 	policiesPool        pool.PoliciesPool
+	iteratorPool        UnaggregatedIteratorPool
 }
 
 // NewUnaggregatedIteratorOptions creates a new set of unaggregated iterator options
@@ -51,7 +51,7 @@ func NewUnaggregatedIteratorOptions() UnaggregatedIteratorOptions {
 	policiesPool.Init()
 
 	return unaggregatedIteratorOptions{
-		ignoreHigherVersion: defaultIgnoreHigherVersion,
+		ignoreHigherVersion: defaultUnaggregatedIgnoreHigherVersion,
 		floatsPool:          floatsPool,
 		policiesPool:        policiesPool,
 	}
@@ -87,12 +87,44 @@ func (o unaggregatedIteratorOptions) PoliciesPool() pool.PoliciesPool {
 	return o.policiesPool
 }
 
-func (o unaggregatedIteratorOptions) Validate() error {
-	if o.floatsPool == nil {
-		return errNoFloatsPool
+func (o unaggregatedIteratorOptions) SetIteratorPool(value UnaggregatedIteratorPool) UnaggregatedIteratorOptions {
+	opts := o
+	opts.iteratorPool = value
+	return opts
+}
+
+func (o unaggregatedIteratorOptions) IteratorPool() UnaggregatedIteratorPool {
+	return o.iteratorPool
+}
+
+type aggregatedIteratorOptions struct {
+	ignoreHigherVersion bool
+	iteratorPool        AggregatedIteratorPool
+}
+
+// NewAggregatedIteratorOptions creates a new set of aggregated iterator options
+func NewAggregatedIteratorOptions() AggregatedIteratorOptions {
+	return aggregatedIteratorOptions{
+		ignoreHigherVersion: defaultAggregatedIgnoreHigherVersion,
 	}
-	if o.policiesPool == nil {
-		return errNoPoliciesPool
-	}
-	return nil
+}
+
+func (o aggregatedIteratorOptions) SetIgnoreHigherVersion(value bool) AggregatedIteratorOptions {
+	opts := o
+	opts.ignoreHigherVersion = value
+	return opts
+}
+
+func (o aggregatedIteratorOptions) IgnoreHigherVersion() bool {
+	return o.ignoreHigherVersion
+}
+
+func (o aggregatedIteratorOptions) SetIteratorPool(value AggregatedIteratorPool) AggregatedIteratorOptions {
+	opts := o
+	opts.iteratorPool = value
+	return opts
+}
+
+func (o aggregatedIteratorOptions) IteratorPool() AggregatedIteratorPool {
+	return o.iteratorPool
 }

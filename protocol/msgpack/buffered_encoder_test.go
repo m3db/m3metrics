@@ -32,15 +32,13 @@ func testBufferedEncoder() BufferedEncoder {
 
 func TestBufferedEncoderReset(t *testing.T) {
 	encoder := testBufferedEncoder()
-	defer encoder.Close()
-
 	inputs := []interface{}{1, 2.0, "foo", byte(8)}
 
 	// Encode for the first time
 	for _, input := range inputs {
 		encoder.Encode(input)
 	}
-	encoded := encoder.Buffer.Bytes()
+	encoded := encoder.Bytes()
 	results := make([]byte, len(encoded))
 	copy(results, encoded)
 
@@ -51,9 +49,22 @@ func TestBufferedEncoderReset(t *testing.T) {
 	for _, input := range inputs {
 		encoder.Encode(input)
 	}
-	encoded = encoder.Buffer.Bytes()
+	encoded = encoder.Bytes()
 	results2 := make([]byte, len(encoded))
 	copy(results2, encoded)
 
 	require.Equal(t, results, results2)
+}
+
+func TestBufferedEncoderClose(t *testing.T) {
+	encoder := testBufferedEncoder()
+	require.False(t, encoder.closed)
+
+	// Close the encoder should set the flag
+	encoder.Close()
+	require.True(t, encoder.closed)
+
+	// Close the encoder again should be a no-op
+	encoder.Close()
+	require.True(t, encoder.closed)
 }
