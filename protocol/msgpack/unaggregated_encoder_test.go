@@ -131,6 +131,7 @@ func expectedResultsForUnaggregatedMetricWithPolicies(t *testing.T, m unaggregat
 			numFieldsForType(customVersionedPoliciesType),
 			int64(customVersionedPoliciesType),
 			int64(p.Version),
+			p.Cutover,
 			len(p.Policies),
 		}...)
 		for _, p := range p.Policies {
@@ -245,6 +246,7 @@ func TestUnaggregatedEncodeArrayLenError(t *testing.T) {
 	gauge := testGauge
 	policies := policy.VersionedPolicies{
 		Version: 1,
+		Cutover: time.Now(),
 		Policies: []policy.Policy{
 			{
 				Resolution: policy.Resolution{Window: time.Second, Precision: xtime.Second},
@@ -265,4 +267,17 @@ func TestUnaggregatedEncodeArrayLenError(t *testing.T) {
 
 	// Assert re-encoding doesn't change the error
 	require.Equal(t, errTestArrayLen, testUnaggregatedEncode(t, encoder, gauge, policies))
+}
+
+func TestUnaggregatedEncoderReset(t *testing.T) {
+	metric := testCounter
+	policies := policy.DefaultVersionedPolicies
+
+	encoder := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
+	baseEncoder := encoder.encoderBase.(*baseEncoder)
+	baseEncoder.encodeErr = errTestVarint
+	require.Equal(t, errTestVarint, testUnaggregatedEncode(t, encoder, metric, policies))
+
+	encoder.Reset(newBufferedEncoder())
+	require.NoError(t, testUnaggregatedEncode(t, encoder, metric, policies))
 }
