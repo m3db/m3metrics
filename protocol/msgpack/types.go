@@ -198,6 +198,9 @@ type UnaggregatedIterator interface {
 	// Next returns true if there are more items to decode
 	Next() bool
 
+	// Metric returns the current metric
+	Metric() unaggregated.MetricUnion
+
 	// Value returns the current metric and applicable policies
 	Value() (unaggregated.MetricUnion, policy.VersionedPolicies)
 
