@@ -65,6 +65,10 @@ func (it *unaggregatedIterator) Reset(reader io.Reader) {
 	it.reset(reader)
 }
 
+// func (it *unaggregatedIterator) Metric() unaggregated.MetricUnion {
+// 	return it.metric
+// }
+
 func (it *unaggregatedIterator) Value() (unaggregated.MetricUnion, policy.VersionedPolicies) {
 	return it.metric, it.versionedPolicies
 }
@@ -119,7 +123,7 @@ func (it *unaggregatedIterator) decodeRootObject() bool {
 		return false
 	}
 	switch objType {
-	case counterWithPoliciesType, batchTimerWithPoliciesType, gaugeWithPoliciesType:
+	case counterType, counterWithPoliciesType, batchTimerType, batchTimerWithPoliciesType, gaugeType, gaugeWithPoliciesType:
 		it.decodeMetricWithPolicies(objType)
 	default:
 		it.setErr(fmt.Errorf("unrecognized object type %v", objType))
@@ -134,18 +138,29 @@ func (it *unaggregatedIterator) decodeMetricWithPolicies(objType objectType) {
 	if !ok {
 		return
 	}
+
 	switch objType {
-	case counterWithPoliciesType:
+	case counterType, counterWithPoliciesType:
 		it.decodeCounter()
-	case batchTimerWithPoliciesType:
+	case batchTimerType, batchTimerWithPoliciesType:
 		it.decodeBatchTimer()
-	case gaugeWithPoliciesType:
+	case gaugeType, gaugeWithPoliciesType:
 		it.decodeGauge()
 	default:
 		it.setErr(fmt.Errorf("unrecognized metric with policies type %v", objType))
 		return
 	}
-	it.decodeVersionedPolicies()
+
+	var decodePolicy bool
+	switch objType {
+	case counterWithPoliciesType, batchTimerWithPoliciesType, gaugeWithPoliciesType:
+		decodePolicy = true
+	}
+
+	if decodePolicy {
+		it.decodeVersionedPolicies()
+	}
+
 	it.skip(numActualFields - numExpectedFields)
 }
 
