@@ -147,8 +147,6 @@ func (it *unaggregatedIterator) decodeMetric(objType objectType) {
 		it.setErr(fmt.Errorf("unrecognized metric with policies type %v", objType))
 		return
 	}
-
-	// set VersionedPolicies to uninitialiezd
 	it.versionedPolicies = policy.UninitializedVersionedPolicies
 }
 
@@ -159,24 +157,17 @@ func (it *unaggregatedIterator) decodeMetricWithPolicies(objType objectType) {
 	}
 
 	switch objType {
-	case counterType, counterWithPoliciesType:
+	case counterWithPoliciesType:
 		it.decodeCounter()
-	case batchTimerType, batchTimerWithPoliciesType:
+	case batchTimerWithPoliciesType:
 		it.decodeBatchTimer()
-	case gaugeType, gaugeWithPoliciesType:
+	case gaugeWithPoliciesType:
 		it.decodeGauge()
 	default:
 		it.setErr(fmt.Errorf("unrecognized metric with policies type %v", objType))
 		return
 	}
-
-	switch objType {
-	case counterWithPoliciesType, batchTimerWithPoliciesType, gaugeWithPoliciesType:
-		it.decodeVersionedPolicies()
-	default:
-		it.versionedPolicies = policy.UninitializedVersionedPolicies
-	}
-
+	it.decodeVersionedPolicies()
 	it.skip(numActualFields - numExpectedFields)
 }
 
