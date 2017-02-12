@@ -22,7 +22,7 @@ var (
 )
 
 func TestSerializeName(t *testing.T) {
-	testSerialize(t, name, name)
+	testSerialize(t, name, nil, name)
 }
 
 func TestSerializeNameAndTags(t *testing.T) {
@@ -35,12 +35,29 @@ func TestSerializeNameAndTags(t *testing.T) {
 		"type": "requests",
 	}
 	expected := "foobar+service=fizzbuzz,type=requests"
-	testSerialize(t, expected, name, commonTags, serviceTags)
+	testSerialize(t, expected, nil, name, commonTags, serviceTags)
 }
 
-func testSerialize(t *testing.T, expected string, name string, tags ...map[string]string) {
+func TestSerializeEmptyTagKey(t *testing.T) {
+	commonTags := map[string]string{
+		"service": "fizzbuzz",
+		"":        "foo",
+	}
+	testSerialize(t, "", errEmptyTagKey, name, commonTags, serviceTags)
+}
+
+func TestSerializeEmptyTagValue(t *testing.T) {
+	commonTags := map[string]string{
+		"service": "fizzbuzz",
+		"foo":     "",
+	}
+	testSerialize(t, "", errEmptyTagValue, name, commonTags, serviceTags)
+}
+
+func testSerialize(t *testing.T, expected string, err error, name string, tags ...map[string]string) {
 	buf := new(bytes.Buffer)
-	Serialize(buf, name, tags...)
+	actualErr := Serialize(buf, name, tags...)
+	assert.Equal(t, err, actualErr)
 	assert.Equal(t, expected, string(buf.Bytes()))
 }
 

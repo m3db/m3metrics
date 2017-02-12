@@ -3,6 +3,7 @@ package metric
 import (
 	"bytes"
 	"errors"
+	"fmt"
 )
 
 const (
@@ -17,13 +18,13 @@ const (
 )
 
 var (
-	errParseTagFailure = errors.New("Unable to parse tags, unable to parse tags")
+	errParseTagFailure = fmt.Errorf("Parse failed, no tag splitter %q found", TagPairSplitter)
 	errEmptyTagKey     = errors.New("Tag keys cannot be empty")
 	errEmptyTagValue   = errors.New("Tag values cannot be empty")
 )
 
 // Serialize serializes the name and tags of a metric into a buffer of bytes
-func Serialize(buf *bytes.Buffer, name string, tags ...map[string]string) {
+func Serialize(buf *bytes.Buffer, name string, tags ...map[string]string) error {
 	buf.WriteString(name)
 	if len(tags) > 0 {
 		buf.WriteRune(ComponentSplitter)
@@ -33,6 +34,16 @@ func Serialize(buf *bytes.Buffer, name string, tags ...map[string]string) {
 	first := true
 	for _, tagMap := range tags {
 		for key, val := range tagMap {
+			if len(key) == 0 {
+				buf.Reset()
+				return errEmptyTagKey
+			}
+
+			if len(val) == 0 {
+				buf.Reset()
+				return errEmptyTagValue
+			}
+
 			if !first {
 				buf.WriteRune(TagPairSplitter)
 			} else {
@@ -44,6 +55,8 @@ func Serialize(buf *bytes.Buffer, name string, tags ...map[string]string) {
 			buf.WriteString(val)
 		}
 	}
+
+	return nil
 }
 
 // Deserialize extracts the name and tags for a metric from a buffer of bytes
