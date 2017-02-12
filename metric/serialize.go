@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	defaultTagsMapLen = 4
+	defaultTagsMapLen = 8
 
 	// ComponentSplitter is the separator for different compoenents of the path
 	ComponentSplitter = '+'
@@ -23,23 +23,26 @@ var (
 )
 
 // Serialize serializes the name and tags of a metric into a buffer of bytes
-func Serialize(name string, tags map[string]string, buf *bytes.Buffer) {
+func Serialize(buf *bytes.Buffer, name string, tags ...map[string]string) {
 	buf.WriteString(name)
 	if len(tags) > 0 {
 		buf.WriteRune(ComponentSplitter)
 	}
 
+	// NB(jeromefroe): we do not check for duplicate tags here to avoid the performance penalty
 	first := true
-	for key, val := range tags {
-		if !first {
-			buf.WriteRune(TagPairSplitter)
-		} else {
-			first = false
-		}
+	for _, tagMap := range tags {
+		for key, val := range tagMap {
+			if !first {
+				buf.WriteRune(TagPairSplitter)
+			} else {
+				first = false
+			}
 
-		buf.WriteString(key)
-		buf.WriteRune(TagNameSplitter)
-		buf.WriteString(val)
+			buf.WriteString(key)
+			buf.WriteRune(TagNameSplitter)
+			buf.WriteString(val)
+		}
 	}
 }
 
@@ -52,7 +55,7 @@ func Deserialize(buf []byte) (string, map[string]string, error) {
 
 	name := string(buf[:n])
 	buf = buf[(n + 1):]
-	tags := make(map[string]string)
+	tags := make(map[string]string, defaultTagsMapLen)
 
 	for {
 		n = bytes.IndexByte(buf, TagNameSplitter)

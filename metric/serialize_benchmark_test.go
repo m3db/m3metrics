@@ -8,7 +8,7 @@ import (
 func BenchmarkSerialize(b *testing.B) {
 	buf := new(bytes.Buffer)
 	for n := 0; n < b.N; n++ {
-		Serialize(name, tags, buf)
+		Serialize(buf, name, commonTags, serviceTags)
 	}
 }
 
