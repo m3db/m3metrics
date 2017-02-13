@@ -27,7 +27,8 @@ func TestSerializeName(t *testing.T) {
 
 func TestSerializeNameAndTags(t *testing.T) {
 	// NB(jeromefroe): Since iterating over a map is randomized we can't rely on tags to be serialized
-	// in the same order across calls to Serialize. Consequently we test with only one tag here.
+	// in the same order across calls to Serialize. Consequently we test with only one tag in each
+	// map here. Tests with maps with mutliple entries are deferred to the roundtrip tests.
 	commonTags := map[string]string{
 		"service": "fizzbuzz",
 	}
@@ -36,22 +37,6 @@ func TestSerializeNameAndTags(t *testing.T) {
 	}
 	expected := "foobar+service=fizzbuzz,type=requests"
 	testSerialize(t, expected, nil, name, commonTags, serviceTags)
-}
-
-func TestSerializeEmptyTagKey(t *testing.T) {
-	commonTags := map[string]string{
-		"service": "fizzbuzz",
-		"":        "foo",
-	}
-	testSerialize(t, "", errEmptyTagKey, name, commonTags, serviceTags)
-}
-
-func TestSerializeEmptyTagValue(t *testing.T) {
-	commonTags := map[string]string{
-		"service": "fizzbuzz",
-		"foo":     "",
-	}
-	testSerialize(t, "", errEmptyTagValue, name, commonTags, serviceTags)
 }
 
 func testSerialize(t *testing.T, expected string, err error, name string, tags ...map[string]string) {
@@ -75,14 +60,34 @@ func TestDeserializeErrInvalidTags(t *testing.T) {
 	testDeserialize(t, buf, errParseTagFailure, "")
 }
 
-func TestDeserializeErrEmptyTagKey(t *testing.T) {
-	buf := []byte("foobar+service=fizzbuzz,=ewr1,env=production")
-	testDeserialize(t, buf, errEmptyTagKey, "")
+func TestDeserializeEmptyTagKey(t *testing.T) {
+	buf := []byte("foobar+service=fizzbuzz,dc=ewr1,env=production,=emptyKey,type=requests,city=nyc")
+	commonTags := map[string]string{
+		"service": "fizzbuzz",
+		"dc":      "ewr1",
+		"env":     "production",
+		"":        "emptyKey",
+	}
+	testDeserialize(t, buf, nil, "foobar", commonTags, serviceTags)
 }
 
 func TestDeserializeErrEmptyTagValue(t *testing.T) {
-	buf := []byte("foobar+service=,dc=ewr1,env=production")
-	testDeserialize(t, buf, errEmptyTagValue, "")
+	buf := []byte("foobar+service=fizzbuzz,dc=ewr1,env=production,emptyValue=,type=requests,city=nyc")
+	commonTags := map[string]string{
+		"service":    "fizzbuzz",
+		"dc":         "ewr1",
+		"env":        "production",
+		"emptyValue": "",
+	}
+	testDeserialize(t, buf, nil, "foobar", commonTags, serviceTags)
+}
+
+func TestDeserializeErrEmptyTagKeyAndValue(t *testing.T) {
+	buf := []byte("foobar+service=fizzbuzz,dc=ewr1,env=production,=")
+	serviceTags := map[string]string{
+		"": "",
+	}
+	testDeserialize(t, buf, nil, "foobar", commonTags, serviceTags)
 }
 
 func testDeserialize(t *testing.T, buf []byte, err error, name string, tags ...map[string]string) {

@@ -7,14 +7,14 @@ import (
 )
 
 const (
-	defaultTagsMapLen = 8
-
 	// ComponentSplitter is the separator for different compoenents of the path
 	ComponentSplitter = '+'
 	// TagPairSplitter is the separator for tag pairs
 	TagPairSplitter = ','
 	// TagNameSplitter is the separator for tag name and values
 	TagNameSplitter = '='
+
+	defaultTagsMapLen = 8
 )
 
 var (
@@ -23,27 +23,19 @@ var (
 	errEmptyTagValue   = errors.New("Tag values cannot be empty")
 )
 
-// Serialize serializes the name and tags of a metric into a buffer of bytes
+// Serialize converts the name and tags of a metric into a sequence of bytes. It does not perform
+// any input validation to avoid the performance penalty. Instead, all such validation, for example,
+// ensuring that name and tags do not contain any invalid characters, must be performed by the
+// caller.
 func Serialize(buf *bytes.Buffer, name string, tags ...map[string]string) error {
 	buf.WriteString(name)
 	if len(tags) > 0 {
 		buf.WriteRune(ComponentSplitter)
 	}
 
-	// NB(jeromefroe): we do not check for duplicate tags here to avoid the performance penalty
 	first := true
 	for _, tagMap := range tags {
 		for key, val := range tagMap {
-			if len(key) == 0 {
-				buf.Reset()
-				return errEmptyTagKey
-			}
-
-			if len(val) == 0 {
-				buf.Reset()
-				return errEmptyTagValue
-			}
-
 			if !first {
 				buf.WriteRune(TagPairSplitter)
 			} else {
@@ -59,7 +51,8 @@ func Serialize(buf *bytes.Buffer, name string, tags ...map[string]string) error 
 	return nil
 }
 
-// Deserialize extracts the name and tags for a metric from a buffer of bytes
+// Deserialize extracts the name and tags for a metric from a buffer of bytes. Tags are extracted
+// in order so if a key is repeated, the last value will be returned in the map.
 func Deserialize(buf []byte) (string, map[string]string, error) {
 	n := bytes.IndexByte(buf, ComponentSplitter)
 	if n == -1 {
@@ -71,24 +64,16 @@ func Deserialize(buf []byte) (string, map[string]string, error) {
 	tags := make(map[string]string, defaultTagsMapLen)
 
 	for {
-		n = bytes.IndexByte(buf, TagNameSplitter)
-		switch n {
-		case -1:
+		if n = bytes.IndexByte(buf, TagNameSplitter); n == -1 {
 			return "", nil, errParseTagFailure
-		case 0:
-			return "", nil, errEmptyTagKey
 		}
 
 		key := string(buf[:n])
 		buf = buf[(n + 1):]
 
-		n = bytes.IndexByte(buf, TagPairSplitter)
-		switch n {
-		case -1:
+		if n = bytes.IndexByte(buf, TagPairSplitter); n == -1 {
 			tags[key] = string(buf)
 			return name, tags, nil
-		case 0:
-			return "", nil, errEmptyTagValue
 		}
 
 		tags[key] = string(buf[:n])
