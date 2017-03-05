@@ -41,6 +41,11 @@ var (
 	emptyPolicy            Policy
 	emptyVersionedPolicies VersionedPolicies
 
+	// UninitializedVersionedPolicies ia an uninitialized VersionedPolicies struct
+	UninitializedVersionedPolicies = VersionedPolicies{
+		Version: InitPolicyVersion,
+	}
+
 	// DefaultVersionedPolicies are the default versioned policies
 	DefaultVersionedPolicies = VersionedPolicies{
 		Version: DefaultPolicyVersion,
