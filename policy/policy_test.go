@@ -32,34 +32,13 @@ import (
 
 func TestPoliciesByResolutionAsc(t *testing.T) {
 	inputs := []Policy{
-		{
-			Resolution: Resolution{Window: 10 * time.Second, Precision: xtime.Second},
-			Retention:  Retention(6 * time.Hour),
-		},
-		{
-			Resolution: Resolution{Window: 10 * time.Second, Precision: xtime.Second},
-			Retention:  Retention(2 * time.Hour),
-		},
-		{
-			Resolution: Resolution{Window: 10 * time.Second, Precision: xtime.Second},
-			Retention:  Retention(12 * time.Hour),
-		},
-		{
-			Resolution: Resolution{Window: 5 * time.Minute, Precision: xtime.Minute},
-			Retention:  Retention(48 * time.Hour),
-		},
-		{
-			Resolution: Resolution{Window: time.Minute, Precision: xtime.Minute},
-			Retention:  Retention(time.Hour),
-		},
-		{
-			Resolution: Resolution{Window: time.Minute, Precision: xtime.Minute},
-			Retention:  Retention(24 * time.Hour),
-		},
-		{
-			Resolution: Resolution{Window: 10 * time.Minute, Precision: xtime.Minute},
-			Retention:  Retention(48 * time.Hour),
-		},
+		NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+		NewPolicy(10*time.Second, xtime.Second, 2*time.Hour),
+		NewPolicy(10*time.Second, xtime.Second, 12*time.Hour),
+		NewPolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
+		NewPolicy(time.Minute, xtime.Minute, time.Hour),
+		NewPolicy(time.Minute, xtime.Minute, 24*time.Hour),
+		NewPolicy(10*time.Minute, xtime.Minute, 48*time.Hour),
 	}
 	expected := []Policy{inputs[2], inputs[0], inputs[1], inputs[5], inputs[4], inputs[3], inputs[6]}
 	sort.Sort(ByResolutionAsc(inputs))
@@ -83,14 +62,8 @@ func TestCustomVersionedPolicies(t *testing.T) {
 		version  = 2
 		cutover  = time.Now()
 		policies = []Policy{
-			{
-				Resolution: Resolution{Window: 10 * time.Second, Precision: xtime.Second},
-				Retention:  Retention(6 * time.Hour),
-			},
-			{
-				Resolution: Resolution{Window: 10 * time.Second, Precision: xtime.Second},
-				Retention:  Retention(2 * time.Hour),
-			},
+			NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+			NewPolicy(10*time.Second, xtime.Second, 2*time.Hour),
 		}
 	)
 	vp := CustomVersionedPolicies(version, cutover, policies)
