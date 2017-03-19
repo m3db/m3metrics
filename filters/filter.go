@@ -41,9 +41,9 @@ const (
 	Conjunction LogicalOp = "&&"
 	// Disjunction is logical OR
 	Disjunction LogicalOp = "||"
-	// WildcardChar is the wildcard character
-	WildcardChar = "*"
 
+	wildcardChar   = "*"
+	negationChar   = '!'
 	allowFilterStr = "All"
 )
 
@@ -56,11 +56,30 @@ type Filter interface {
 }
 
 // NewFilter supports startsWith, endsWith, contains and a single wildcard
-// TODO(martinm): add rest of glob matching support and negation
+// along with negation
+// TODO(martinm): add rest of glob matching support
 func NewFilter(pattern string) (Filter, error) {
-	idx := strings.Index(pattern, WildcardChar)
+	if len(pattern) == 0 || pattern[0] != negationChar {
+		return newFilter(pattern)
+	}
 
-	if idx == -1 {
+	if len(pattern) == 1 {
+		// only negation symbol
+		return nil, errInvalidFilterPattern
+	}
+
+	filter, err := newFilter(pattern[1:])
+	if err != nil {
+		return nil, err
+	}
+
+	return newNegationFilter(filter), nil
+}
+
+func newFilter(pattern string) (Filter, error) {
+	wIdx := strings.Index(pattern, wildcardChar)
+
+	if wIdx == -1 {
 		// No wildcards
 		return newEqualityFilter(pattern), nil
 	}
@@ -70,24 +89,24 @@ func NewFilter(pattern string) (Filter, error) {
 		return newAllowFilter(), nil
 	}
 
-	if idx == len(pattern)-1 {
+	if wIdx == len(pattern)-1 {
 		// Wildcard at end
 		return newStartsWithFilter(pattern[:len(pattern)-1]), nil
 	}
 
-	secondIdx := strings.Index(pattern[idx+1:], WildcardChar)
-	if secondIdx == -1 {
-		if idx == 0 {
+	secondWIdx := strings.Index(pattern[wIdx+1:], wildcardChar)
+	if secondWIdx == -1 {
+		if wIdx == 0 {
 			return newEndsWithFilter(pattern[1:]), nil
 		}
 
-		return newMultiFilter([]Filter{
-			newStartsWithFilter(pattern[:idx]),
-			newEndsWithFilter(pattern[idx+1:]),
+		return NewMultiFilter([]Filter{
+			newStartsWithFilter(pattern[:wIdx]),
+			newEndsWithFilter(pattern[wIdx+1:]),
 		}, Conjunction), nil
 	}
 
-	if idx == 0 && secondIdx == len(pattern)-2 && len(pattern) > 2 {
+	if wIdx == 0 && secondWIdx == len(pattern)-2 && len(pattern) > 2 {
 		return newContainsFilter(pattern[1 : len(pattern)-1]), nil
 	}
 
@@ -169,13 +188,32 @@ func (f *containsFilter) Matches(val string) bool {
 	return strings.Contains(val, f.pattern)
 }
 
+// negationFilter is a filter that matches the opposite of the provided filter
+type negationFilter struct {
+	filter Filter
+}
+
+func newNegationFilter(filter Filter) Filter {
+	return &negationFilter{filter: filter}
+}
+
+func (f *negationFilter) String() string {
+	return "Not(" + f.filter.String() + ")"
+}
+
+func (f *negationFilter) Matches(val string) bool {
+	return !f.filter.Matches(val)
+}
+
 // multiFilter chains multiple filters together with a logicalOp
 type multiFilter struct {
 	filters []Filter
 	op      LogicalOp
 }
 
-func newMultiFilter(filters []Filter, op LogicalOp) Filter {
+// NewMultiFilter returns a filter that chains multiple filters together
+// using a LogicalOp
+func NewMultiFilter(filters []Filter, op LogicalOp) Filter {
 	return &multiFilter{filters: filters, op: op}
 }
 
