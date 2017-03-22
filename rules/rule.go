@@ -90,16 +90,13 @@ func (t RollupTarget) clone() RollupTarget {
 	}
 }
 
-var defaultMatchResult MatchResult
-
-// MatchResult contains the list of mapping policies and rollup results applicable to a metric
+// MatchResult represents a match result
 type MatchResult struct {
+	Version  int
+	Cutover  time.Time
 	Mappings []policy.Policy
 	Rollups  []RollupTarget
 }
-
-// HasPolicies returns whether the match result has matching policies
-func (r MatchResult) HasPolicies() bool { return len(r.Mappings) > 0 }
 
 // RuleSet is a set of rules associated with a namespace
 type RuleSet interface {
@@ -111,6 +108,9 @@ type RuleSet interface {
 
 	// Cutover returns when the ruleset takes effect
 	Cutover() time.Time
+
+	// TombStoned returns whether the ruleset is tombstoned
+	TombStoned() bool
 
 	// Match matches the set of rules against a metric id, returning
 	// the applicable mapping policies and rollup policies
@@ -215,12 +215,18 @@ func NewRuleSet(rs *schema.RuleSet, iterFn filters.NewSortedTagIteratorFn) (Rule
 func (rs *ruleSet) Namespace() string  { return rs.namespace }
 func (rs *ruleSet) Version() int       { return rs.version }
 func (rs *ruleSet) Cutover() time.Time { return rs.cutover }
+func (rs *ruleSet) TombStoned() bool   { return rs.tombStoned }
 
 func (rs *ruleSet) Match(id string) MatchResult {
 	if rs.tombStoned {
-		return defaultMatchResult
+		return MatchResult{
+			Version: rs.version,
+			Cutover: rs.cutover,
+		}
 	}
 	return MatchResult{
+		Version:  rs.version,
+		Cutover:  rs.cutover,
 		Mappings: rs.mappingPolicies(id),
 		Rollups:  rs.rollupTargets(id),
 	}
