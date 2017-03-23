@@ -114,7 +114,7 @@ type RuleSet interface {
 
 	// Match matches the set of rules against a metric id, returning
 	// the applicable mapping policies and rollup policies
-	Match(id string) MatchResult
+	Match(id []byte) MatchResult
 }
 
 // mappingRule defines a rule such that if a metric matches the provided filters,
@@ -216,7 +216,7 @@ func (rs *ruleSet) Namespace() string  { return rs.namespace }
 func (rs *ruleSet) Version() int       { return rs.version }
 func (rs *ruleSet) Cutover() time.Time { return rs.cutover }
 
-func (rs *ruleSet) Match(id string) MatchResult {
+func (rs *ruleSet) Match(id []byte) MatchResult {
 	if rs.tombStoned {
 		return defaultMatchResult
 	}
@@ -226,7 +226,7 @@ func (rs *ruleSet) Match(id string) MatchResult {
 	}
 }
 
-func (rs *ruleSet) mappingPolicies(id string) []policy.Policy {
+func (rs *ruleSet) mappingPolicies(id []byte) []policy.Policy {
 	var policies []policy.Policy
 	for _, rule := range rs.mappingRules {
 		if rule.filter.Matches(id) {
@@ -236,7 +236,7 @@ func (rs *ruleSet) mappingPolicies(id string) []policy.Policy {
 	return resolvePolicies(policies)
 }
 
-func (rs *ruleSet) rollupTargets(id string) []RollupTarget {
+func (rs *ruleSet) rollupTargets(id []byte) []RollupTarget {
 	var rollups []RollupTarget
 	for _, rule := range rs.rollupRules {
 		if !rule.filter.Matches(id) {

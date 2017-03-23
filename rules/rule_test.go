@@ -363,7 +363,7 @@ func TestRuleSetMatchMappingRules(t *testing.T) {
 		},
 	}
 	for _, input := range inputs {
-		res := ruleSet.Match(input.id)
+		res := ruleSet.Match([]byte(input.id))
 		require.Equal(t, input.result, res.Mappings)
 	}
 }
@@ -411,7 +411,7 @@ func TestRuleSetMatchRollupRules(t *testing.T) {
 		},
 	}
 	for _, input := range inputs {
-		res := ruleSet.Match(input.id)
+		res := ruleSet.Match([]byte(input.id))
 		require.Equal(t, input.result, res.Rollups)
 	}
 }
@@ -426,5 +426,5 @@ func TestTombstonedRuleSetMatch(t *testing.T) {
 	require.NoError(t, err)
 
 	id := "rtagName1=rtagValue1"
-	require.Equal(t, defaultMatchResult, ruleSet.Match(id))
+	require.Equal(t, defaultMatchResult, ruleSet.Match([]byte(id)))
 }
