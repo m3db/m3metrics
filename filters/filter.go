@@ -74,9 +74,11 @@ type Filter interface {
 }
 
 // NewFilter supports startsWith, endsWith, contains and a single wildcard
-// along with negation and glob matching support
-// TODO(martinm): Provide more detailed error messages
+// along with negation and glob matching support.
+// NOTE: Currently only supports ASCII matching and has zero compatibility
+// with UTF8 so you should make sure all matches are done against ASCII only.
 func NewFilter(pattern []byte) (Filter, error) {
+	// TODO(martinm): Provide more detailed error messages
 	if len(pattern) == 0 {
 		return newEqualityFilter(pattern), nil
 	}
@@ -102,8 +104,6 @@ func NewFilter(pattern []byte) (Filter, error) {
 // on wildcards, creating a rangeFilter for each segment
 func newWildcardFilter(pattern []byte) (Filter, error) {
 	wIdx := bytes.IndexRune(pattern, wildcardChar)
-
-	// TODO(r): use utf8 to take into account size of rune in byte slice
 
 	if wIdx == -1 {
 		// No wildcards

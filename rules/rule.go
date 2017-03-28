@@ -345,12 +345,6 @@ func (rs *ruleSet) rollupResults(id []byte) []RollupResult {
 	return rs.toRollupResults(id, rollups)
 }
 
-type matchedValue struct {
-	name    []byte
-	value   []byte
-	matched bool
-}
-
 // toRollupResults encodes rollup target name and values into ids for each rollup target
 func (rs *ruleSet) toRollupResults(id []byte, targets []RollupTarget) []RollupResult {
 	// NB(r): This is n^2 however this should be quite fast still as
