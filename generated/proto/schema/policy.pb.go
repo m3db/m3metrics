@@ -35,9 +35,12 @@ It has these top-level messages:
 	Policy
 	Policies
 	MappingRule
+	MappingRuleChanges
 	RollupTarget
 	RollupRule
+	RollupRuleChanges
 	RuleSet
+	Namespace
 	Namespaces
 */
 package schema

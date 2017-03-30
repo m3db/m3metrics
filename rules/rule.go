@@ -36,59 +36,6 @@ var (
 	emptyRollupRule   rollupRule
 )
 
-// RollupTarget dictates how to roll up metrics. Metrics associated with a rollup
-// target will be grouped and rolled up across the provided set of tags, named
-// with the provided name, and aggregated and retained under the provided policies
-type RollupTarget struct {
-	Name     []byte          // name of the rollup metric
-	Tags     [][]byte        // a set of sorted tags rollups are performed on
-	Policies []policy.Policy // defines how the rollup metric is aggregated and retained
-}
-
-func newRollupTarget(target *schema.RollupTarget) (RollupTarget, error) {
-	policies, err := policy.NewPoliciesFromSchema(target.Policies)
-	if err != nil {
-		return emptyRollupTarget, err
-	}
-
-	tags := make([]string, len(target.Tags))
-	copy(tags, target.Tags)
-	sort.Strings(tags)
-
-	return RollupTarget{
-		Name:     []byte(target.Name),
-		Tags:     bytesArrayFromStringArray(tags),
-		Policies: policies,
-	}, nil
-}
-
-// sameTransform determines whether two targets have the same transformation
-func (t RollupTarget) sameTransform(other RollupTarget) bool {
-	if !bytes.Equal(t.Name, other.Name) {
-		return false
-	}
-	if len(t.Tags) != len(other.Tags) {
-		return false
-	}
-	for i := 0; i < len(t.Tags); i++ {
-		if !bytes.Equal(t.Tags[i], other.Tags[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-// clone clones a rollup target
-func (t RollupTarget) clone() RollupTarget {
-	policies := make([]policy.Policy, len(t.Policies))
-	copy(policies, t.Policies)
-	return RollupTarget{
-		Name:     t.Name,
-		Tags:     bytesArrayCopy(t.Tags),
-		Policies: policies,
-	}
-}
-
 func bytesArrayFromStringArray(values []string) [][]byte {
 	result := make([][]byte, len(values))
 	for i, str := range values {
@@ -182,30 +129,6 @@ type RuleSet interface {
 	// Match matches the set of rules against a metric id, returning
 	// the applicable mapping policies and rollup policies
 	Match(id []byte) MatchResult
-}
-
-// mappingRule defines a rule such that if a metric matches the provided filters,
-// it is aggregated and retained under the provided set of policies
-type mappingRule struct {
-	filter   filters.Filter  // used to select matching metrics
-	policies []policy.Policy // defines how the metrics should be aggregated and retained
-}
-
-func newMappingRule(r *schema.MappingRule, iterfn filters.NewSortedTagIteratorFn) (mappingRule, error) {
-	policies, err := policy.NewPoliciesFromSchema(r.Policies)
-	if err != nil {
-		return emptyMappingRule, err
-	}
-
-	filter, err := filters.NewTagsFilter(r.TagFilters, iterfn, filters.Conjunction)
-	if err != nil {
-		return emptyMappingRule, err
-	}
-
-	return mappingRule{
-		filter:   filter,
-		policies: policies,
-	}, nil
 }
 
 // rollupRule defines a rule such that if a metric matches the provided filters,
