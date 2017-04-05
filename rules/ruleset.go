@@ -53,30 +53,30 @@ type Matcher interface {
 }
 
 type activeRuleSet struct {
-	version            int
-	iterFn             filters.NewSortedTagIteratorFn
-	newIDFn            NewIDFn
-	mappingRuleChanges []*mappingRuleChanges
-	rollupRuleChanges  []*rollupRuleChanges
-	cutoverTimesAsc    []int64
+	version         int
+	iterFn          filters.NewSortedTagIteratorFn
+	newIDFn         NewIDFn
+	mappingRules    []*mappingRule
+	rollupRules     []*rollupRule
+	cutoverTimesAsc []int64
 }
 
 func newActiveRuleSet(
 	version int,
 	iterFn filters.NewSortedTagIteratorFn,
 	newIDFn NewIDFn,
-	mappingRuleChanges []*mappingRuleChanges,
-	rollupRuleChanges []*rollupRuleChanges,
+	mappingRules []*mappingRule,
+	rollupRules []*rollupRule,
 ) *activeRuleSet {
 	uniqueCutoverTimes := make(map[int64]struct{})
-	for _, ruleChanges := range mappingRuleChanges {
-		for _, rule := range ruleChanges.changes {
-			uniqueCutoverTimes[rule.cutoverNs] = struct{}{}
+	for _, mappingRule := range mappingRules {
+		for _, snapshot := range mappingRule.snapshots {
+			uniqueCutoverTimes[snapshot.cutoverNs] = struct{}{}
 		}
 	}
-	for _, ruleChanges := range rollupRuleChanges {
-		for _, rule := range ruleChanges.changes {
-			uniqueCutoverTimes[rule.cutoverNs] = struct{}{}
+	for _, rollupRule := range rollupRules {
+		for _, snapshot := range rollupRule.snapshots {
+			uniqueCutoverTimes[snapshot.cutoverNs] = struct{}{}
 		}
 	}
 
@@ -87,12 +87,12 @@ func newActiveRuleSet(
 	sort.Sort(int64Asc(cutoverTimeAsc))
 
 	return &activeRuleSet{
-		version:            version,
-		iterFn:             iterFn,
-		newIDFn:            newIDFn,
-		mappingRuleChanges: mappingRuleChanges,
-		rollupRuleChanges:  rollupRuleChanges,
-		cutoverTimesAsc:    cutoverTimeAsc,
+		version:         version,
+		iterFn:          iterFn,
+		newIDFn:         newIDFn,
+		mappingRules:    mappingRules,
+		rollupRules:     rollupRules,
+		cutoverTimesAsc: cutoverTimeAsc,
 	}
 }
 
@@ -113,18 +113,18 @@ func (as *activeRuleSet) matchMappings(id []byte, t time.Time) (int64, []policy.
 		cutoverNs int64
 		policies  []policy.Policy
 	)
-	for _, ruleChanges := range as.mappingRuleChanges {
-		rule := ruleChanges.ActiveRule(t)
-		if rule == nil {
+	for _, mappingRule := range as.mappingRules {
+		snapshot := mappingRule.ActiveSnapshot(t)
+		if snapshot == nil {
 			continue
 		}
-		if cutoverNs < rule.cutoverNs {
-			cutoverNs = rule.cutoverNs
+		if cutoverNs < snapshot.cutoverNs {
+			cutoverNs = snapshot.cutoverNs
 		}
-		if !rule.filter.Matches(id) {
+		if !snapshot.filter.Matches(id) {
 			continue
 		}
-		policies = append(policies, rule.policies...)
+		policies = append(policies, snapshot.policies...)
 	}
 	return cutoverNs, resolvePolicies(policies)
 }
@@ -135,18 +135,18 @@ func (as *activeRuleSet) matchRollups(id []byte, t time.Time) (int64, []rollupRe
 		cutoverNs int64
 		rollups   []rollupTarget
 	)
-	for _, ruleChanges := range as.rollupRuleChanges {
-		rule := ruleChanges.ActiveRule(t)
-		if rule == nil {
+	for _, rollupRule := range as.rollupRules {
+		snapshot := rollupRule.ActiveSnapshot(t)
+		if snapshot == nil {
 			continue
 		}
-		if !rule.filter.Matches(id) {
+		if !snapshot.filter.Matches(id) {
 			continue
 		}
-		if cutoverNs < rule.cutoverNs {
-			cutoverNs = rule.cutoverNs
+		if cutoverNs < snapshot.cutoverNs {
+			cutoverNs = snapshot.cutoverNs
 		}
-		for _, target := range rule.targets {
+		for _, target := range snapshot.targets {
 			found := false
 			// If the new target has the same transformation as an existing one,
 			// we merge their policies.
@@ -244,17 +244,17 @@ type RuleSet interface {
 }
 
 type ruleSet struct {
-	uuid               string
-	version            int
-	namespace          string
-	createdAtNs        int64
-	lastUpdatedAtNs    int64
-	tombStoned         bool
-	cutoverNs          int64
-	iterFn             filters.NewSortedTagIteratorFn
-	newIDFn            NewIDFn
-	mappingRuleChanges []*mappingRuleChanges
-	rollupRuleChanges  []*rollupRuleChanges
+	uuid            string
+	version         int
+	namespace       string
+	createdAtNs     int64
+	lastUpdatedAtNs int64
+	tombStoned      bool
+	cutoverNs       int64
+	iterFn          filters.NewSortedTagIteratorFn
+	newIDFn         NewIDFn
+	mappingRules    []*mappingRule
+	rollupRules     []*rollupRule
 }
 
 // NewRuleSet creates a new ruleset
@@ -263,34 +263,34 @@ func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) 
 		return nil, errNilRuleSetSchema
 	}
 	iterFn := opts.NewSortedTagIteratorFn()
-	mappingRuleChanges := make([]*mappingRuleChanges, 0, len(rs.MappingRuleChanges))
-	for _, ruleChanges := range rs.MappingRuleChanges {
-		mc, err := newMappingRuleChanges(ruleChanges, iterFn)
+	mappingRules := make([]*mappingRule, 0, len(rs.MappingRules))
+	for _, rollupRule := range rs.MappingRules {
+		mc, err := newMappingRule(rollupRule, iterFn)
 		if err != nil {
 			return nil, err
 		}
-		mappingRuleChanges = append(mappingRuleChanges, mc)
+		mappingRules = append(mappingRules, mc)
 	}
-	rollupRuleChanges := make([]*rollupRuleChanges, 0, len(rs.RollupRuleChanges))
-	for _, ruleChanges := range rs.RollupRuleChanges {
-		rc, err := newRollupRuleChanges(ruleChanges, iterFn)
+	rollupRules := make([]*rollupRule, 0, len(rs.RollupRules))
+	for _, rollupRule := range rs.RollupRules {
+		rc, err := newRollupRule(rollupRule, iterFn)
 		if err != nil {
 			return nil, err
 		}
-		rollupRuleChanges = append(rollupRuleChanges, rc)
+		rollupRules = append(rollupRules, rc)
 	}
 	return &ruleSet{
-		uuid:               rs.Uuid,
-		version:            version,
-		namespace:          rs.Namespace,
-		createdAtNs:        rs.CreatedAt,
-		lastUpdatedAtNs:    rs.LastUpdatedAt,
-		tombStoned:         rs.Tombstoned,
-		cutoverNs:          rs.CutoverTime,
-		iterFn:             iterFn,
-		newIDFn:            opts.NewIDFn(),
-		mappingRuleChanges: mappingRuleChanges,
-		rollupRuleChanges:  rollupRuleChanges,
+		uuid:            rs.Uuid,
+		version:         version,
+		namespace:       rs.Namespace,
+		createdAtNs:     rs.CreatedAt,
+		lastUpdatedAtNs: rs.LastUpdatedAt,
+		tombStoned:      rs.Tombstoned,
+		cutoverNs:       rs.CutoverTime,
+		iterFn:          iterFn,
+		newIDFn:         opts.NewIDFn(),
+		mappingRules:    mappingRules,
+		rollupRules:     rollupRules,
 	}, nil
 }
 
@@ -300,17 +300,17 @@ func (rs *ruleSet) CutoverNs() int64  { return rs.cutoverNs }
 func (rs *ruleSet) TombStoned() bool  { return rs.tombStoned }
 
 func (rs *ruleSet) ActiveSet(t time.Time) Matcher {
-	mappingRuleChanges := make([]*mappingRuleChanges, 0, len(rs.mappingRuleChanges))
-	for _, ruleChanges := range rs.mappingRuleChanges {
-		activeRules := ruleChanges.ActiveRules(t)
-		mappingRuleChanges = append(mappingRuleChanges, activeRules)
+	mappingRules := make([]*mappingRule, 0, len(rs.mappingRules))
+	for _, mappingRule := range rs.mappingRules {
+		activeRule := mappingRule.ActiveRule(t)
+		mappingRules = append(mappingRules, activeRule)
 	}
-	rollupRuleChanges := make([]*rollupRuleChanges, 0, len(rs.rollupRuleChanges))
-	for _, ruleChanges := range rs.rollupRuleChanges {
-		activeRules := ruleChanges.ActiveRules(t)
-		rollupRuleChanges = append(rollupRuleChanges, activeRules)
+	rollupRules := make([]*rollupRule, 0, len(rs.rollupRules))
+	for _, rollupRule := range rs.rollupRules {
+		activeRule := rollupRule.ActiveRule(t)
+		rollupRules = append(rollupRules, activeRule)
 	}
-	return newActiveRuleSet(rs.version, rs.iterFn, rs.newIDFn, mappingRuleChanges, rollupRuleChanges)
+	return newActiveRuleSet(rs.version, rs.iterFn, rs.newIDFn, mappingRules, rollupRules)
 }
 
 // resolvePolicies resolves the conflicts among policies if any, following the rules below:

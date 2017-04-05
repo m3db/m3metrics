@@ -34,9 +34,9 @@ import (
 var (
 	emptyRollupTarget rollupTarget
 
-	errNilRollupTargetSchema      = errors.New("nil rollup target schema")
-	errNilRollupRuleSchema        = errors.New("nil rollup rule schema")
-	errNilRollupRuleChangesSchema = errors.New("nil rollup rule changes schema")
+	errNilRollupTargetSchema       = errors.New("nil rollup target schema")
+	errNilRollupRuleSnapshotSchema = errors.New("nil rollup rule snapshot schema")
+	errNilRollupRuleSchema         = errors.New("nil rollup rule schema")
 )
 
 // rollupTarget dictates how to roll up metrics. Metrics associated with a rollup
@@ -93,9 +93,9 @@ func (t *rollupTarget) clone() rollupTarget {
 	}
 }
 
-// rollupRule defines a rule such that if a metric matches the provided filters,
-// it is rolled up using the provided list of rollup targets.
-type rollupRule struct {
+// rollupRuleSnapshot defines a rule snapshot such that if a metric matches the
+// provided filters, it is rolled up using the provided list of rollup targets.
+type rollupRuleSnapshot struct {
 	name       string
 	tombstoned bool
 	cutoverNs  int64
@@ -103,12 +103,12 @@ type rollupRule struct {
 	targets    []rollupTarget
 }
 
-func newRollupRule(
-	r *schema.RollupRule,
+func newRollupRuleSnapshot(
+	r *schema.RollupRuleSnapshot,
 	iterfn filters.NewSortedTagIteratorFn,
-) (*rollupRule, error) {
+) (*rollupRuleSnapshot, error) {
 	if r == nil {
-		return nil, errNilRollupRuleSchema
+		return nil, errNilRollupRuleSnapshotSchema
 	}
 	targets := make([]rollupTarget, 0, len(r.Targets))
 	for _, t := range r.Targets {
@@ -122,7 +122,7 @@ func newRollupRule(
 	if err != nil {
 		return nil, err
 	}
-	return &rollupRule{
+	return &rollupRuleSnapshot{
 		name:       r.Name,
 		tombstoned: r.Tombstoned,
 		cutoverNs:  r.CutoverTime,
@@ -131,57 +131,57 @@ func newRollupRule(
 	}, nil
 }
 
-// rollupRuleChanges stores rollup rule changes.
-type rollupRuleChanges struct {
-	uuid    string
-	changes []*rollupRule
+// rollupRule stores rollup rule snapshots.
+type rollupRule struct {
+	uuid      string
+	snapshots []*rollupRuleSnapshot
 }
 
-func newRollupRuleChanges(
-	mc *schema.RollupRuleChanges,
+func newRollupRule(
+	mc *schema.RollupRule,
 	iterfn filters.NewSortedTagIteratorFn,
-) (*rollupRuleChanges, error) {
+) (*rollupRule, error) {
 	if mc == nil {
-		return nil, errNilRollupRuleChangesSchema
+		return nil, errNilRollupRuleSchema
 	}
-	changes := make([]*rollupRule, 0, len(mc.Changes))
-	for i := 0; i < len(mc.Changes); i++ {
-		mr, err := newRollupRule(mc.Changes[i], iterfn)
+	snapshots := make([]*rollupRuleSnapshot, 0, len(mc.Snapshots))
+	for i := 0; i < len(mc.Snapshots); i++ {
+		mr, err := newRollupRuleSnapshot(mc.Snapshots[i], iterfn)
 		if err != nil {
 			return nil, err
 		}
-		changes = append(changes, mr)
+		snapshots = append(snapshots, mr)
 	}
-	return &rollupRuleChanges{
-		uuid:    mc.Uuid,
-		changes: changes,
+	return &rollupRule{
+		uuid:      mc.Uuid,
+		snapshots: snapshots,
 	}, nil
 }
 
-// ActiveRule returns the latest rule whose cutover time is earlier than or
-// equal to t, or nil if not found.
-func (rc *rollupRuleChanges) ActiveRule(t time.Time) *rollupRule {
+// ActiveSnapshot returns the latest rule snapshot whose cutover time is earlier
+// than or equal to t, or nil if not found.
+func (rc *rollupRule) ActiveSnapshot(t time.Time) *rollupRuleSnapshot {
 	idx := rc.activeIndex(t)
 	if idx < 0 {
 		return nil
 	}
-	return rc.changes[idx]
+	return rc.snapshots[idx]
 }
 
-// ActiveRules returns the rule that's in effect at time t and all future
-// rules after time t.
-func (rc *rollupRuleChanges) ActiveRules(t time.Time) *rollupRuleChanges {
+// ActiveRule returns the rule containing snapshots that's in effect at time t
+// and all future rules after time t.
+func (rc *rollupRule) ActiveRule(t time.Time) *rollupRule {
 	idx := rc.activeIndex(t)
 	if idx < 0 {
 		return rc
 	}
-	return &rollupRuleChanges{uuid: rc.uuid, changes: rc.changes[idx:]}
+	return &rollupRule{uuid: rc.uuid, snapshots: rc.snapshots[idx:]}
 }
 
-func (rc *rollupRuleChanges) activeIndex(t time.Time) int {
+func (rc *rollupRule) activeIndex(t time.Time) int {
 	target := t.UnixNano()
 	idx := 0
-	for idx < len(rc.changes) && rc.changes[idx].cutoverNs <= target {
+	for idx < len(rc.snapshots) && rc.snapshots[idx].cutoverNs <= target {
 		idx++
 	}
 	idx--

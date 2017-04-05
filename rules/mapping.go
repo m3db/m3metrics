@@ -30,13 +30,13 @@ import (
 )
 
 var (
-	errNilMappingRuleSchema        = errors.New("nil mapping rule schema")
-	errNilMappingRuleChangesSchema = errors.New("nil mapping rule changes schema")
+	errNilMappingRuleSnapshotSchema = errors.New("nil mapping rule snapshot schema")
+	errNilMappingRuleSchema         = errors.New("nil mapping rule schema")
 )
 
-// mappingRule defines a rule such that if a metric matches the provided filters,
-// it is aggregated and retained under the provided set of policies.
-type mappingRule struct {
+// mappingRuleSnapshot defines a rule snapshot such that if a metric matches the
+// provided filters, it is aggregated and retained under the provided set of policies.
+type mappingRuleSnapshot struct {
 	name       string
 	tombstoned bool
 	cutoverNs  int64
@@ -44,12 +44,12 @@ type mappingRule struct {
 	policies   []policy.Policy
 }
 
-func newMappingRule(
-	r *schema.MappingRule,
+func newMappingRuleSnapshot(
+	r *schema.MappingRuleSnapshot,
 	iterfn filters.NewSortedTagIteratorFn,
-) (*mappingRule, error) {
+) (*mappingRuleSnapshot, error) {
 	if r == nil {
-		return nil, errNilMappingRuleSchema
+		return nil, errNilMappingRuleSnapshotSchema
 	}
 	policies, err := policy.NewPoliciesFromSchema(r.Policies)
 	if err != nil {
@@ -59,7 +59,7 @@ func newMappingRule(
 	if err != nil {
 		return nil, err
 	}
-	return &mappingRule{
+	return &mappingRuleSnapshot{
 		name:       r.Name,
 		tombstoned: r.Tombstoned,
 		cutoverNs:  r.CutoverTime,
@@ -68,59 +68,59 @@ func newMappingRule(
 	}, nil
 }
 
-// mappingRuleChanges stores mapping rule changes.
-type mappingRuleChanges struct {
-	uuid    string
-	changes []*mappingRule
+// mappingRule stores mapping rule snapshots.
+type mappingRule struct {
+	uuid      string
+	snapshots []*mappingRuleSnapshot
 }
 
-func newMappingRuleChanges(
-	mc *schema.MappingRuleChanges,
+func newMappingRule(
+	mc *schema.MappingRule,
 	iterfn filters.NewSortedTagIteratorFn,
-) (*mappingRuleChanges, error) {
+) (*mappingRule, error) {
 	if mc == nil {
-		return nil, errNilMappingRuleChangesSchema
+		return nil, errNilMappingRuleSchema
 	}
-	changes := make([]*mappingRule, 0, len(mc.Changes))
-	for i := 0; i < len(mc.Changes); i++ {
-		mr, err := newMappingRule(mc.Changes[i], iterfn)
+	snapshots := make([]*mappingRuleSnapshot, 0, len(mc.Snapshots))
+	for i := 0; i < len(mc.Snapshots); i++ {
+		mr, err := newMappingRuleSnapshot(mc.Snapshots[i], iterfn)
 		if err != nil {
 			return nil, err
 		}
-		changes = append(changes, mr)
+		snapshots = append(snapshots, mr)
 	}
-	return &mappingRuleChanges{
-		uuid:    mc.Uuid,
-		changes: changes,
+	return &mappingRule{
+		uuid:      mc.Uuid,
+		snapshots: snapshots,
 	}, nil
 }
 
-// ActiveRule returns the latest rule whose cutover time is earlier than or
+// ActiveSnapshot returns the latest snapshot whose cutover time is earlier than or
 // equal to t, or nil if not found.
-func (mc *mappingRuleChanges) ActiveRule(t time.Time) *mappingRule {
+func (mc *mappingRule) ActiveSnapshot(t time.Time) *mappingRuleSnapshot {
 	idx := mc.activeIndex(t)
 	if idx < 0 {
 		return nil
 	}
-	return mc.changes[idx]
+	return mc.snapshots[idx]
 }
 
-// ActiveRules returns the rule that's in effect at time t and all future
-// rules after time t.
-func (mc *mappingRuleChanges) ActiveRules(t time.Time) *mappingRuleChanges {
+// ActiveRule returns the rule containing snapshots that's in effect at time t and
+// all future snapshots after time t.
+func (mc *mappingRule) ActiveRule(t time.Time) *mappingRule {
 	idx := mc.activeIndex(t)
-	// If there are no rules that are currently in effect, it means either all
-	// rules are in the future, or there are no rules.
+	// If there are no snapshots that are currently in effect, it means either all
+	// snapshots are in the future, or there are no snapshots.
 	if idx < 0 {
 		return mc
 	}
-	return &mappingRuleChanges{uuid: mc.uuid, changes: mc.changes[idx:]}
+	return &mappingRule{uuid: mc.uuid, snapshots: mc.snapshots[idx:]}
 }
 
-func (mc *mappingRuleChanges) activeIndex(t time.Time) int {
+func (mc *mappingRule) activeIndex(t time.Time) int {
 	target := t.UnixNano()
 	idx := 0
-	for idx < len(mc.changes) && mc.changes[idx].cutoverNs <= target {
+	for idx < len(mc.snapshots) && mc.snapshots[idx].cutoverNs <= target {
 		idx++
 	}
 	idx--

@@ -34,11 +34,11 @@ It has these top-level messages:
 	Retention
 	Policy
 	Policies
+	MappingRuleSnapshot
 	MappingRule
-	MappingRuleChanges
 	RollupTarget
+	RollupRuleSnapshot
 	RollupRule
-	RollupRuleChanges
 	RuleSet
 	Namespace
 	Namespaces

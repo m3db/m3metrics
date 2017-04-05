@@ -20,19 +20,6 @@
 
 package rules
 
-import (
-	"bytes"
-	"testing"
-	"time"
-
-	"github.com/m3db/m3metrics/filters"
-	"github.com/m3db/m3metrics/generated/proto/schema"
-	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3x/time"
-
-	"github.com/stretchr/testify/require"
-)
-
 func b(v string) []byte {
 	return []byte(v)
 }
@@ -45,6 +32,7 @@ func bs(v ...string) [][]byte {
 	return result
 }
 
+/*
 func TestRollupTargetSameTransform(t *testing.T) {
 	policies := []policy.Policy{
 		policy.NewPolicy(10*time.Second, xtime.Second, 2*24*time.Hour),
@@ -86,7 +74,6 @@ func TestRollupTargetClone(t *testing.T) {
 	require.Equal(t, target.Policies, policies)
 }
 
-/*
 func TestRuleSetMatchMappingRules(t *testing.T) {
 	ruleSetConfig := &schema.RuleSet{
 		Version:      1,
@@ -191,7 +178,6 @@ func TestTombstonedRuleSetMatch(t *testing.T) {
 	id := "rtagName1=rtagValue1"
 	require.Equal(t, expected, ruleSet.Match(b(id)))
 }
-*/
 
 type testRollupTargetData struct {
 	target rollupTarget
@@ -495,3 +481,4 @@ func testRollupRulesConfig() []*schema.RollupRule {
 		},
 	}
 }
+*/
