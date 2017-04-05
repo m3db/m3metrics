@@ -24,9 +24,9 @@ message RollupTarget {
 
 message RollupRule {
   string name = 1;
-  map<string,string> tag_filters = 2;
+  bool tombstoned = 2;
   int64 cutover_time = 3;
-  bool tombstoned = 4;
+  map<string,string> tag_filters = 4;
   repeated RollupTarget targets = 5;
 }
 
@@ -42,8 +42,8 @@ message RuleSet {
   int64 last_updated_at = 4;
   bool tombstoned = 5;
   int64 cutover_time = 6;
-  repeated MappingRuleChanges mapping_rules = 7;
-  repeated RollupRuleChanges rollup_rules = 8;
+  repeated MappingRuleChanges mapping_rule_changes = 7;
+  repeated RollupRuleChanges rollup_rule_changes = 8;
 }
 
 message Namespace {
