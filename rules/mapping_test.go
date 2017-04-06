@@ -171,9 +171,5 @@ func TestMappingRuleActiveRuleFound_Second(t *testing.T) {
 func TestMappingRuleActiveRuleFound_First(t *testing.T) {
 	mr, err := newMappingRule(testMappingRuleSchema, nil)
 	require.NoError(t, err)
-	expected := &mappingRule{
-		uuid:      mr.uuid,
-		snapshots: mr.snapshots,
-	}
-	require.Equal(t, expected, mr.ActiveRule(20000))
+	require.Equal(t, mr, mr.ActiveRule(20000))
 }
