@@ -32,12 +32,12 @@ import (
 	"github.com/m3db/m3metrics/policy"
 )
 
+const (
+	timeNsMax = int64(math.MaxInt64)
+)
+
 var (
 	errNilRuleSetSchema = errors.New("nil rule set schema")
-
-	// timeMax is the maximum time value for which time.Before() and
-	// time.After() still work.
-	timeMax = time.Unix(1<<63-62135596801, 999999999).UnixNano()
 )
 
 // TagPair contains a tag name and a tag value.
@@ -97,46 +97,50 @@ func newActiveRuleSet(
 }
 
 func (as *activeRuleSet) Match(id []byte, t time.Time) MatchResult {
-	mappingCutoverNs, mappingPolicies := as.matchMappings(id, t)
-	rollupCutoverNs, rollupResults := as.matchRollups(id, t)
+	timeNs := t.UnixNano()
+	mappingCutoverNs, mappingPolicies := as.matchMappings(id, timeNs)
+	rollupCutoverNs, rollupResults := as.matchRollups(id, timeNs)
 
 	// NB(xichen): we take the latest cutover time across all rules matched. This is
 	// used to determine whether the match result is valid for a given time.
 	cutoverNs := int64(math.Max(float64(mappingCutoverNs), float64(rollupCutoverNs)))
-	expireAtNs := as.nextCutover(cutoverNs)
+
+	// The result expires when it reaches the first cutover time after t among all
+	// active rules because the metric may then be matched against a different set of rules.
+	expireAtNs := as.nextCutover(timeNs)
 	return newMatchResult(as.version, cutoverNs, expireAtNs, mappingPolicies, rollupResults)
 }
 
-func (as *activeRuleSet) matchMappings(id []byte, t time.Time) (int64, []policy.Policy) {
+func (as *activeRuleSet) matchMappings(id []byte, timeNs int64) (int64, []policy.Policy) {
 	// TODO(xichen): pool the policies
 	var (
 		cutoverNs int64
 		policies  []policy.Policy
 	)
 	for _, mappingRule := range as.mappingRules {
-		snapshot := mappingRule.ActiveSnapshot(t)
+		snapshot := mappingRule.ActiveSnapshot(timeNs)
 		if snapshot == nil {
+			continue
+		}
+		if !snapshot.filter.Matches(id) {
 			continue
 		}
 		if cutoverNs < snapshot.cutoverNs {
 			cutoverNs = snapshot.cutoverNs
-		}
-		if !snapshot.filter.Matches(id) {
-			continue
 		}
 		policies = append(policies, snapshot.policies...)
 	}
 	return cutoverNs, resolvePolicies(policies)
 }
 
-func (as *activeRuleSet) matchRollups(id []byte, t time.Time) (int64, []rollupResult) {
+func (as *activeRuleSet) matchRollups(id []byte, timeNs int64) (int64, []rollupResult) {
 	// TODO(xichen): pool the rollup targets.
 	var (
 		cutoverNs int64
 		rollups   []rollupTarget
 	)
 	for _, rollupRule := range as.rollupRules {
-		snapshot := rollupRule.ActiveSnapshot(t)
+		snapshot := rollupRule.ActiveSnapshot(timeNs)
 		if snapshot == nil {
 			continue
 		}
@@ -222,13 +226,13 @@ func (as *activeRuleSet) nextCutover(t int64) int64 {
 	if i < len(as.cutoverTimesAsc) {
 		return as.cutoverTimesAsc[i]
 	}
-	return timeMax
+	return timeNsMax
 }
 
 // RuleSet is a set of rules associated with a namespace.
 type RuleSet interface {
 	// Namespace is the metrics namespace the ruleset applies to.
-	Namespace() string
+	Namespace() []byte
 
 	// Version returns the ruleset version.
 	Version() int
@@ -246,10 +250,10 @@ type RuleSet interface {
 type ruleSet struct {
 	uuid            string
 	version         int
-	namespace       string
+	namespace       []byte
 	createdAtNs     int64
 	lastUpdatedAtNs int64
-	tombStoned      bool
+	tombstoned      bool
 	cutoverNs       int64
 	iterFn          filters.NewSortedTagIteratorFn
 	newIDFn         NewIDFn
@@ -282,10 +286,10 @@ func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) 
 	return &ruleSet{
 		uuid:            rs.Uuid,
 		version:         version,
-		namespace:       rs.Namespace,
+		namespace:       []byte(rs.Namespace),
 		createdAtNs:     rs.CreatedAt,
 		lastUpdatedAtNs: rs.LastUpdatedAt,
-		tombStoned:      rs.Tombstoned,
+		tombstoned:      rs.Tombstoned,
 		cutoverNs:       rs.CutoverTime,
 		iterFn:          iterFn,
 		newIDFn:         opts.NewIDFn(),
@@ -294,20 +298,21 @@ func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) 
 	}, nil
 }
 
-func (rs *ruleSet) Namespace() string { return rs.namespace }
+func (rs *ruleSet) Namespace() []byte { return rs.namespace }
 func (rs *ruleSet) Version() int      { return rs.version }
 func (rs *ruleSet) CutoverNs() int64  { return rs.cutoverNs }
-func (rs *ruleSet) TombStoned() bool  { return rs.tombStoned }
+func (rs *ruleSet) TombStoned() bool  { return rs.tombstoned }
 
 func (rs *ruleSet) ActiveSet(t time.Time) Matcher {
+	timeNs := t.UnixNano()
 	mappingRules := make([]*mappingRule, 0, len(rs.mappingRules))
 	for _, mappingRule := range rs.mappingRules {
-		activeRule := mappingRule.ActiveRule(t)
+		activeRule := mappingRule.ActiveRule(timeNs)
 		mappingRules = append(mappingRules, activeRule)
 	}
 	rollupRules := make([]*rollupRule, 0, len(rs.rollupRules))
 	for _, rollupRule := range rs.rollupRules {
-		activeRule := rollupRule.ActiveRule(t)
+		activeRule := rollupRule.ActiveRule(timeNs)
 		rollupRules = append(rollupRules, activeRule)
 	}
 	return newActiveRuleSet(rs.version, rs.iterFn, rs.newIDFn, mappingRules, rollupRules)

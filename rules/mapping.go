@@ -22,7 +22,6 @@ package rules
 
 import (
 	"errors"
-	"time"
 
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
@@ -46,7 +45,7 @@ type mappingRuleSnapshot struct {
 
 func newMappingRuleSnapshot(
 	r *schema.MappingRuleSnapshot,
-	iterfn filters.NewSortedTagIteratorFn,
+	iterFn filters.NewSortedTagIteratorFn,
 ) (*mappingRuleSnapshot, error) {
 	if r == nil {
 		return nil, errNilMappingRuleSnapshotSchema
@@ -55,7 +54,7 @@ func newMappingRuleSnapshot(
 	if err != nil {
 		return nil, err
 	}
-	filter, err := filters.NewTagsFilter(r.TagFilters, iterfn, filters.Conjunction)
+	filter, err := filters.NewTagsFilter(r.TagFilters, iterFn, filters.Conjunction)
 	if err != nil {
 		return nil, err
 	}
@@ -76,14 +75,14 @@ type mappingRule struct {
 
 func newMappingRule(
 	mc *schema.MappingRule,
-	iterfn filters.NewSortedTagIteratorFn,
+	iterFn filters.NewSortedTagIteratorFn,
 ) (*mappingRule, error) {
 	if mc == nil {
 		return nil, errNilMappingRuleSchema
 	}
 	snapshots := make([]*mappingRuleSnapshot, 0, len(mc.Snapshots))
 	for i := 0; i < len(mc.Snapshots); i++ {
-		mr, err := newMappingRuleSnapshot(mc.Snapshots[i], iterfn)
+		mr, err := newMappingRuleSnapshot(mc.Snapshots[i], iterFn)
 		if err != nil {
 			return nil, err
 		}
@@ -96,19 +95,19 @@ func newMappingRule(
 }
 
 // ActiveSnapshot returns the latest snapshot whose cutover time is earlier than or
-// equal to t, or nil if not found.
-func (mc *mappingRule) ActiveSnapshot(t time.Time) *mappingRuleSnapshot {
-	idx := mc.activeIndex(t)
+// equal to timeNs, or nil if not found.
+func (mc *mappingRule) ActiveSnapshot(timeNs int64) *mappingRuleSnapshot {
+	idx := mc.activeIndex(timeNs)
 	if idx < 0 {
 		return nil
 	}
 	return mc.snapshots[idx]
 }
 
-// ActiveRule returns the rule containing snapshots that's in effect at time t and
-// all future snapshots after time t.
-func (mc *mappingRule) ActiveRule(t time.Time) *mappingRule {
-	idx := mc.activeIndex(t)
+// ActiveRule returns the rule containing snapshots that's in effect at time timeNs
+// and all future snapshots after time timeNs.
+func (mc *mappingRule) ActiveRule(timeNs int64) *mappingRule {
+	idx := mc.activeIndex(timeNs)
 	// If there are no snapshots that are currently in effect, it means either all
 	// snapshots are in the future, or there are no snapshots.
 	if idx < 0 {
@@ -117,10 +116,9 @@ func (mc *mappingRule) ActiveRule(t time.Time) *mappingRule {
 	return &mappingRule{uuid: mc.uuid, snapshots: mc.snapshots[idx:]}
 }
 
-func (mc *mappingRule) activeIndex(t time.Time) int {
-	target := t.UnixNano()
+func (mc *mappingRule) activeIndex(timeNs int64) int {
 	idx := 0
-	for idx < len(mc.snapshots) && mc.snapshots[idx].cutoverNs <= target {
+	for idx < len(mc.snapshots) && mc.snapshots[idx].cutoverNs <= timeNs {
 		idx++
 	}
 	idx--

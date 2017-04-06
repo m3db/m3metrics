@@ -24,7 +24,6 @@ import (
 	"bytes"
 	"errors"
 	"sort"
-	"time"
 
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
@@ -84,10 +83,12 @@ func (t *rollupTarget) sameTransform(other rollupTarget) bool {
 
 // clone clones a rollup target.
 func (t *rollupTarget) clone() rollupTarget {
+	name := make([]byte, len(t.Name))
+	copy(name, t.Name)
 	policies := make([]policy.Policy, len(t.Policies))
 	copy(policies, t.Policies)
 	return rollupTarget{
-		Name:     t.Name,
+		Name:     name,
 		Tags:     bytesArrayCopy(t.Tags),
 		Policies: policies,
 	}
@@ -105,7 +106,7 @@ type rollupRuleSnapshot struct {
 
 func newRollupRuleSnapshot(
 	r *schema.RollupRuleSnapshot,
-	iterfn filters.NewSortedTagIteratorFn,
+	iterFn filters.NewSortedTagIteratorFn,
 ) (*rollupRuleSnapshot, error) {
 	if r == nil {
 		return nil, errNilRollupRuleSnapshotSchema
@@ -118,7 +119,7 @@ func newRollupRuleSnapshot(
 		}
 		targets = append(targets, target)
 	}
-	filter, err := filters.NewTagsFilter(r.TagFilters, iterfn, filters.Conjunction)
+	filter, err := filters.NewTagsFilter(r.TagFilters, iterFn, filters.Conjunction)
 	if err != nil {
 		return nil, err
 	}
@@ -139,14 +140,14 @@ type rollupRule struct {
 
 func newRollupRule(
 	mc *schema.RollupRule,
-	iterfn filters.NewSortedTagIteratorFn,
+	iterFn filters.NewSortedTagIteratorFn,
 ) (*rollupRule, error) {
 	if mc == nil {
 		return nil, errNilRollupRuleSchema
 	}
 	snapshots := make([]*rollupRuleSnapshot, 0, len(mc.Snapshots))
 	for i := 0; i < len(mc.Snapshots); i++ {
-		mr, err := newRollupRuleSnapshot(mc.Snapshots[i], iterfn)
+		mr, err := newRollupRuleSnapshot(mc.Snapshots[i], iterFn)
 		if err != nil {
 			return nil, err
 		}
@@ -159,29 +160,28 @@ func newRollupRule(
 }
 
 // ActiveSnapshot returns the latest rule snapshot whose cutover time is earlier
-// than or equal to t, or nil if not found.
-func (rc *rollupRule) ActiveSnapshot(t time.Time) *rollupRuleSnapshot {
-	idx := rc.activeIndex(t)
+// than or equal to timeNs, or nil if not found.
+func (rc *rollupRule) ActiveSnapshot(timeNs int64) *rollupRuleSnapshot {
+	idx := rc.activeIndex(timeNs)
 	if idx < 0 {
 		return nil
 	}
 	return rc.snapshots[idx]
 }
 
-// ActiveRule returns the rule containing snapshots that's in effect at time t
-// and all future rules after time t.
-func (rc *rollupRule) ActiveRule(t time.Time) *rollupRule {
-	idx := rc.activeIndex(t)
+// ActiveRule returns the rule containing snapshots that's in effect at time timeNs
+// and all future rules after time timeNs.
+func (rc *rollupRule) ActiveRule(timeNs int64) *rollupRule {
+	idx := rc.activeIndex(timeNs)
 	if idx < 0 {
 		return rc
 	}
 	return &rollupRule{uuid: rc.uuid, snapshots: rc.snapshots[idx:]}
 }
 
-func (rc *rollupRule) activeIndex(t time.Time) int {
-	target := t.UnixNano()
+func (rc *rollupRule) activeIndex(timeNs int64) int {
 	idx := 0
-	for idx < len(rc.snapshots) && rc.snapshots[idx].cutoverNs <= target {
+	for idx < len(rc.snapshots) && rc.snapshots[idx].cutoverNs <= timeNs {
 		idx++
 	}
 	idx--

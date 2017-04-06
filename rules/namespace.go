@@ -36,7 +36,7 @@ var (
 
 // Namespace is a logical isolation unit for which rules are defined.
 type Namespace struct {
-	name       string
+	name       []byte
 	tombstoned bool
 	expireAtNs int64
 }
@@ -47,14 +47,14 @@ func newNameSpace(namespace *schema.Namespace) (Namespace, error) {
 		return emptyNamespace, errNilNamespaceSchema
 	}
 	return Namespace{
-		name:       namespace.Name,
+		name:       []byte(namespace.Name),
 		tombstoned: namespace.Tombstoned,
 		expireAtNs: namespace.ExpireAt,
 	}, nil
 }
 
 // Name is the name of the namespace.
-func (n *Namespace) Name() string { return n.name }
+func (n *Namespace) Name() []byte { return n.name }
 
 // Tombstoned determines whether the namespace has been tombstoned.
 func (n *Namespace) Tombstoned() bool { return n.tombstoned }
@@ -87,8 +87,8 @@ func NewNamespaces(version int, namespaces *schema.Namespaces) (Namespaces, erro
 	}, nil
 }
 
-// Namespaces returns the list of namespaces.
-func (nss Namespaces) Namespaces() []Namespace { return nss.namespaces }
-
 // Version returns the namespaces version.
 func (nss Namespaces) Version() int { return nss.version }
+
+// Namespaces returns the list of namespaces.
+func (nss Namespaces) Namespaces() []Namespace { return nss.namespaces }

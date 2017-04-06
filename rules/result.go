@@ -59,7 +59,7 @@ func newMatchResult(
 }
 
 // HasExpired returns whether the match result has expired for a given time.
-func (r *MatchResult) HasExpired(t time.Time) bool { return r.expireAtNs >= t.UnixNano() }
+func (r *MatchResult) HasExpired(t time.Time) bool { return r.expireAtNs <= t.UnixNano() }
 
 // NumRollups returns the number of rollup result associated with the given id.
 func (r *MatchResult) NumRollups() int { return len(r.rollups) }
