@@ -26,8 +26,8 @@ import (
 	"github.com/m3db/m3metrics/policy"
 )
 
-// rollupResult contains the rollup metric id and the associated policies.
-type rollupResult struct {
+// RollupResult contains the rollup metric id and the associated policies.
+type RollupResult struct {
 	ID       []byte
 	Policies []policy.Policy
 }
@@ -38,16 +38,16 @@ type MatchResult struct {
 	cutoverNs  int64
 	expireAtNs int64
 	mappings   []policy.Policy
-	rollups    []rollupResult
+	rollups    []RollupResult
 }
 
-// newMatchResult creates a new match result.
-func newMatchResult(
+// NewMatchResult creates a new match result.
+func NewMatchResult(
 	version int,
 	cutoverNs int64,
 	expireAtNs int64,
 	mappings []policy.Policy,
-	rollups []rollupResult,
+	rollups []RollupResult,
 ) MatchResult {
 	return MatchResult{
 		version:    version,
