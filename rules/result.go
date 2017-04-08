@@ -26,6 +26,11 @@ import (
 	"github.com/m3db/m3metrics/policy"
 )
 
+var (
+	// EmptyMatchResult is the result when no matches were found.
+	EmptyMatchResult = NewMatchResult(0, 0, timeNsMax, nil, nil)
+)
+
 // RollupResult contains the rollup metric id and the associated policies.
 type RollupResult struct {
 	ID       []byte
