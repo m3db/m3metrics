@@ -236,13 +236,14 @@ func TestUnaggregatedIteratorDecodeBatchTimerWithAllocPoolAlloc(t *testing.T) {
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 	bt := unaggregated.BatchTimer{
 		ID:     []byte("foo"),
-		Values: []float64{1.0, 2.0, 3.0, 4.0},
+		Values: []float64{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0},
 	}
 	enc.encodeBatchTimer(bt)
 	require.NoError(t, enc.err())
 
 	// Allocate a large enough buffer to avoid triggering an allocation.
 	it := testUnaggregatedIterator(t, enc.Encoder().Buffer()).(*unaggregatedIterator)
+	it.timerValues = nil
 	it.largeFloatsSize = 2
 	it.decodeBatchTimer()
 

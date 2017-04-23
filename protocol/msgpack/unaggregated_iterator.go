@@ -23,11 +23,16 @@ package msgpack
 import (
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/metric/unaggregated"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3x/pool"
+)
+
+const (
+	defaultInitTimerValuesCapacity = 16
 )
 
 // unaggregatedIterator uses MessagePack to decode different types of unaggregated metrics.
@@ -59,6 +64,7 @@ func NewUnaggregatedIterator(reader io.Reader, opts UnaggregatedIteratorOptions)
 		largeFloatsSize:     opts.LargeFloatsSize(),
 		largeFloatsPool:     opts.LargeFloatsPool(),
 		iteratorPool:        opts.IteratorPool(),
+		timerValues:         make([]float64, 0, defaultInitTimerValuesCapacity),
 	}
 	return it
 }
@@ -182,7 +188,11 @@ func (it *unaggregatedIterator) decodeBatchTimer() {
 		it.timerValues = it.timerValues[:0]
 		timerValues = it.timerValues
 	} else if numValues <= it.largeFloatsSize {
-		it.timerValues = make([]float64, 0, numValues)
+		newCapcity := int(math.Max(float64(numValues), float64(cap(it.timerValues)*2)))
+		if newCapcity > it.largeFloatsSize {
+			newCapcity = it.largeFloatsSize
+		}
+		it.timerValues = make([]float64, 0, newCapcity)
 		timerValues = it.timerValues
 	} else {
 		timerValues = it.largeFloatsPool.Get(numValues)

@@ -90,9 +90,9 @@ type GaugeWithPolicies struct {
 
 // MetricUnion is a union of different types of metrics, only one of which is valid
 // at any given time. The actual type of the metric depends on the type field,
-// which determines which value field is valid. We intentionally do not use value
-// pointers and nil checks to determine which type is valid in order to avoid the GC
-// overhead of marking and sweeping the metrics.
+// which determines which value field is valid. Note that if the timer values are
+// allocated from a pool, the TimerValPool should be set to the originating pool,
+// and the caller is responsible for returning the timer values to the pool.
 // NB(xichen): possibly use refcounting to replace explicit ownership tracking.
 type MetricUnion struct {
 	Type          Type
