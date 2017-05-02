@@ -50,7 +50,7 @@ type baseEncoderOptions struct {
 	compressor policy.Compressor
 }
 
-// NewBaseEncoderOptions creates a new set of base encoder options
+// NewBaseEncoderOptions creates a new set of base encoder options.
 func NewBaseEncoderOptions() BaseEncoderOptions {
 	return baseEncoderOptions{
 		compressor: policy.NewNoopCompressor(),
@@ -82,7 +82,7 @@ type baseIteratorOptions struct {
 	decompressor policy.Decompressor
 }
 
-// NewBaseIteratorOptions creates a new set of base iterator options
+// NewBaseIteratorOptions creates a new set of base iterator options.
 func NewBaseIteratorOptions() BaseIteratorOptions {
 	return baseIteratorOptions{
 		decompressor: policy.NewNoopDecompressor(),

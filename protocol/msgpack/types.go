@@ -221,11 +221,11 @@ type iteratorBase interface {
 // BaseIteratorOptions provide options for base iterators.
 type BaseIteratorOptions interface {
 	// SetPolicyDecompressionEnabled determines whether the iterator will attempt
-	// to decode policies that have been compressed
+	// to decode policies that have been compressed.
 	SetPolicyDecompressionEnabled(enabled bool) BaseIteratorOptions
 
 	// PolicyDecompressionEnabled returns whether the iterator will attempt to
-	// decode policies that have been compressed
+	// decode policies that have been compressed.
 	PolicyDecompressionEnabled() bool
 
 	// SetPolicyDecompressor sets the policy Decompressor that will be used to

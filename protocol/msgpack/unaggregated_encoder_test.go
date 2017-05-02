@@ -233,7 +233,7 @@ func TestUnaggregatedEncoderReset(t *testing.T) {
 }
 
 func TestUnaggregatedEncoderNilOptions(t *testing.T) {
-	// use constructor directly here to test nil options
+	// Use constructor directly here to test nil options.
 	encoder := NewUnaggregatedEncoder(NewBufferedEncoder(), nil).(*unaggregatedEncoder)
 	encoder.EncodeCounterWithPolicies(unaggregated.CounterWithPolicies{
 		Counter:           testCounter.Counter(),
@@ -301,7 +301,7 @@ func expectedResultsForPolicy(t *testing.T, p policy.Policy, o BaseEncoderOption
 func expectedResultsForUnaggregatedMetricWithPolicies(
 	t *testing.T,
 	m unaggregated.MetricUnion,
-	p policy.VersionedPolicies,
+	vp policy.VersionedPolicies,
 	o BaseEncoderOptions,
 ) []interface{} {
 	results := []interface{}{
@@ -341,20 +341,20 @@ func expectedResultsForUnaggregatedMetricWithPolicies(
 		require.Fail(t, fmt.Sprintf("unrecognized metric type %v", m.Type))
 	}
 
-	if p.IsDefault() {
+	if vp.IsDefault() {
 		results = append(results, []interface{}{
 			numFieldsForType(defaultVersionedPoliciesType),
 			int64(defaultVersionedPoliciesType),
-			int64(p.Version),
-			p.Cutover,
+			int64(vp.Version),
+			vp.Cutover,
 		}...)
 	} else {
-		policies := p.Policies()
+		policies := vp.Policies()
 		results = append(results, []interface{}{
 			numFieldsForType(customVersionedPoliciesType),
 			int64(customVersionedPoliciesType),
-			int64(p.Version),
-			p.Cutover,
+			int64(vp.Version),
+			vp.Cutover,
 			len(policies),
 		}...)
 		for _, p := range policies {

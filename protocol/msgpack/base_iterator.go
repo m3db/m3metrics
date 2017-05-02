@@ -73,9 +73,6 @@ func newBaseIterator(
 	}
 }
 
-// NB(xichen): if reader is not a bufio.Reader, a bytes.Reader,
-// or a bytes.Buffer, the underlying msgpack decoder creates a
-// bufio.Reader wrapping the reader every time Reset() is called.
 func (it *baseIterator) reset(reader io.Reader) {
 	bufReader := toBufReader(reader, it.readerBufferSize)
 	it.bufReader = bufReader
