@@ -163,7 +163,7 @@ func TestAggregatedEncoderReset(t *testing.T) {
 }
 
 func TestAggregatedEncoderNilOptions(t *testing.T) {
-	// use constructor directly here to test nil options
+	// Use constructor directly here to test nil options.
 	encoder := NewAggregatedEncoder(NewBufferedEncoder(), nil).(*aggregatedEncoder)
 	encoder.encodeMetricAsRaw(testMetric)
 	require.NoError(t, encoder.err())
