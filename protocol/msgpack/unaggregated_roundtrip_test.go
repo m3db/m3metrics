@@ -69,6 +69,8 @@ var (
 		},
 	)
 
+	testDefaultPolicies = testDefaultVersionedPolicies.Policies()
+
 	testVersionedPoliciesWithInvalidTimeUnit = policy.CustomVersionedPolicies(
 		1,
 		time.Now(),
@@ -92,6 +94,14 @@ var (
 		},
 	}
 
+	testCustomPolicies = []policy.Policy{
+		policy.NewPolicy(time.Second, xtime.Second, time.Hour),
+		policy.NewPolicy(20*time.Second, xtime.Second, 6*time.Hour),
+		policy.NewPolicy(time.Minute, xtime.Minute, 2*24*time.Hour),
+		policy.NewPolicy(10*time.Minute, xtime.Minute, 25*24*time.Hour),
+		policy.NewPolicy(10*time.Minute, xtime.Minute, 45*24*time.Hour),
+	}
+
 	testInputWithAllTypesAndCustomPolicies = []metricWithPolicies{
 		// Retain this metric at 20 second resolution for 6 hours,
 		// then 1 minute for 2 days, then 10 minutes for 25 days.
@@ -101,9 +111,9 @@ var (
 				2,
 				time.Now(),
 				[]policy.Policy{
-					policy.NewPolicy(20*time.Second, xtime.Second, 6*time.Hour),
-					policy.NewPolicy(time.Minute, xtime.Minute, 2*24*time.Hour),
-					policy.NewPolicy(10*time.Minute, xtime.Minute, 25*24*time.Hour),
+					testCustomPolicies[1],
+					testCustomPolicies[2],
+					testCustomPolicies[3],
 				},
 			),
 		},
@@ -114,7 +124,7 @@ var (
 				1,
 				time.Now(),
 				[]policy.Policy{
-					policy.NewPolicy(time.Second, xtime.Second, time.Hour),
+					testCustomPolicies[0],
 				},
 			),
 		},
@@ -125,74 +135,187 @@ var (
 				2,
 				time.Now(),
 				[]policy.Policy{
-					policy.NewPolicy(10*time.Minute, xtime.Minute, 45*24*time.Hour),
+					testCustomPolicies[4],
 				},
 			),
 		},
 	}
+
+	testCompressorDefaultPolicies         = newPolicyCompressor(testDefaultPolicies)
+	testDecompressorDefaultPolicies       = newPolicyDecompressor(testDefaultPolicies)
+	testDefaultPoliciesCompressionOptions = baseEncoderOptions{
+		enabled:    true,
+		compressor: testCompressorDefaultPolicies,
+	}
+	testDefaultPoliciesDecompressionOptions = baseIteratorOptions{
+		enabled:      true,
+		decompressor: testDecompressorDefaultPolicies,
+	}
+
+	testCompressorCustomPolicies         = newPolicyCompressor(testCustomPolicies)
+	testDecompressorCustomPolicies       = newPolicyDecompressor(testCustomPolicies)
+	testCustomPoliciesCompressionOptions = baseEncoderOptions{
+		enabled:    true,
+		compressor: testCompressorCustomPolicies,
+	}
+	testCustomPoliciesDecompressionOptions = baseIteratorOptions{
+		enabled:      true,
+		decompressor: testDecompressorCustomPolicies,
+	}
 )
 
 func TestUnaggregatedEncodeDecodeCounterWithDefaultPolicies(t *testing.T) {
-	validateUnaggregatedRoundtrip(t, metricWithPolicies{
+	m := metricWithPolicies{
 		metric:            testCounter,
 		versionedPolicies: testDefaultVersionedPolicies,
-	})
+	}
+
+	tests := []struct {
+		metricWithPolicies      metricWithPolicies
+		policyCompressionOpts   BaseEncoderOptions
+		policyDecompressionOpts BaseIteratorOptions
+	}{
+		{m, nil, nil},
+		{m, testDefaultPoliciesCompressionOptions, testDefaultPoliciesDecompressionOptions},
+	}
+
+	for _, test := range tests {
+		validateUnaggregatedRoundtrip(t, test.policyCompressionOpts, test.policyDecompressionOpts, test.metricWithPolicies)
+	}
 }
 
 func TestUnaggregatedEncodeDecodeBatchTimerWithDefaultPolicies(t *testing.T) {
-	validateUnaggregatedRoundtrip(t, metricWithPolicies{
+	m := metricWithPolicies{
 		metric:            testBatchTimer,
 		versionedPolicies: testDefaultVersionedPolicies,
-	})
+	}
+
+	tests := []struct {
+		metricWithPolicies      metricWithPolicies
+		policyCompressionOpts   BaseEncoderOptions
+		policyDecompressionOpts BaseIteratorOptions
+	}{
+		{m, nil, nil},
+		{m, testDefaultPoliciesCompressionOptions, testDefaultPoliciesDecompressionOptions},
+	}
+
+	for _, test := range tests {
+		validateUnaggregatedRoundtrip(t, test.policyCompressionOpts, test.policyDecompressionOpts, test.metricWithPolicies)
+	}
 }
 
 func TestUnaggregatedEncodeDecodeGaugeWithDefaultPolicies(t *testing.T) {
-	validateUnaggregatedRoundtrip(t, metricWithPolicies{
+	m := metricWithPolicies{
 		metric:            testGauge,
 		versionedPolicies: testDefaultVersionedPolicies,
-	})
+	}
+
+	tests := []struct {
+		metricWithPolicies      metricWithPolicies
+		policyCompressionOpts   BaseEncoderOptions
+		policyDecompressionOpts BaseIteratorOptions
+	}{
+		{m, nil, nil},
+		{m, testDefaultPoliciesCompressionOptions, testDefaultPoliciesDecompressionOptions},
+	}
+
+	for _, test := range tests {
+		validateUnaggregatedRoundtrip(t, test.policyCompressionOpts, test.policyDecompressionOpts, test.metricWithPolicies)
+	}
 }
 
 func TestUnaggregatedEncodeDecodeAllTypesWithDefaultPolicies(t *testing.T) {
-	validateUnaggregatedRoundtrip(t, testInputWithAllTypesAndDefaultPolicies...)
+	tests := []struct {
+		metricWithPolicies      []metricWithPolicies
+		policyCompressionOpts   BaseEncoderOptions
+		policyDecompressionOpts BaseIteratorOptions
+	}{
+		{testInputWithAllTypesAndDefaultPolicies, nil, nil},
+		{testInputWithAllTypesAndDefaultPolicies, testDefaultPoliciesCompressionOptions, testDefaultPoliciesDecompressionOptions},
+	}
+
+	for _, test := range tests {
+		validateUnaggregatedRoundtrip(t, test.policyCompressionOpts, test.policyDecompressionOpts, test.metricWithPolicies...)
+	}
 }
 
 func TestUnaggregatedEncodeDecodeAllTypesWithCustomPolicies(t *testing.T) {
-	validateUnaggregatedRoundtrip(t, testInputWithAllTypesAndCustomPolicies...)
+	tests := []struct {
+		metricWithPolicies      []metricWithPolicies
+		policyCompressionOpts   BaseEncoderOptions
+		policyDecompressionOpts BaseIteratorOptions
+	}{
+		{testInputWithAllTypesAndCustomPolicies, nil, nil},
+		{testInputWithAllTypesAndCustomPolicies, testCustomPoliciesCompressionOptions, testCustomPoliciesDecompressionOptions},
+	}
+
+	for _, test := range tests {
+		validateUnaggregatedRoundtrip(t, test.policyCompressionOpts, test.policyDecompressionOpts, test.metricWithPolicies...)
+	}
 }
 
 func TestUnaggregatedEncodeDecodeStress(t *testing.T) {
-	numIter := 10
-	numMetrics := 10000
-	allMetrics := []unaggregated.MetricUnion{testCounter, testBatchTimer, testGauge}
-	allPolicies := []policy.VersionedPolicies{
-		testDefaultVersionedPolicies,
-		policy.CustomVersionedPolicies(
-			2,
-			time.Now(),
-			[]policy.Policy{
-				policy.NewPolicy(time.Second, xtime.Second, 6*time.Hour),
-				policy.NewPolicy(time.Minute, xtime.Minute, 2*24*time.Hour),
-			},
-		),
-	}
-
-	encoder := testUnaggregatedEncoder(t)
-	iterator := testUnaggregatedIterator(t, nil)
-	for i := 0; i < numIter; i++ {
-		var inputs []metricWithPolicies
-		for j := 0; j < numMetrics; j++ {
-			m := allMetrics[rand.Int63n(int64(len(allMetrics)))]
-			p := allPolicies[rand.Int63n(int64(len(allPolicies)))]
-			inputs = append(inputs, metricWithPolicies{metric: m, versionedPolicies: p})
+	var (
+		numIter     = 10
+		numMetrics  = 10000
+		allMetrics  = []unaggregated.MetricUnion{testCounter, testBatchTimer, testGauge}
+		allPolicies = []policy.VersionedPolicies{
+			testDefaultVersionedPolicies,
+			policy.CustomVersionedPolicies(
+				2,
+				time.Now(),
+				[]policy.Policy{
+					policy.NewPolicy(time.Second, xtime.Second, 6*time.Hour),
+					policy.NewPolicy(time.Minute, xtime.Minute, 2*24*time.Hour),
+				},
+			),
 		}
-		validateUnaggregatedRoundtripWithEncoderAndIterator(t, encoder, iterator, inputs...)
+
+		tests = []struct {
+			policyCompressionOpts   BaseEncoderOptions
+			policyDecompressionOpts BaseIteratorOptions
+		}{
+			{nil, nil},
+			{testDefaultPoliciesCompressionOptions, testDefaultPoliciesDecompressionOptions},
+		}
+	)
+
+	for _, test := range tests {
+		encoder := testUnaggregatedEncoder(t, test.policyCompressionOpts)
+		iterator := testUnaggregatedIterator(t, nil, test.policyDecompressionOpts)
+		for i := 0; i < numIter; i++ {
+			var inputs []metricWithPolicies
+			for j := 0; j < numMetrics; j++ {
+				m := allMetrics[rand.Int63n(int64(len(allMetrics)))]
+				p := allPolicies[rand.Int63n(int64(len(allPolicies)))]
+				inputs = append(inputs, metricWithPolicies{metric: m, versionedPolicies: p})
+			}
+			validateUnaggregatedRoundtripWithEncoderAndIterator(t, encoder, iterator, inputs...)
+		}
 	}
 }
 
 type metricWithPolicies struct {
 	metric            unaggregated.MetricUnion
 	versionedPolicies policy.VersionedPolicies
+}
+
+func newPolicyCompressor(policies []policy.Policy) policy.Compressor {
+	p := make(policy.CompressionMap, len(policies))
+	for i, policy := range policies {
+		p[policy] = int64(i + 1)
+	}
+
+	return policy.NewStaticCompressor(p)
+}
+
+func newPolicyDecompressor(policies []policy.Policy) policy.Decompressor {
+	p := make(policy.DecompressionMap, len(policies))
+	for i, policy := range policies {
+		p[int64(i+1)] = policy
+	}
+
+	return policy.NewStaticDecompressor(p)
 }
 
 func testCapturingBaseEncoder(encoder encoderBase) *[]interface{} {
@@ -221,13 +344,19 @@ func testCapturingBaseEncoder(encoder encoderBase) *[]interface{} {
 	return &result
 }
 
-func testUnaggregatedEncoder(t *testing.T) UnaggregatedEncoder {
-	return NewUnaggregatedEncoder(NewBufferedEncoder())
+func testUnaggregatedEncoder(t *testing.T, opts BaseEncoderOptions) UnaggregatedEncoder {
+	if opts == nil {
+		opts = NewBaseEncoderOptions()
+	}
+	return NewUnaggregatedEncoder(NewBufferedEncoder(), opts)
 }
 
-func testUnaggregatedIterator(t *testing.T, reader io.Reader) UnaggregatedIterator {
-	opts := NewUnaggregatedIteratorOptions()
-	return NewUnaggregatedIterator(reader, opts)
+func testUnaggregatedIterator(t *testing.T, reader io.Reader, opts BaseIteratorOptions) UnaggregatedIterator {
+	iteratorOpts := NewUnaggregatedIteratorOptions()
+	if opts != nil {
+		iteratorOpts = iteratorOpts.SetBaseIteratorOptions(opts)
+	}
+	return NewUnaggregatedIterator(reader, iteratorOpts)
 }
 
 func testUnaggregatedEncode(t *testing.T, encoder UnaggregatedEncoder, m unaggregated.MetricUnion, p policy.VersionedPolicies) error {
@@ -266,9 +395,14 @@ func compareUnaggregatedMetric(t *testing.T, expected unaggregated.MetricUnion, 
 	}
 }
 
-func validateUnaggregatedRoundtrip(t *testing.T, inputs ...metricWithPolicies) {
-	encoder := testUnaggregatedEncoder(t)
-	it := testUnaggregatedIterator(t, nil)
+func validateUnaggregatedRoundtrip(
+	t *testing.T,
+	encOpts BaseEncoderOptions,
+	itOpts BaseIteratorOptions,
+	inputs ...metricWithPolicies,
+) {
+	encoder := testUnaggregatedEncoder(t, encOpts)
+	it := testUnaggregatedIterator(t, nil, itOpts)
 	validateUnaggregatedRoundtripWithEncoderAndIterator(t, encoder, it, inputs...)
 }
 

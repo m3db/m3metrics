@@ -50,7 +50,8 @@ const (
 	batchTimerType
 	gaugeType
 	metricType
-	policyType
+	rawPolicyType
+	compressedPolicyType
 	knownResolutionType
 	unknownResolutionType
 	knownRetentionType
@@ -72,7 +73,8 @@ const (
 	numBatchTimerFields             = 2
 	numGaugeFields                  = 2
 	numMetricFields                 = 3
-	numPolicyFields                 = 2
+	numRawPolicyFields              = 3
+	numCompressedPolicyFields       = 2
 	numKnownResolutionFields        = 2
 	numUnknownResolutionFields      = 3
 	numKnownRetentionFields         = 2
@@ -104,7 +106,8 @@ func init() {
 	setNumFieldsForType(batchTimerType, numBatchTimerFields)
 	setNumFieldsForType(gaugeType, numGaugeFields)
 	setNumFieldsForType(metricType, numMetricFields)
-	setNumFieldsForType(policyType, numPolicyFields)
+	setNumFieldsForType(compressedPolicyType, numCompressedPolicyFields)
+	setNumFieldsForType(rawPolicyType, numRawPolicyFields)
 	setNumFieldsForType(knownResolutionType, numKnownResolutionFields)
 	setNumFieldsForType(unknownResolutionType, numUnknownResolutionFields)
 	setNumFieldsForType(knownRetentionType, numKnownRetentionFields)

@@ -43,11 +43,15 @@ type aggregatedEncoder struct {
 	encodeChunkedMetricAsRawFn  encodeChunkedMetricAsRawFn
 }
 
-// NewAggregatedEncoder creates an aggregated encoder.
-func NewAggregatedEncoder(encoder BufferedEncoder) AggregatedEncoder {
+// NewAggregatedEncoder creates an aggregated encoder
+func NewAggregatedEncoder(encoder BufferedEncoder, opts BaseEncoderOptions) AggregatedEncoder {
+	if opts == nil {
+		opts = NewBaseEncoderOptions()
+	}
+
 	enc := &aggregatedEncoder{
-		encoderBase: newBaseEncoder(encoder),
-		buf:         newBaseEncoder(NewBufferedEncoder()),
+		encoderBase: newBaseEncoder(encoder, opts),
+		buf:         newBaseEncoder(NewBufferedEncoder(), opts),
 	}
 
 	enc.encodeRootObjectFn = enc.encodeRootObject

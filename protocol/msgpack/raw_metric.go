@@ -52,7 +52,7 @@ func NewRawMetric(data []byte, readerBufferSize int) aggregated.RawMetric {
 	reader := bytes.NewReader(data)
 	m := &rawMetric{
 		data: data,
-		it:   newBaseIterator(reader, readerBufferSize),
+		it:   newBaseIterator(reader, readerBufferSize, nil),
 	}
 	m.readBytesFn = m.readBytes
 	return m
