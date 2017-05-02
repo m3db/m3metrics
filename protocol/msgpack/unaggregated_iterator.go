@@ -58,15 +58,15 @@ func NewUnaggregatedIterator(reader io.Reader, opts UnaggregatedIteratorOptions)
 	if opts == nil {
 		opts = NewUnaggregatedIteratorOptions()
 	}
-	it := &unaggregatedIterator{
-		iteratorBase:        newBaseIterator(reader, opts.ReaderBufferSize()),
+
+	return &unaggregatedIterator{
+		iteratorBase:        newBaseIterator(reader, opts.ReaderBufferSize(), opts.BaseIteratorOptions()),
 		ignoreHigherVersion: opts.IgnoreHigherVersion(),
 		largeFloatsSize:     opts.LargeFloatsSize(),
 		largeFloatsPool:     opts.LargeFloatsPool(),
 		iteratorPool:        opts.IteratorPool(),
 		timerValues:         make([]float64, 0, defaultInitTimerValuesCapacity),
 	}
-	return it
 }
 
 func (it *unaggregatedIterator) Err() error { return it.err() }
@@ -222,7 +222,7 @@ func (it *unaggregatedIterator) decodeGauge() {
 func (it *unaggregatedIterator) decodeVersionedPolicies() {
 	numActualFields := it.decodeNumObjectFields()
 	versionedPoliciesType := it.decodeObjectType()
-	numExpectedFields, numActualFields, ok := it.checkNumFieldsForTypeWithActual(
+	numExpectedFields, ok := it.checkNumFieldsForTypeWithActual(
 		versionedPoliciesType,
 		numActualFields,
 	)

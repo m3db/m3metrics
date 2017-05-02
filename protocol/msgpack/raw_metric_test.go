@@ -260,8 +260,8 @@ func (it *mockBaseIterator) checkNumFieldsForType(objType objectType) (int, int,
 func (it *mockBaseIterator) checkNumFieldsForTypeWithActual(
 	objType objectType,
 	numActualFields int,
-) (int, int, bool) {
-	return 0, 0, true
+) (int, bool) {
+	return 0, true
 }
 
 func testRawMetric() *rawMetric {

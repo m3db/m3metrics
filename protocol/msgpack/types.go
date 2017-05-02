@@ -140,6 +140,25 @@ type encoderBase interface {
 	encodeArrayLen(value int)
 }
 
+// BaseEncoderOptions provide options for base encoders.
+type BaseEncoderOptions interface {
+	// SetPolicyCompressionEnabled determines whether the encoder will attempt
+	// to encode policies.
+	SetPolicyCompressionEnabled(enabled bool) BaseEncoderOptions
+
+	// PolicyCompressionEnabled returns whether the encoder will attempt to
+	// encode policies.
+	PolicyCompressionEnabled() bool
+
+	// SetPolicyCompressor sets the policy Compressor that will be used to
+	// compress policies.
+	SetPolicyCompressor(compressor policy.Compressor) BaseEncoderOptions
+
+	// PolicyCompressor returns the policy Compressor that is used to compress
+	// policies.
+	PolicyCompressor() policy.Compressor
+}
+
 // iteratorBase is the base iterator interface.
 type iteratorBase interface {
 	// Reset resets the iterator.
@@ -196,7 +215,26 @@ type iteratorBase interface {
 
 	// checkNumFieldsForTypeWithActual compares the given number of actual fields with
 	// the number of expected fields for a given object type.
-	checkNumFieldsForTypeWithActual(objType objectType, numActualFields int) (int, int, bool)
+	checkNumFieldsForTypeWithActual(objType objectType, numActualFields int) (int, bool)
+}
+
+// BaseIteratorOptions provide options for base iterators.
+type BaseIteratorOptions interface {
+	// SetPolicyDecompressionEnabled determines whether the iterator will attempt
+	// to decode policies that have been compressed.
+	SetPolicyDecompressionEnabled(enabled bool) BaseIteratorOptions
+
+	// PolicyDecompressionEnabled returns whether the iterator will attempt to
+	// decode policies that have been compressed.
+	PolicyDecompressionEnabled() bool
+
+	// SetPolicyDecompressor sets the policy Decompressor that will be used to
+	// decompress policies.
+	SetPolicyDecompressor(decompressor policy.Decompressor) BaseIteratorOptions
+
+	// PolicyDecompressor returns the policy Decompressor that is used to decompress
+	// policies.
+	PolicyDecompressor() policy.Decompressor
 }
 
 // UnaggregatedEncoder is an encoder for encoding different types of unaggregated metrics.
@@ -271,6 +309,14 @@ type UnaggregatedIteratorOptions interface {
 
 	// IteratorPool returns the unaggregated iterator pool.
 	IteratorPool() UnaggregatedIteratorPool
+
+	// SetBaseIteratorOptions sets the options that will be passed to the
+	// underlying base iterator.
+	SetBaseIteratorOptions(itOpts BaseIteratorOptions) UnaggregatedIteratorOptions
+
+	// BaseIteratorOptions returns the options passed to the underlying
+	// base iterator.
+	BaseIteratorOptions() BaseIteratorOptions
 }
 
 // UnaggregatedIteratorAlloc allocates an unaggregated iterator.
@@ -345,6 +391,14 @@ type AggregatedIteratorOptions interface {
 
 	// IteratorPool returns the aggregated iterator pool.
 	IteratorPool() AggregatedIteratorPool
+
+	// SetBaseIteratorOptions sets the options that will be passed to the
+	// underlying base iterator.
+	SetBaseIteratorOptions(itOpts BaseIteratorOptions) AggregatedIteratorOptions
+
+	// BaseIteratorOptions returns the options passed to the underlying
+	// base iterator.
+	BaseIteratorOptions() BaseIteratorOptions
 }
 
 // AggregatedIteratorAlloc allocates an aggregated iterator.

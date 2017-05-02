@@ -25,8 +25,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3x/time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,4 +73,111 @@ func TestCustomVersionedPolicies(t *testing.T) {
 	require.Equal(t, cutover, vp.Cutover)
 	require.False(t, vp.IsDefault())
 	require.Equal(t, policies, vp.Policies())
+}
+
+func TestNewPolicyFromSchema(t *testing.T) {
+	tests := []struct {
+		policy         *schema.Policy
+		expectedPolicy Policy
+		expectedErr    bool
+	}{
+		// Test case for nil policy.
+		{
+			policy:      nil,
+			expectedErr: true,
+		},
+		// Test case for nil retention.
+		{
+			policy: &schema.Policy{
+				Resolution: &schema.Resolution{WindowSize: 100, Precision: 10},
+				Retention:  nil,
+			},
+			expectedErr: true,
+		},
+		// Test case for nil resolution.
+		{
+			policy: &schema.Policy{
+				Resolution: nil,
+				Retention:  &schema.Retention{Period: 20},
+			},
+			expectedErr: true,
+		},
+		// Test case for invalid precision.
+		{
+			policy: &schema.Policy{
+				Resolution: &schema.Resolution{WindowSize: 100, Precision: 42},
+				Retention:  &schema.Retention{Period: 20},
+			},
+			expectedErr: true,
+		},
+		// Test case for a valid policy.
+		{
+			policy: &schema.Policy{
+				Resolution: &schema.Resolution{WindowSize: 100, Precision: int64(time.Second)},
+				Retention:  &schema.Retention{Period: 20},
+			},
+			expectedPolicy: Policy{
+				resolution: Resolution{Window: 100, Precision: xtime.Second},
+				retention:  20,
+			},
+			expectedErr: false,
+		},
+	}
+
+	for _, test := range tests {
+		actualPolicy, actualErr := NewPolicyFromSchema(test.policy)
+		if test.expectedErr {
+			assert.Error(t, actualErr)
+			continue
+		}
+
+		assert.NoError(t, actualErr)
+		assert.Equal(t, test.expectedPolicy, actualPolicy)
+	}
+}
+
+func TestNewPoliciesFromSchema(t *testing.T) {
+	tests := []struct {
+		policies         []*schema.Policy
+		expectedPolicies []Policy
+		expectedErr      bool
+	}{
+		// Test case for invalid precision.
+		{
+			policies: []*schema.Policy{
+				&schema.Policy{
+					Resolution: &schema.Resolution{WindowSize: 100, Precision: 42},
+					Retention:  &schema.Retention{Period: 20},
+				},
+			},
+			expectedErr: true,
+		},
+		// Test case for valid policies.
+		{
+			policies: []*schema.Policy{
+				&schema.Policy{
+					Resolution: &schema.Resolution{WindowSize: 100, Precision: int64(time.Second)},
+					Retention:  &schema.Retention{Period: 20},
+				},
+			},
+			expectedPolicies: []Policy{
+				Policy{
+					resolution: Resolution{Window: 100, Precision: xtime.Second},
+					retention:  20,
+				},
+			},
+			expectedErr: false,
+		},
+	}
+
+	for _, test := range tests {
+		actualPolicies, actualErr := NewPoliciesFromSchema(test.policies)
+		if test.expectedErr {
+			assert.Error(t, actualErr)
+			continue
+		}
+
+		assert.NoError(t, actualErr)
+		assert.Equal(t, test.expectedPolicies, actualPolicies)
+	}
 }

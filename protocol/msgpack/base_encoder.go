@@ -37,19 +37,34 @@ type encodeArrayLenFn func(value int)
 
 // baseEncoder is the base encoder that provides common encoding APIs.
 type baseEncoder struct {
-	bufEncoder       BufferedEncoder
-	encodeErr        error
-	encodePolicyFn   encodePolicyFn
-	encodeTimeFn     encodeTimeFn
-	encodeVarintFn   encodeVarintFn
-	encodeFloat64Fn  encodeFloat64Fn
-	encodeBytesFn    encodeBytesFn
-	encodeBytesLenFn encodeBytesLenFn
-	encodeArrayLenFn encodeArrayLenFn
+	bufEncoder               BufferedEncoder
+	policyCompressor         policy.Compressor
+	policyCompressionEnabled bool
+	encodeErr                error
+	encodePolicyFn           encodePolicyFn
+	encodeTimeFn             encodeTimeFn
+	encodeVarintFn           encodeVarintFn
+	encodeFloat64Fn          encodeFloat64Fn
+	encodeBytesFn            encodeBytesFn
+	encodeBytesLenFn         encodeBytesLenFn
+	encodeArrayLenFn         encodeArrayLenFn
 }
 
-func newBaseEncoder(encoder BufferedEncoder) encoderBase {
-	enc := &baseEncoder{bufEncoder: encoder}
+func newBaseEncoder(encoder BufferedEncoder, opts BaseEncoderOptions) encoderBase {
+	if opts == nil {
+		opts = NewBaseEncoderOptions()
+	}
+
+	compressor := opts.PolicyCompressor()
+	if compressor == nil {
+		compressor = policy.NewNoopCompressor()
+	}
+
+	enc := &baseEncoder{
+		bufEncoder:               encoder,
+		policyCompressor:         compressor,
+		policyCompressionEnabled: opts.PolicyCompressionEnabled(),
+	}
 
 	enc.encodePolicyFn = enc.encodePolicyInternal
 	enc.encodeTimeFn = enc.encodeTimeInternal
@@ -90,7 +105,21 @@ func (enc *baseEncoder) encodeChunkedID(id metric.ChunkedID) {
 }
 
 func (enc *baseEncoder) encodePolicyInternal(p policy.Policy) {
-	enc.encodeNumObjectFields(numFieldsForType(policyType))
+	if enc.encodeErr != nil {
+		return
+	}
+	if enc.policyCompressionEnabled {
+		// Only encode the id associated with the policy if it exists.
+		if id, ok := enc.policyCompressor.ID(p); ok {
+			enc.encodeNumObjectFields(numFieldsForType(compressedPolicyType))
+			enc.encodeObjectType(compressedPolicyType)
+			enc.encodeVarintFn(id)
+			return
+		}
+	}
+	// Otherwise, encode the entire policy object.
+	enc.encodeNumObjectFields(numFieldsForType(rawPolicyType))
+	enc.encodeObjectType(rawPolicyType)
 	enc.encodeResolution(p.Resolution())
 	enc.encodeRetention(p.Retention())
 }

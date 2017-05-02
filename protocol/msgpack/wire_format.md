@@ -52,8 +52,14 @@
 
 * Policy object
   * Number of Policy fields
-  * Resolution object
-  * Retention object
+  * Policy (can be one of the following)
+    * RawPolicy
+      * Policy type
+      * Resolution object
+      * Retention object
+    * CompressedPolicy
+      * Policy type
+      * Compressed Policy ID
 
 * Resolution object
   * Number of Resolution fields

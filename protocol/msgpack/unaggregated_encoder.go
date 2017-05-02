@@ -51,8 +51,14 @@ type unaggregatedEncoder struct {
 }
 
 // NewUnaggregatedEncoder creates a new unaggregated encoder.
-func NewUnaggregatedEncoder(encoder BufferedEncoder) UnaggregatedEncoder {
-	enc := &unaggregatedEncoder{encoderBase: newBaseEncoder(encoder)}
+func NewUnaggregatedEncoder(encoder BufferedEncoder, opts BaseEncoderOptions) UnaggregatedEncoder {
+	if opts == nil {
+		opts = NewBaseEncoderOptions()
+	}
+
+	enc := &unaggregatedEncoder{
+		encoderBase: newBaseEncoder(encoder, opts),
+	}
 
 	enc.encodeRootObjectFn = enc.encodeRootObject
 	enc.encodeCounterWithPoliciesFn = enc.encodeCounterWithPolicies

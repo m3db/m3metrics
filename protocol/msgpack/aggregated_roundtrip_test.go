@@ -55,7 +55,17 @@ var (
 		Timestamp: time.Now(),
 		Value:     678.90,
 	}
-	testPolicy = policy.NewPolicy(time.Second, xtime.Second, time.Hour)
+	testPolicy             = policy.NewPolicy(time.Second, xtime.Second, time.Hour)
+	testCompressor         = policy.NewStaticCompressor(policy.CompressionMap{testPolicy: 1})
+	testDecompressor       = policy.NewStaticDecompressor(policy.DecompressionMap{1: testPolicy})
+	testBaseEncoderOptions = baseEncoderOptions{
+		enabled:    true,
+		compressor: testCompressor,
+	}
+	testBaseIteratorOptions = baseIteratorOptions{
+		enabled:      true,
+		decompressor: testDecompressor,
+	}
 )
 
 type metricWithPolicy struct {
@@ -63,12 +73,20 @@ type metricWithPolicy struct {
 	policy policy.Policy
 }
 
-func testAggregatedEncoder(t *testing.T) AggregatedEncoder {
-	return NewAggregatedEncoder(NewBufferedEncoder())
+func testAggregatedEncoder(t *testing.T, opts BaseEncoderOptions) AggregatedEncoder {
+	if opts == nil {
+		opts = NewBaseEncoderOptions()
+	}
+	return NewAggregatedEncoder(NewBufferedEncoder(), opts)
 }
 
-func testAggregatedIterator(t *testing.T, reader io.Reader) AggregatedIterator {
-	return NewAggregatedIterator(reader, NewAggregatedIteratorOptions())
+func testAggregatedIterator(t *testing.T, reader io.Reader, opts BaseIteratorOptions) AggregatedIterator {
+	iteratorOpts := NewAggregatedIteratorOptions()
+	if opts != nil {
+		iteratorOpts = iteratorOpts.SetBaseIteratorOptions(opts)
+	}
+
+	return NewAggregatedIterator(reader, iteratorOpts)
 }
 
 func testAggregatedEncode(t *testing.T, encoder AggregatedEncoder, m interface{}, p policy.Policy) error {
@@ -94,7 +112,7 @@ func testAggregatedEncode(t *testing.T, encoder AggregatedEncoder, m interface{}
 }
 
 func toRawMetric(t *testing.T, m interface{}) aggregated.RawMetric {
-	encoder := NewAggregatedEncoder(NewBufferedEncoder()).(*aggregatedEncoder)
+	encoder := NewAggregatedEncoder(NewBufferedEncoder(), NewBaseEncoderOptions()).(*aggregatedEncoder)
 	var data []byte
 	switch m := m.(type) {
 	case aggregated.Metric:
@@ -108,9 +126,14 @@ func toRawMetric(t *testing.T, m interface{}) aggregated.RawMetric {
 	return NewRawMetric(data, 16)
 }
 
-func validateAggregatedRoundtrip(t *testing.T, inputs ...metricWithPolicy) {
-	encoder := testAggregatedEncoder(t)
-	it := testAggregatedIterator(t, nil)
+func validateAggregatedRoundtrip(
+	t *testing.T,
+	encOpts BaseEncoderOptions,
+	itOpts BaseIteratorOptions,
+	inputs ...metricWithPolicy,
+) {
+	encoder := testAggregatedEncoder(t, encOpts)
+	it := testAggregatedIterator(t, nil, itOpts)
 	validateAggregatedRoundtripWithEncoderAndIterator(t, encoder, it, inputs...)
 }
 
@@ -181,54 +204,106 @@ func validateAggregatedRoundtripWithEncoderAndIterator(
 }
 
 func TestAggregatedEncodeDecodeMetricWithPolicy(t *testing.T) {
-	validateAggregatedRoundtrip(t, metricWithPolicy{
+	m := metricWithPolicy{
 		metric: testMetric,
 		policy: testPolicy,
-	})
+	}
+
+	tests := []struct {
+		metricWithPolicy metricWithPolicy
+		encOpts          BaseEncoderOptions
+		itOpts           BaseIteratorOptions
+	}{
+		{m, nil, nil},
+		{m, testBaseEncoderOptions, testBaseIteratorOptions},
+	}
+
+	for _, test := range tests {
+		validateAggregatedRoundtrip(t, test.encOpts, test.itOpts, test.metricWithPolicy)
+	}
 }
 
 func TestAggregatedEncodeDecodeChunkedMetricWithPolicy(t *testing.T) {
-	validateAggregatedRoundtrip(t, metricWithPolicy{
+	m := metricWithPolicy{
 		metric: testChunkedMetric,
 		policy: testPolicy,
-	})
+	}
+
+	tests := []struct {
+		metricWithPolicy metricWithPolicy
+		encOpts          BaseEncoderOptions
+		itOpts           BaseIteratorOptions
+	}{
+		{m, nil, nil},
+		{m, testBaseEncoderOptions, testBaseIteratorOptions},
+	}
+
+	for _, test := range tests {
+		validateAggregatedRoundtrip(t, test.encOpts, test.itOpts, test.metricWithPolicy)
+	}
 }
 
 func TestAggregatedEncodeDecodeRawMetricWithPolicy(t *testing.T) {
-	validateAggregatedRoundtrip(t, metricWithPolicy{
+	m := metricWithPolicy{
 		metric: toRawMetric(t, testMetric),
 		policy: testPolicy,
-	})
+	}
+
+	tests := []struct {
+		metricWithPolicy metricWithPolicy
+		encOpts          BaseEncoderOptions
+		itOpts           BaseIteratorOptions
+	}{
+		{m, nil, nil},
+		{m, testBaseEncoderOptions, testBaseIteratorOptions},
+	}
+
+	for _, test := range tests {
+		validateAggregatedRoundtrip(t, test.encOpts, test.itOpts, test.metricWithPolicy)
+	}
 }
 
 func TestAggregatedEncodeDecodeStress(t *testing.T) {
 	var (
 		numIter    = 10
 		numMetrics = 10000
-		encoder    = testAggregatedEncoder(t)
-		iterator   = testAggregatedIterator(t, nil)
+
+		tests = []struct {
+			encOpts BaseEncoderOptions
+			itOpts  BaseIteratorOptions
+		}{
+			{nil, nil},
+			{testBaseEncoderOptions, testBaseIteratorOptions},
+		}
 	)
 
-	for i := 0; i < numIter; i++ {
-		var inputs []metricWithPolicy
-		for j := 0; j < numMetrics; j++ {
-			if j%3 == 0 {
-				inputs = append(inputs, metricWithPolicy{
-					metric: testMetric,
-					policy: testPolicy,
-				})
-			} else if j%3 == 1 {
-				inputs = append(inputs, metricWithPolicy{
-					metric: testChunkedMetric,
-					policy: testPolicy,
-				})
-			} else {
-				inputs = append(inputs, metricWithPolicy{
-					metric: toRawMetric(t, testMetric2),
-					policy: testPolicy,
-				})
+	for _, test := range tests {
+		var (
+			encoder  = testAggregatedEncoder(t, test.encOpts)
+			iterator = testAggregatedIterator(t, nil, test.itOpts)
+		)
+
+		for i := 0; i < numIter; i++ {
+			var inputs []metricWithPolicy
+			for j := 0; j < numMetrics; j++ {
+				if j%3 == 0 {
+					inputs = append(inputs, metricWithPolicy{
+						metric: testMetric,
+						policy: testPolicy,
+					})
+				} else if j%3 == 1 {
+					inputs = append(inputs, metricWithPolicy{
+						metric: testChunkedMetric,
+						policy: testPolicy,
+					})
+				} else {
+					inputs = append(inputs, metricWithPolicy{
+						metric: toRawMetric(t, testMetric2),
+						policy: testPolicy,
+					})
+				}
 			}
+			validateAggregatedRoundtripWithEncoderAndIterator(t, encoder, iterator, inputs...)
 		}
-		validateAggregatedRoundtripWithEncoderAndIterator(t, encoder, iterator, inputs...)
 	}
 }

@@ -20,7 +20,10 @@
 
 package msgpack
 
-import xpool "github.com/m3db/m3x/pool"
+import (
+	"github.com/m3db/m3metrics/policy"
+	xpool "github.com/m3db/m3x/pool"
+)
 
 const (
 	// Whether the iterator should ignore higher-than-supported version
@@ -42,12 +45,77 @@ const (
 	defaultAggregatedReaderBufferSize = 1440
 )
 
+type baseEncoderOptions struct {
+	enabled    bool
+	compressor policy.Compressor
+}
+
+// NewBaseEncoderOptions creates a new set of base encoder options.
+func NewBaseEncoderOptions() BaseEncoderOptions {
+	return baseEncoderOptions{
+		compressor: policy.NewNoopCompressor(),
+	}
+}
+
+func (o baseEncoderOptions) SetPolicyCompressionEnabled(enabled bool) BaseEncoderOptions {
+	opts := o
+	opts.enabled = enabled
+	return opts
+}
+
+func (o baseEncoderOptions) PolicyCompressionEnabled() bool {
+	return o.enabled
+}
+
+func (o baseEncoderOptions) SetPolicyCompressor(compressor policy.Compressor) BaseEncoderOptions {
+	opts := o
+	opts.compressor = compressor
+	return opts
+}
+
+func (o baseEncoderOptions) PolicyCompressor() policy.Compressor {
+	return o.compressor
+}
+
+type baseIteratorOptions struct {
+	enabled      bool
+	decompressor policy.Decompressor
+}
+
+// NewBaseIteratorOptions creates a new set of base iterator options.
+func NewBaseIteratorOptions() BaseIteratorOptions {
+	return baseIteratorOptions{
+		decompressor: policy.NewNoopDecompressor(),
+	}
+}
+
+func (o baseIteratorOptions) SetPolicyDecompressionEnabled(enabled bool) BaseIteratorOptions {
+	opts := o
+	opts.enabled = enabled
+	return opts
+}
+
+func (o baseIteratorOptions) PolicyDecompressionEnabled() bool {
+	return o.enabled
+}
+
+func (o baseIteratorOptions) SetPolicyDecompressor(decompressor policy.Decompressor) BaseIteratorOptions {
+	opts := o
+	opts.decompressor = decompressor
+	return opts
+}
+
+func (o baseIteratorOptions) PolicyDecompressor() policy.Decompressor {
+	return o.decompressor
+}
+
 type unaggregatedIteratorOptions struct {
 	ignoreHigherVersion bool
 	readerBufferSize    int
 	largeFloatsSize     int
 	largeFloatsPool     xpool.FloatsPool
 	iteratorPool        UnaggregatedIteratorPool
+	baseIteratorOpts    BaseIteratorOptions
 }
 
 // NewUnaggregatedIteratorOptions creates a new set of unaggregated iterator options.
@@ -60,6 +128,7 @@ func NewUnaggregatedIteratorOptions() UnaggregatedIteratorOptions {
 		readerBufferSize:    defaultUnaggregatedReaderBufferSize,
 		largeFloatsSize:     defaultLargeFloatsSize,
 		largeFloatsPool:     largeFloatsPool,
+		baseIteratorOpts:    NewBaseIteratorOptions(),
 	}
 }
 
@@ -113,10 +182,21 @@ func (o *unaggregatedIteratorOptions) IteratorPool() UnaggregatedIteratorPool {
 	return o.iteratorPool
 }
 
+func (o *unaggregatedIteratorOptions) SetBaseIteratorOptions(itOpts BaseIteratorOptions) UnaggregatedIteratorOptions {
+	opts := o
+	opts.baseIteratorOpts = itOpts
+	return opts
+}
+
+func (o *unaggregatedIteratorOptions) BaseIteratorOptions() BaseIteratorOptions {
+	return o.baseIteratorOpts
+}
+
 type aggregatedIteratorOptions struct {
 	ignoreHigherVersion bool
 	readerBufferSize    int
 	iteratorPool        AggregatedIteratorPool
+	baseIteratorOpts    BaseIteratorOptions
 }
 
 // NewAggregatedIteratorOptions creates a new set of aggregated iterator options.
@@ -124,6 +204,7 @@ func NewAggregatedIteratorOptions() AggregatedIteratorOptions {
 	return &aggregatedIteratorOptions{
 		ignoreHigherVersion: defaultAggregatedIgnoreHigherVersion,
 		readerBufferSize:    defaultAggregatedReaderBufferSize,
+		baseIteratorOpts:    NewBaseIteratorOptions(),
 	}
 }
 
@@ -155,4 +236,14 @@ func (o *aggregatedIteratorOptions) SetIteratorPool(value AggregatedIteratorPool
 
 func (o *aggregatedIteratorOptions) IteratorPool() AggregatedIteratorPool {
 	return o.iteratorPool
+}
+
+func (o *aggregatedIteratorOptions) SetBaseIteratorOptions(itOpts BaseIteratorOptions) AggregatedIteratorOptions {
+	opts := o
+	opts.baseIteratorOpts = itOpts
+	return opts
+}
+
+func (o *aggregatedIteratorOptions) BaseIteratorOptions() BaseIteratorOptions {
+	return o.baseIteratorOpts
 }

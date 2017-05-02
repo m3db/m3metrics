@@ -23,6 +23,7 @@ package msgpack
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -35,27 +36,40 @@ import (
 )
 
 var (
-	emptyReader *bytes.Buffer
+	emptyReader                      *bytes.Buffer
+	errPolicyDecompressionNotEnabled = errors.New("policy decompression is not enabled but recieved compressed policy id")
 )
 
 // baseIterator is the base iterator that provides common decoding APIs.
 type baseIterator struct {
-	readerBufferSize int
-	bufReader        bufReader
-	decoder          *msgpack.Decoder
-	decodeErr        error
+	readerBufferSize           int
+	bufReader                  bufReader
+	decoder                    *msgpack.Decoder
+	policyDecompressor         policy.Decompressor
+	policyDecompressionEnabled bool
+	decodeErr                  error
 }
 
-func newBaseIterator(reader io.Reader, readerBufferSize int) iteratorBase {
+func newBaseIterator(
+	reader io.Reader,
+	readerBufferSize int,
+	opts BaseIteratorOptions,
+) iteratorBase {
+	if opts == nil {
+		opts = NewBaseIteratorOptions()
+	}
+
 	// NB(xichen): if reader is not a bufReader, the underlying msgpack decoder
 	// creates a bufio.Reader wrapping the reader. By converting the reader to a
 	// bufReader, it is guaranteed that the reader passed to the decoder is the one
 	// used for reading and buffering the underlying data.
 	bufReader := toBufReader(reader, readerBufferSize)
 	return &baseIterator{
-		readerBufferSize: readerBufferSize,
-		bufReader:        bufReader,
-		decoder:          msgpack.NewDecoder(bufReader),
+		readerBufferSize:           readerBufferSize,
+		bufReader:                  bufReader,
+		decoder:                    msgpack.NewDecoder(bufReader),
+		policyDecompressor:         opts.PolicyDecompressor(),
+		policyDecompressionEnabled: opts.PolicyDecompressionEnabled(),
 	}
 }
 
@@ -71,21 +85,51 @@ func (it *baseIterator) setErr(err error)  { it.decodeErr = err }
 func (it *baseIterator) reader() bufReader { return it.bufReader }
 
 func (it *baseIterator) decodePolicy() policy.Policy {
-	numExpectedFields, numActualFields, ok := it.checkNumFieldsForType(policyType)
+	numActualFields := it.decodeNumObjectFields()
+	policyType := it.decodeObjectType()
+
+	numExpectedFields, ok := it.checkNumFieldsForTypeWithActual(
+		policyType,
+		numActualFields,
+	)
 	if !ok {
 		return policy.EmptyPolicy
 	}
-	resolution := it.decodeResolution()
-	retention := it.decodeRetention()
-	p := policy.NewPolicy(resolution.Window, resolution.Precision, time.Duration(retention))
-	it.skip(numActualFields - numExpectedFields)
-	return p
+
+	switch policyType {
+	case rawPolicyType:
+		resolution := it.decodeResolution()
+		retention := it.decodeRetention()
+		p := policy.NewPolicy(resolution.Window, resolution.Precision, time.Duration(retention))
+		it.skip(numActualFields - numExpectedFields)
+		return p
+	case compressedPolicyType:
+		if !it.policyDecompressionEnabled {
+			it.decodeErr = errPolicyDecompressionNotEnabled
+			return policy.EmptyPolicy
+		}
+
+		id := it.decodeVarint()
+		if it.decodeErr != nil {
+			return policy.EmptyPolicy
+		}
+		p, ok := it.policyDecompressor.Policy(id)
+		if !ok {
+			it.decodeErr = fmt.Errorf("unrecognized compression policy id: %v", id)
+			return policy.EmptyPolicy
+		}
+		it.skip(numActualFields - numExpectedFields)
+		return p
+	default:
+		it.decodeErr = fmt.Errorf("unrecognized policy type: %v", policyType)
+		return policy.EmptyPolicy
+	}
 }
 
 func (it *baseIterator) decodeResolution() policy.Resolution {
 	numActualFields := it.decodeNumObjectFields()
 	resolutionType := it.decodeObjectType()
-	numExpectedFields, numActualFields, ok := it.checkNumFieldsForTypeWithActual(
+	numExpectedFields, ok := it.checkNumFieldsForTypeWithActual(
 		resolutionType,
 		numActualFields,
 	)
@@ -127,7 +171,7 @@ func (it *baseIterator) decodeResolution() policy.Resolution {
 func (it *baseIterator) decodeRetention() policy.Retention {
 	numActualFields := it.decodeNumObjectFields()
 	retentionType := it.decodeObjectType()
-	numExpectedFields, numActualFields, ok := it.checkNumFieldsForTypeWithActual(
+	numExpectedFields, ok := it.checkNumFieldsForTypeWithActual(
 		retentionType,
 		numActualFields,
 	)
@@ -251,22 +295,23 @@ func (it *baseIterator) skip(numFields int) {
 
 func (it *baseIterator) checkNumFieldsForType(objType objectType) (int, int, bool) {
 	numActualFields := it.decodeNumObjectFields()
-	return it.checkNumFieldsForTypeWithActual(objType, numActualFields)
+	numExpectedFields, ok := it.checkNumFieldsForTypeWithActual(objType, numActualFields)
+	return numExpectedFields, numActualFields, ok
 }
 
 func (it *baseIterator) checkNumFieldsForTypeWithActual(
 	objType objectType,
 	numActualFields int,
-) (int, int, bool) {
+) (int, bool) {
 	if it.decodeErr != nil {
-		return 0, 0, false
+		return 0, false
 	}
 	numExpectedFields := numFieldsForType(objType)
 	if numExpectedFields > numActualFields {
 		it.decodeErr = fmt.Errorf("number of fields mismatch: expected %d actual %d", numExpectedFields, numActualFields)
-		return 0, 0, false
+		return 0, false
 	}
-	return numExpectedFields, numActualFields, true
+	return numExpectedFields, true
 }
 
 // bufReader is a buffered reader.

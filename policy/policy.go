@@ -75,7 +75,7 @@ func NewPolicy(window time.Duration, precision xtime.Unit, retention time.Durati
 
 // NewPolicyFromSchema creates a new policy from a schema policy.
 func NewPolicyFromSchema(p *schema.Policy) (Policy, error) {
-	if p == nil {
+	if p == nil || p.Resolution == nil || p.Retention == nil {
 		return EmptyPolicy, errNilPolicySchema
 	}
 	precision := time.Duration(p.Resolution.Precision)
