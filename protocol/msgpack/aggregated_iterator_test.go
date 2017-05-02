@@ -173,13 +173,13 @@ func TestAggregatedIteratorPolicyDecompressedNotEnabledError(t *testing.T) {
 		policy: testPolicy,
 	}
 
-	// Use an encoder which compresses testPolicy
+	// Use an encoder which compresses testPolicy.
 	enc := testAggregatedEncoder(t, testBaseEncoderOptions).(*aggregatedEncoder)
 
 	testAggregatedEncode(t, enc, input.metric.(aggregated.Metric), input.policy)
 	require.NoError(t, enc.err())
 
-	// Use an iterator which does not have decompression enabled
+	// Use an iterator which does not have decompression enabled.
 	it := testAggregatedIterator(t, enc.Encoder().Buffer(), nil)
 
 	validateAggregatedDecodeResults(t, it, nil, errPolicyDecompressionNotEnabled)
@@ -191,13 +191,13 @@ func TestAggregatedIteratorUnrecognizedCompressedPolicyError(t *testing.T) {
 		policy: testPolicy,
 	}
 
-	// Use an encoder which compresses testPolicy
+	// Use an encoder which compresses testPolicy.
 	enc := testAggregatedEncoder(t, testBaseEncoderOptions).(*aggregatedEncoder)
 
 	testAggregatedEncode(t, enc, input.metric.(aggregated.Metric), input.policy)
 	require.NoError(t, enc.err())
 
-	// Use an iterator which does not have testPolicy in it's decompressor
+	// Use an iterator which does not have testPolicy in it's decompressor.
 	baseItOpts := baseIteratorOptions{
 		enabled:      true,
 		decompressor: policy.NewNoopDecompressor(),
