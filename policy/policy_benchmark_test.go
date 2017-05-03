@@ -25,81 +25,77 @@ import (
 	"time"
 )
 
-func BenchmarkVersionedPoliciesAsStruct(b *testing.B) {
-	vp := CustomVersionedPolicies(InitPolicyVersion, time.Now(), defaultPolicies)
+var (
+	testNowNs = time.Now().UnixNano()
+)
+
+func BenchmarkStagedPoliciesAsStruct(b *testing.B) {
+	sp := NewStagedPolicies(testNowNs, false, defaultPolicies)
 	for n := 0; n < b.N; n++ {
-		validatePolicyByValue(b, vp)
+		validatePolicyByValue(b, sp)
 	}
 }
 
-func BenchmarkVersionedPoliciesAsPointer(b *testing.B) {
-	vp := CustomVersionedPolicies(InitPolicyVersion, time.Now(), defaultPolicies)
+func BenchmarkStagedPoliciesAsPointer(b *testing.B) {
+	sp := NewStagedPolicies(testNowNs, false, defaultPolicies)
 	for n := 0; n < b.N; n++ {
-		validatePolicyByPointer(b, &vp)
+		validatePolicyByPointer(b, &sp)
 	}
 }
 
-func BenchmarkVersionedPoliciesAsInterface(b *testing.B) {
-	vp := &testVersionedPolicies{version: InitPolicyVersion, cutover: time.Now(), policies: defaultPolicies}
+func BenchmarkStagedPoliciesAsInterface(b *testing.B) {
+	sp := &testStagedPolicies{cutoverNs: testNowNs, policies: defaultPolicies}
 	for n := 0; n < b.N; n++ {
-		validatePolicyByInterface(b, vp)
+		validatePolicyByInterface(b, sp)
 	}
 }
 
-func BenchmarkVersionedPoliciesAsStructExported(b *testing.B) {
-	vp := testVersionedPolicies{version: InitPolicyVersion, cutover: time.Now(), policies: defaultPolicies}
+func BenchmarkStagedPoliciesAsStructExported(b *testing.B) {
+	sp := testStagedPolicies{cutoverNs: testNowNs, policies: defaultPolicies}
 	for n := 0; n < b.N; n++ {
-		validatePolicyByStructExported(b, vp)
+		validatePolicyByStructExported(b, sp)
 	}
 }
 
-type testVersionedPoliciesInt interface {
-	Version() int
+type testStagedPoliciesInt64 interface {
+	CutoverNs() int64
 }
 
-// VersionedPolicies represent a list of policies at a specified version.
-type testVersionedPolicies struct {
-	// Version is the version of the policies.
-	version int
-
-	// Cutover is when the policies take effect.
-	cutover time.Time
-
-	// isDefault determines whether the policies are the default policies.
-	isDefault bool
-
-	// policies represent the list of policies.
-	policies []Policy
+// StagedPolicies represent a list of policies at a specified version.
+type testStagedPolicies struct {
+	cutoverNs  int64
+	tombstoned bool
+	policies   []Policy
 }
 
-func (v testVersionedPolicies) ValVersion() int {
-	return v.version
+func (v testStagedPolicies) ValCutoverNs() int64 {
+	return v.cutoverNs
 }
 
-func (v *testVersionedPolicies) Version() int {
-	return v.version
+func (v *testStagedPolicies) CutoverNs() int64 {
+	return v.cutoverNs
 }
 
-func validatePolicyByValue(b *testing.B, vps VersionedPolicies) {
-	if vps.Version != InitPolicyVersion {
+func validatePolicyByValue(b *testing.B, sp StagedPolicies) {
+	if sp.CutoverNs != testNowNs {
 		b.FailNow()
 	}
 }
 
-func validatePolicyByPointer(b *testing.B, vps *VersionedPolicies) {
-	if vps.Version != InitPolicyVersion {
+func validatePolicyByPointer(b *testing.B, sp *StagedPolicies) {
+	if sp.CutoverNs != testNowNs {
 		b.FailNow()
 	}
 }
 
-func validatePolicyByInterface(b *testing.B, vps testVersionedPoliciesInt) {
-	if vps.Version() != InitPolicyVersion {
+func validatePolicyByInterface(b *testing.B, sp testStagedPoliciesInt64) {
+	if sp.CutoverNs() != testNowNs {
 		b.FailNow()
 	}
 }
 
-func validatePolicyByStructExported(b *testing.B, vps testVersionedPolicies) {
-	if vps.ValVersion() != InitPolicyVersion {
+func validatePolicyByStructExported(b *testing.B, sp testStagedPolicies) {
+	if sp.ValCutoverNs() != testNowNs {
 		b.FailNow()
 	}
 }

@@ -42,10 +42,11 @@ var (
 	// EmptyPolicy represents an empty policy.
 	EmptyPolicy Policy
 
-	// EmptyVersionedPolicies represents an empty VersionPolicies.
-	EmptyVersionedPolicies VersionedPolicies
+	// EmptyStagedPolicies represents an empty staged policies.
+	EmptyStagedPolicies StagedPolicies
 
-	errNilPolicySchema = errors.New("nil policy schema")
+	// DefaultPoliciesList represents a default policies list.
+	DefaultPoliciesList = PoliciesList{EmptyStagedPolicies}
 
 	// defaultPolicies are the default policies.
 	// TODO(xichen): possibly make this dynamically configurable in the future.
@@ -53,6 +54,8 @@ var (
 		NewPolicy(10*time.Second, xtime.Second, 2*24*time.Hour),
 		NewPolicy(time.Minute, xtime.Minute, 30*24*time.Hour),
 	}
+
+	errNilPolicySchema = errors.New("nil policy schema")
 )
 
 // Policy represents the resolution and retention period metric datapoints
@@ -148,39 +151,60 @@ func (pr ByResolutionAsc) Less(i, j int) bool {
 	return pr[i].Resolution().Precision < pr[i].Resolution().Precision
 }
 
-// VersionedPolicies represent a list of policies at a specified version.
-type VersionedPolicies struct {
-	// Version is the version of the policies.
-	Version int
-
+// StagedPolicies represent a list of policies at a specified version.
+type StagedPolicies struct {
 	// Cutover is when the policies take effect.
-	Cutover time.Time
+	CutoverNs int64
 
-	// isDefault determines whether the policies are the default policies.
-	isDefault bool
+	// Tombstoned determines whether the associated (rollup) metric has been tombstoned.
+	Tombstoned bool
 
 	// policies represent the list of policies.
 	policies []Policy
 }
 
-// IsDefault determines whether the policies are the default policies.
-func (vp VersionedPolicies) IsDefault() bool { return vp.isDefault }
-
-// Policies returns the policies.
-func (vp VersionedPolicies) Policies() []Policy {
-	if vp.isDefault {
-		return defaultPolicies
-	}
-	return vp.policies
+// NewStagedPolicies create a new staged policies.
+func NewStagedPolicies(cutoverNs int64, tombstoned bool, policies []Policy) StagedPolicies {
+	return StagedPolicies{CutoverNs: cutoverNs, Tombstoned: tombstoned, policies: policies}
 }
 
-// String is the representation of versioned policies.
-func (vp VersionedPolicies) String() string {
+// Reset resets the staged policies.
+func (p *StagedPolicies) Reset() { *p = EmptyStagedPolicies }
+
+// Policies returns the policies.
+func (p StagedPolicies) Policies() []Policy {
+	if p.hasDefaultPolicies() {
+		return defaultPolicies
+	}
+	return p.policies
+}
+
+// SamePolicies returns whether two staged policies have the same policy list,
+// assuming the policies are sorted in the same order.
+func (p StagedPolicies) SamePolicies(other StagedPolicies) bool {
+	if p.hasDefaultPolicies() && other.hasDefaultPolicies() {
+		return true
+	}
+	currPolicies := p.Policies()
+	otherPolicies := other.Policies()
+	if len(currPolicies) != len(otherPolicies) {
+		return false
+	}
+	for i := 0; i < len(currPolicies); i++ {
+		if currPolicies[i] != otherPolicies[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// String is the representation of staged policies.
+func (p StagedPolicies) String() string {
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("{version:%d,cutover:%s,isDefault:%v,policies:[", vp.Version, vp.Cutover.String(), vp.isDefault))
-	for i := range vp.policies {
-		buf.WriteString(vp.policies[i].String())
-		if i < len(vp.policies)-1 {
+	buf.WriteString(fmt.Sprintf("{cutover:%s,tombstoned:%v,policies:[", time.Unix(0, p.CutoverNs).String(), p.Tombstoned))
+	for i := range p.policies {
+		buf.WriteString(p.policies[i].String())
+		if i < len(p.policies)-1 {
 			buf.WriteString(",")
 		}
 	}
@@ -188,26 +212,18 @@ func (vp VersionedPolicies) String() string {
 	return buf.String()
 }
 
-// Reset resets the versioned policies.
-func (vp *VersionedPolicies) Reset() {
-	*vp = EmptyVersionedPolicies
+func (p StagedPolicies) isEmpty() bool {
+	return p.CutoverNs == 0 && !p.Tombstoned && p.hasDefaultPolicies()
 }
 
-// DefaultVersionedPolicies creates a new default versioned policies.
-func DefaultVersionedPolicies(version int, cutover time.Time) VersionedPolicies {
-	return VersionedPolicies{
-		Version:   version,
-		Cutover:   cutover,
-		isDefault: true,
-	}
+func (p StagedPolicies) hasDefaultPolicies() bool {
+	return len(p.policies) == 0
 }
 
-// CustomVersionedPolicies creates a new custom versioned policies.
-func CustomVersionedPolicies(version int, cutover time.Time, policies []Policy) VersionedPolicies {
-	return VersionedPolicies{
-		Version:   version,
-		Cutover:   cutover,
-		isDefault: false,
-		policies:  policies,
-	}
+// PoliciesList is a list of staged policies.
+type PoliciesList []StagedPolicies
+
+// IsDefault determines whether this is a default policies list.
+func (l PoliciesList) IsDefault() bool {
+	return len(l) == 1 && l[0].isEmpty()
 }

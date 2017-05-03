@@ -41,7 +41,7 @@ var (
 )
 
 func TestUnaggregatedEncodeCounterWithDefaultPolicies(t *testing.T) {
-	policies := testDefaultVersionedPolicies
+	policies := testDefaultStagedPolicies
 	encoder, results := testCapturingUnaggregatedEncoder(t)
 	require.NoError(t, testUnaggregatedEncode(t, encoder, testCounter, policies))
 	expected := expectedResultsForUnaggregatedMetricWithPolicies(t, testCounter, policies)
@@ -49,7 +49,7 @@ func TestUnaggregatedEncodeCounterWithDefaultPolicies(t *testing.T) {
 }
 
 func TestUnaggregatedEncodeBatchTimerWithDefaultPolicies(t *testing.T) {
-	policies := testDefaultVersionedPolicies
+	policies := testDefaultStagedPolicies
 	encoder, results := testCapturingUnaggregatedEncoder(t)
 	require.NoError(t, testUnaggregatedEncode(t, encoder, testBatchTimer, policies))
 	expected := expectedResultsForUnaggregatedMetricWithPolicies(t, testBatchTimer, policies)
@@ -57,7 +57,7 @@ func TestUnaggregatedEncodeBatchTimerWithDefaultPolicies(t *testing.T) {
 }
 
 func TestUnaggregatedEncodeGaugeWithDefaultPolicies(t *testing.T) {
-	policies := testDefaultVersionedPolicies
+	policies := testDefaultStagedPolicies
 	encoder, results := testCapturingUnaggregatedEncoder(t)
 	require.NoError(t, testUnaggregatedEncode(t, encoder, testGauge, policies))
 	expected := expectedResultsForUnaggregatedMetricWithPolicies(t, testGauge, policies)
@@ -68,19 +68,19 @@ func TestUnaggregatedEncodeAllTypesWithDefaultPolicies(t *testing.T) {
 	var expected []interface{}
 	encoder, results := testCapturingUnaggregatedEncoder(t)
 	for _, input := range testInputWithAllTypesAndDefaultPolicies {
-		require.NoError(t, testUnaggregatedEncode(t, encoder, input.metric, input.versionedPolicies))
-		expected = append(expected, expectedResultsForUnaggregatedMetricWithPolicies(t, input.metric, input.versionedPolicies)...)
+		require.NoError(t, testUnaggregatedEncode(t, encoder, input.metric, input.policiesList))
+		expected = append(expected, expectedResultsForUnaggregatedMetricWithPolicies(t, input.metric, input.policiesList)...)
 	}
 
 	require.Equal(t, expected, *results)
 }
 
-func TestUnaggregatedEncodeAllTypesWithCustomPolicies(t *testing.T) {
+func TestUnaggregatedEncodeAllTypesWithSingleCustomPolicies(t *testing.T) {
 	var expected []interface{}
 	encoder, results := testCapturingUnaggregatedEncoder(t)
-	for _, input := range testInputWithAllTypesAndCustomPolicies {
-		require.NoError(t, testUnaggregatedEncode(t, encoder, input.metric, input.versionedPolicies))
-		expected = append(expected, expectedResultsForUnaggregatedMetricWithPolicies(t, input.metric, input.versionedPolicies)...)
+	for _, input := range testInputWithAllTypesAndSingleCustomPolicies {
+		require.NoError(t, testUnaggregatedEncode(t, encoder, input.metric, input.policiesList))
+		expected = append(expected, expectedResultsForUnaggregatedMetricWithPolicies(t, input.metric, input.policiesList)...)
 	}
 
 	require.Equal(t, expected, *results)
@@ -88,7 +88,7 @@ func TestUnaggregatedEncodeAllTypesWithCustomPolicies(t *testing.T) {
 
 func TestUnaggregatedEncodeVarintError(t *testing.T) {
 	counter := testCounter
-	policies := testDefaultVersionedPolicies
+	policies := testDefaultStagedPolicies
 
 	// Intentionally return an error when encoding varint.
 	encoder := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
@@ -106,7 +106,7 @@ func TestUnaggregatedEncodeVarintError(t *testing.T) {
 
 func TestUnaggregatedEncodeFloat64Error(t *testing.T) {
 	gauge := testGauge
-	policies := testDefaultVersionedPolicies
+	policies := testDefaultStagedPolicies
 
 	// Intentionally return an error when encoding float64.
 	encoder := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
@@ -124,7 +124,7 @@ func TestUnaggregatedEncodeFloat64Error(t *testing.T) {
 
 func TestUnaggregatedEncodeBytesError(t *testing.T) {
 	timer := testBatchTimer
-	policies := testDefaultVersionedPolicies
+	policies := testDefaultStagedPolicies
 
 	// Intentionally return an error when encoding array length.
 	encoder := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
@@ -142,13 +142,15 @@ func TestUnaggregatedEncodeBytesError(t *testing.T) {
 
 func TestUnaggregatedEncodeArrayLenError(t *testing.T) {
 	gauge := testGauge
-	policies := policy.CustomVersionedPolicies(
-		1,
-		time.Now(),
-		[]policy.Policy{
-			policy.NewPolicy(time.Second, xtime.Second, time.Hour),
-		},
-	)
+	policies := policy.PoliciesList{
+		policy.NewStagedPolicies(
+			time.Now().UnixNano(),
+			false,
+			[]policy.Policy{
+				policy.NewPolicy(time.Second, xtime.Second, time.Hour),
+			},
+		),
+	}
 
 	// Intentionally return an error when encoding array length.
 	encoder := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
@@ -166,7 +168,7 @@ func TestUnaggregatedEncodeArrayLenError(t *testing.T) {
 
 func TestUnaggregatedEncoderReset(t *testing.T) {
 	metric := testCounter
-	policies := testDefaultVersionedPolicies
+	policies := testDefaultStagedPolicies
 
 	encoder := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 	baseEncoder := encoder.encoderBase.(*baseEncoder)
@@ -220,21 +222,12 @@ func expectedResultsForPolicy(t *testing.T, p policy.Policy) []interface{} {
 	return results
 }
 
-func expectedResultsForVersionedPolicies(t *testing.T, vp policy.VersionedPolicies) []interface{} {
-	if vp.IsDefault() {
-		return []interface{}{
-			numFieldsForType(defaultVersionedPoliciesType),
-			int64(defaultVersionedPoliciesType),
-			int64(vp.Version),
-			vp.Cutover,
-		}
-	}
-	policies := vp.Policies()
+func expectedResultsForStagedPolicies(t *testing.T, sp policy.StagedPolicies) []interface{} {
+	policies := sp.Policies()
 	results := []interface{}{
-		numFieldsForType(customVersionedPoliciesType),
-		int64(customVersionedPoliciesType),
-		int64(vp.Version),
-		vp.Cutover,
+		numFieldsForType(stagedPoliciesType),
+		sp.CutoverNs,
+		sp.Tombstoned,
 		len(policies),
 	}
 	for _, p := range policies {
@@ -243,10 +236,28 @@ func expectedResultsForVersionedPolicies(t *testing.T, vp policy.VersionedPolici
 	return results
 }
 
+func expectedResultsForPoliciesList(t *testing.T, pl policy.PoliciesList) []interface{} {
+	if pl.IsDefault() {
+		return []interface{}{
+			numFieldsForType(defaultPoliciesListType),
+			int64(defaultPoliciesListType),
+		}
+	}
+	results := []interface{}{
+		numFieldsForType(customPoliciesListType),
+		int64(customPoliciesListType),
+		len(pl),
+	}
+	for _, sp := range pl {
+		results = append(results, expectedResultsForStagedPolicies(t, sp)...)
+	}
+	return results
+}
+
 func expectedResultsForUnaggregatedMetricWithPolicies(
 	t *testing.T,
 	m unaggregated.MetricUnion,
-	vp policy.VersionedPolicies,
+	pl policy.PoliciesList,
 ) []interface{} {
 	results := []interface{}{
 		int64(unaggregatedVersion),
@@ -256,16 +267,16 @@ func expectedResultsForUnaggregatedMetricWithPolicies(
 	switch m.Type {
 	case unaggregated.CounterType:
 		results = append(results, []interface{}{
-			int64(counterWithPoliciesType),
-			numFieldsForType(counterWithPoliciesType),
+			int64(counterWithPoliciesListType),
+			numFieldsForType(counterWithPoliciesListType),
 			numFieldsForType(counterType),
 			[]byte(m.ID),
 			m.CounterVal,
 		}...)
 	case unaggregated.BatchTimerType:
 		results = append(results, []interface{}{
-			int64(batchTimerWithPoliciesType),
-			numFieldsForType(batchTimerWithPoliciesType),
+			int64(batchTimerWithPoliciesListType),
+			numFieldsForType(batchTimerWithPoliciesListType),
 			numFieldsForType(batchTimerType),
 			[]byte(m.ID),
 			len(m.BatchTimerVal),
@@ -275,8 +286,8 @@ func expectedResultsForUnaggregatedMetricWithPolicies(
 		}
 	case unaggregated.GaugeType:
 		results = append(results, []interface{}{
-			int64(gaugeWithPoliciesType),
-			numFieldsForType(gaugeWithPoliciesType),
+			int64(gaugeWithPoliciesListType),
+			numFieldsForType(gaugeWithPoliciesListType),
 			numFieldsForType(gaugeType),
 			[]byte(m.ID),
 			m.GaugeVal,
@@ -285,8 +296,8 @@ func expectedResultsForUnaggregatedMetricWithPolicies(
 		require.Fail(t, fmt.Sprintf("unrecognized metric type %v", m.Type))
 	}
 
-	vpRes := expectedResultsForVersionedPolicies(t, vp)
-	results = append(results, vpRes...)
+	plRes := expectedResultsForPoliciesList(t, pl)
+	results = append(results, plRes...)
 
 	return results
 }

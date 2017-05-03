@@ -45,30 +45,20 @@ func TestPoliciesByResolutionAsc(t *testing.T) {
 	require.Equal(t, expected, inputs)
 }
 
-func TestDefaultVersionedPolicies(t *testing.T) {
-	var (
-		version = 2
-		cutover = time.Now()
-	)
-	vp := DefaultVersionedPolicies(version, cutover)
-	require.Equal(t, version, vp.Version)
-	require.Equal(t, cutover, vp.Cutover)
-	require.True(t, vp.IsDefault())
-	require.Equal(t, defaultPolicies, vp.Policies())
+func TestStagedPoliciesHasDefaultPolicies(t *testing.T) {
+	sp := NewStagedPolicies(testNowNs, true, nil)
+	require.Equal(t, testNowNs, sp.CutoverNs)
+	require.True(t, sp.hasDefaultPolicies())
+	require.Equal(t, defaultPolicies, sp.Policies())
 }
 
-func TestCustomVersionedPolicies(t *testing.T) {
-	var (
-		version  = 2
-		cutover  = time.Now()
-		policies = []Policy{
-			NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
-			NewPolicy(10*time.Second, xtime.Second, 2*time.Hour),
-		}
-	)
-	vp := CustomVersionedPolicies(version, cutover, policies)
-	require.Equal(t, version, vp.Version)
-	require.Equal(t, cutover, vp.Cutover)
-	require.False(t, vp.IsDefault())
-	require.Equal(t, policies, vp.Policies())
+func TestStagedPoliciesHasCustomPolicies(t *testing.T) {
+	policies := []Policy{
+		NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+		NewPolicy(10*time.Second, xtime.Second, 2*time.Hour),
+	}
+	sp := NewStagedPolicies(testNowNs, false, policies)
+	require.Equal(t, testNowNs, sp.CutoverNs)
+	require.False(t, sp.hasDefaultPolicies())
+	require.Equal(t, policies, sp.Policies())
 }

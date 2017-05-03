@@ -32,62 +32,64 @@ import (
 
 func TestMatchResult(t *testing.T) {
 	var (
-		version    = 1
 		cutoverNs  = int64(12345)
 		expireAtNs = int64(67890)
-		mappings   = []policy.Policy{
-			policy.NewPolicy(10*time.Second, xtime.Second, 12*time.Hour),
-			policy.NewPolicy(time.Minute, xtime.Minute, 24*time.Hour),
-			policy.NewPolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
-		}
-		rollups = []RollupResult{
-			{
-				ID: b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
-				Policies: []policy.Policy{
-					policy.NewPolicy(10*time.Second, xtime.Second, 12*time.Hour),
-					policy.NewPolicy(time.Minute, xtime.Minute, 24*time.Hour),
-					policy.NewPolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
-				},
-			},
-			{
-				ID:       b("rName2|rtagName1=rtagValue1"),
-				Policies: []policy.Policy{},
-			},
-		}
-	)
-
-	res := NewMatchResult(version, cutoverNs, expireAtNs, mappings, rollups)
-	require.False(t, res.HasExpired(time.Unix(0, 0)))
-	require.True(t, res.HasExpired(time.Unix(0, 100000)))
-
-	expectedMappings := policy.CustomVersionedPolicies(version, time.Unix(0, 12345), mappings)
-	require.Equal(t, expectedMappings, res.Mappings())
-
-	var (
-		expectedRollupIDs = [][]byte{
-			b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
-			b("rName2|rtagName1=rtagValue1"),
-		}
-		expectedRollupPolicies = []policy.VersionedPolicies{
-			policy.CustomVersionedPolicies(
-				1,
-				time.Unix(0, 12345),
+		mappings   = policy.PoliciesList{
+			policy.NewStagedPolicies(
+				cutoverNs,
+				false,
 				[]policy.Policy{
 					policy.NewPolicy(10*time.Second, xtime.Second, 12*time.Hour),
 					policy.NewPolicy(time.Minute, xtime.Minute, 24*time.Hour),
 					policy.NewPolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
 				},
 			),
-			policy.DefaultVersionedPolicies(1, time.Unix(0, 12345)),
+		}
+		rollups = []RollupResult{
+			{
+				ID: b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
+				PoliciesList: policy.PoliciesList{
+					policy.NewStagedPolicies(
+						cutoverNs,
+						false,
+						[]policy.Policy{
+							policy.NewPolicy(10*time.Second, xtime.Second, 12*time.Hour),
+							policy.NewPolicy(time.Minute, xtime.Minute, 24*time.Hour),
+							policy.NewPolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
+						},
+					),
+				},
+			},
+			{
+				ID:           b("rName2|rtagName1=rtagValue1"),
+				PoliciesList: policy.PoliciesList{policy.NewStagedPolicies(cutoverNs, false, nil)},
+			},
+		}
+	)
+
+	res := NewMatchResult(expireAtNs, mappings, rollups)
+	require.False(t, res.HasExpired(time.Unix(0, 0)))
+	require.True(t, res.HasExpired(time.Unix(0, 100000)))
+
+	require.Equal(t, mappings, res.MappingsAt(time.Unix(0, 0)))
+
+	var (
+		expectedRollupIDs = [][]byte{
+			b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
+			b("rName2|rtagName1=rtagValue1"),
+		}
+		expectedRollupPolicies = policy.PoliciesList{
+			rollups[0].PoliciesList[0],
+			rollups[1].PoliciesList[0],
 		}
 		rollupIDs      [][]byte
-		rollupPolicies []policy.VersionedPolicies
+		rollupPolicies policy.PoliciesList
 	)
 	require.Equal(t, 2, res.NumRollups())
 	for i := 0; i < 2; i++ {
-		id, policies := res.Rollups(i)
-		rollupIDs = append(rollupIDs, id)
-		rollupPolicies = append(rollupPolicies, policies)
+		rollup := res.RollupsAt(i, time.Unix(0, 0))
+		rollupIDs = append(rollupIDs, rollup.ID)
+		rollupPolicies = append(rollupPolicies, rollup.PoliciesList...)
 	}
 	require.Equal(t, expectedRollupIDs, rollupIDs)
 	require.Equal(t, expectedRollupPolicies, rollupPolicies)

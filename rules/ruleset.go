@@ -48,12 +48,11 @@ type TagPair struct {
 
 // Matcher matches metrics against rules to determine applicable policies.
 type Matcher interface {
-	// Match returns applicable policies given a metric id for a given time.
-	Match(id []byte, t time.Time) MatchResult
+	// MatchAll returns all applicable policies given a metric id between [from, to).
+	MatchAll(id []byte, from time.Time, to time.Time) MatchResult
 }
 
 type activeRuleSet struct {
-	version         int
 	iterFn          filters.NewSortedTagIteratorFn
 	newIDFn         NewIDFn
 	mappingRules    []*mappingRule
@@ -62,7 +61,6 @@ type activeRuleSet struct {
 }
 
 func newActiveRuleSet(
-	version int,
 	iterFn filters.NewSortedTagIteratorFn,
 	newIDFn NewIDFn,
 	mappingRules []*mappingRule,
@@ -80,38 +78,48 @@ func newActiveRuleSet(
 		}
 	}
 
-	cutoverTimeAsc := make([]int64, 0, len(uniqueCutoverTimes))
+	cutoverTimesAsc := make([]int64, 0, len(uniqueCutoverTimes))
 	for t := range uniqueCutoverTimes {
-		cutoverTimeAsc = append(cutoverTimeAsc, t)
+		cutoverTimesAsc = append(cutoverTimesAsc, t)
 	}
-	sort.Sort(int64Asc(cutoverTimeAsc))
+	sort.Sort(int64Asc(cutoverTimesAsc))
 
 	return &activeRuleSet{
-		version:         version,
 		iterFn:          iterFn,
 		newIDFn:         newIDFn,
 		mappingRules:    mappingRules,
 		rollupRules:     rollupRules,
-		cutoverTimesAsc: cutoverTimeAsc,
+		cutoverTimesAsc: cutoverTimesAsc,
 	}
 }
 
-func (as *activeRuleSet) Match(id []byte, t time.Time) MatchResult {
-	timeNs := t.UnixNano()
-	mappingCutoverNs, mappingPolicies := as.matchMappings(id, timeNs)
-	rollupCutoverNs, rollupResults := as.matchRollups(id, timeNs)
+// NB(xichen): could make this more efficient by keeping track of matched rules
+// at previous iteration and incrementally update match results.
+func (as *activeRuleSet) MatchAll(id []byte, from time.Time, to time.Time) MatchResult {
+	var (
+		fromNs             = from.UnixNano()
+		toNs               = to.UnixNano()
+		currMappingResults = policy.PoliciesList{as.matchMappings(id, fromNs)}
+		currRollupResults  = as.matchRollups(id, fromNs)
+		nextIdx            = as.nextCutoverIdx(fromNs)
+		nextCutoverNs      = as.cutoverNsAt(nextIdx)
+	)
 
-	// NB(xichen): we take the latest cutover time across all rules matched. This is
-	// used to determine whether the match result is valid for a given time.
-	cutoverNs := int64(math.Max(float64(mappingCutoverNs), float64(rollupCutoverNs)))
+	for nextIdx < len(as.cutoverTimesAsc) && nextCutoverNs < toNs {
+		nextMappingPolicies := as.matchMappings(id, nextCutoverNs)
+		nextRollupResults := as.matchRollups(id, nextCutoverNs)
+		currMappingResults = mergeMappingResults(currMappingResults, nextMappingPolicies)
+		currRollupResults = mergeRollupResults(currRollupResults, nextRollupResults, nextCutoverNs)
+		nextIdx++
+		nextCutoverNs = as.cutoverNsAt(nextIdx)
+	}
 
 	// The result expires when it reaches the first cutover time after t among all
 	// active rules because the metric may then be matched against a different set of rules.
-	expireAtNs := as.nextCutover(timeNs)
-	return NewMatchResult(as.version, cutoverNs, expireAtNs, mappingPolicies, rollupResults)
+	return NewMatchResult(nextCutoverNs, currMappingResults, currRollupResults)
 }
 
-func (as *activeRuleSet) matchMappings(id []byte, timeNs int64) (int64, []policy.Policy) {
+func (as *activeRuleSet) matchMappings(id []byte, timeNs int64) policy.StagedPolicies {
 	// TODO(xichen): pool the policies.
 	var (
 		cutoverNs int64
@@ -119,10 +127,7 @@ func (as *activeRuleSet) matchMappings(id []byte, timeNs int64) (int64, []policy
 	)
 	for _, mappingRule := range as.mappingRules {
 		snapshot := mappingRule.ActiveSnapshot(timeNs)
-		if snapshot == nil {
-			continue
-		}
-		if !snapshot.filter.Matches(id) {
+		if snapshot == nil || snapshot.tombstoned || !snapshot.filter.Matches(id) {
 			continue
 		}
 		if cutoverNs < snapshot.cutoverNs {
@@ -130,10 +135,11 @@ func (as *activeRuleSet) matchMappings(id []byte, timeNs int64) (int64, []policy
 		}
 		policies = append(policies, snapshot.policies...)
 	}
-	return cutoverNs, resolvePolicies(policies)
+	resolved := resolvePolicies(policies)
+	return policy.NewStagedPolicies(cutoverNs, false, resolved)
 }
 
-func (as *activeRuleSet) matchRollups(id []byte, timeNs int64) (int64, []RollupResult) {
+func (as *activeRuleSet) matchRollups(id []byte, timeNs int64) []RollupResult {
 	// TODO(xichen): pool the rollup targets.
 	var (
 		cutoverNs int64
@@ -141,10 +147,7 @@ func (as *activeRuleSet) matchRollups(id []byte, timeNs int64) (int64, []RollupR
 	)
 	for _, rollupRule := range as.rollupRules {
 		snapshot := rollupRule.ActiveSnapshot(timeNs)
-		if snapshot == nil {
-			continue
-		}
-		if !snapshot.filter.Matches(id) {
+		if snapshot == nil || snapshot.tombstoned || !snapshot.filter.Matches(id) {
 			continue
 		}
 		if cutoverNs < snapshot.cutoverNs {
@@ -173,11 +176,11 @@ func (as *activeRuleSet) matchRollups(id []byte, timeNs int64) (int64, []RollupR
 		rollups[i].Policies = resolvePolicies(rollups[i].Policies)
 	}
 
-	return cutoverNs, as.toRollupResults(id, rollups)
+	return as.toRollupResults(id, cutoverNs, rollups)
 }
 
 // toRollupResults encodes rollup target name and values into ids for each rollup target.
-func (as *activeRuleSet) toRollupResults(id []byte, targets []rollupTarget) []RollupResult {
+func (as *activeRuleSet) toRollupResults(id []byte, cutoverNs int64, targets []rollupTarget) []RollupResult {
 	// NB(r): This is n^2 however this should be quite fast still as
 	// long as there is not an absurdly high number of rollup
 	// targets for any given ID and that iterfn is alloc free.
@@ -186,6 +189,9 @@ func (as *activeRuleSet) toRollupResults(id []byte, targets []rollupTarget) []Ro
 	// any given ID would match a relatively low number of rollups.
 
 	// TODO(xichen): pool tag pairs and rollup results.
+	if len(targets) == 0 {
+		return nil
+	}
 	var tagPairs []TagPair
 	rollups := make([]RollupResult, 0, len(targets))
 	for _, target := range targets {
@@ -202,18 +208,19 @@ func (as *activeRuleSet) toRollupResults(id []byte, targets []rollupTarget) []Ro
 			iter.Close()
 		}
 		result := RollupResult{
-			ID:       as.newIDFn(target.Name, tagPairs),
-			Policies: target.Policies,
+			ID:           as.newIDFn(target.Name, tagPairs),
+			PoliciesList: policy.PoliciesList{policy.NewStagedPolicies(cutoverNs, false, target.Policies)},
 		}
 		rollups = append(rollups, result)
 	}
 
+	sort.Sort(RollupResultsByIDAsc(rollups))
 	return rollups
 }
 
-// nextCutover returns the next cutover time after t.
+// nextCutoverIdx returns the next snapshot index whose cutover time is after t.
 // NB(xichen): not using sort.Search to avoid a lambda capture.
-func (as *activeRuleSet) nextCutover(t int64) int64 {
+func (as *activeRuleSet) nextCutoverIdx(t int64) int {
 	i, j := 0, len(as.cutoverTimesAsc)
 	for i < j {
 		h := i + (j-i)/2
@@ -223,8 +230,13 @@ func (as *activeRuleSet) nextCutover(t int64) int64 {
 			j = h
 		}
 	}
-	if i < len(as.cutoverTimesAsc) {
-		return as.cutoverTimesAsc[i]
+	return i
+}
+
+// cutoverNsAt returns the cutover time at given index.
+func (as *activeRuleSet) cutoverNsAt(idx int) int64 {
+	if idx < len(as.cutoverTimesAsc) {
+		return as.cutoverTimesAsc[idx]
 	}
 	return timeNsMax
 }
@@ -315,7 +327,7 @@ func (rs *ruleSet) ActiveSet(t time.Time) Matcher {
 		activeRule := rollupRule.ActiveRule(timeNs)
 		rollupRules = append(rollupRules, activeRule)
 	}
-	return newActiveRuleSet(rs.version, rs.iterFn, rs.newIDFn, mappingRules, rollupRules)
+	return newActiveRuleSet(rs.iterFn, rs.newIDFn, mappingRules, rollupRules)
 }
 
 // resolvePolicies resolves the conflicts among policies if any, following the rules below:
@@ -351,6 +363,80 @@ func resolvePolicies(policies []policy.Policy) []policy.Policy {
 		policies[curr] = policies[i]
 	}
 	return policies[:curr+1]
+}
+
+func mergeMappingResults(
+	currMappingResults policy.PoliciesList,
+	nextMappingPolicies policy.StagedPolicies,
+) policy.PoliciesList {
+	currMappingPolicies := currMappingResults[len(currMappingResults)-1]
+	if currMappingPolicies.SamePolicies(nextMappingPolicies) {
+		return currMappingResults
+	}
+	currMappingResults = append(currMappingResults, nextMappingPolicies)
+	return currMappingResults
+}
+
+func mergeRollupResults(
+	currRollupResults []RollupResult,
+	nextRollupResults []RollupResult,
+	nextCutoverNs int64,
+) []RollupResult {
+	var (
+		numCurrRollupResults = len(currRollupResults)
+		numNextRollupResults = len(nextRollupResults)
+		currRollupIdx        int
+		nextRollupIdx        int
+	)
+
+	for currRollupIdx < numCurrRollupResults && nextRollupIdx < numNextRollupResults {
+		currRollupResult := currRollupResults[currRollupIdx]
+		nextRollupResult := nextRollupResults[nextRollupIdx]
+
+		// If the current and the next rollup result have the same id, we merge their policies.
+		compareResult := bytes.Compare(currRollupResult.ID, nextRollupResult.ID)
+		if compareResult == 0 {
+			currRollupPolicies := currRollupResult.PoliciesList[len(currRollupResult.PoliciesList)-1]
+			nextRollupPolicies := nextRollupResult.PoliciesList[0]
+			if !currRollupPolicies.SamePolicies(nextRollupPolicies) {
+				currRollupResults[currRollupIdx].PoliciesList = append(currRollupResults[currRollupIdx].PoliciesList, nextRollupPolicies)
+			}
+			currRollupIdx++
+			nextRollupIdx++
+			continue
+		}
+
+		// If the current id is smaller, it means the id is deleted in the next rollup result.
+		if compareResult < 0 {
+			tombstonedPolicies := policy.NewStagedPolicies(nextCutoverNs, true, nil)
+			currRollupResults[currRollupIdx].PoliciesList = append(currRollupResults[currRollupIdx].PoliciesList, tombstonedPolicies)
+			currRollupIdx++
+			continue
+		}
+
+		// Otherwise the current id is larger, meaning a new id is added in the next rollup result.
+		currRollupResults = append(currRollupResults, nextRollupResult)
+		nextRollupIdx++
+	}
+
+	// If there are leftover ids in the current rollup result, these ids must have been deleted
+	// in the next rollup result.
+	for currRollupIdx < numCurrRollupResults {
+		tombstonedPolicies := policy.NewStagedPolicies(nextCutoverNs, true, nil)
+		currRollupResults[currRollupIdx].PoliciesList = append(currRollupResults[currRollupIdx].PoliciesList, tombstonedPolicies)
+		currRollupIdx++
+	}
+
+	// If there are additional ids in the next rollup result, these ids must have been added
+	// in the next rollup result.
+	for nextRollupIdx < numNextRollupResults {
+		nextRollupResult := nextRollupResults[nextRollupIdx]
+		currRollupResults = append(currRollupResults, nextRollupResult)
+		nextRollupIdx++
+	}
+
+	sort.Sort(RollupResultsByIDAsc(currRollupResults))
+	return currRollupResults
 }
 
 type int64Asc []int64
