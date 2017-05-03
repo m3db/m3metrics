@@ -40,47 +40,58 @@ var (
 	errTestArrayLen = errors.New("test array len error")
 )
 
-func TestUnaggregatedEncodeCounterWithDefaultPolicies(t *testing.T) {
-	policies := testDefaultStagedPolicies
+func TestUnaggregatedEncodeCounterWithDefaultPoliciesList(t *testing.T) {
+	policies := testDefaultStagedPoliciesList
 	encoder, results := testCapturingUnaggregatedEncoder(t)
 	require.NoError(t, testUnaggregatedEncode(t, encoder, testCounter, policies))
-	expected := expectedResultsForUnaggregatedMetricWithPolicies(t, testCounter, policies)
+	expected := expectedResultsForUnaggregatedMetricWithPoliciesList(t, testCounter, policies)
 	require.Equal(t, expected, *results)
 }
 
-func TestUnaggregatedEncodeBatchTimerWithDefaultPolicies(t *testing.T) {
-	policies := testDefaultStagedPolicies
+func TestUnaggregatedEncodeBatchTimerWithDefaultPoliciesList(t *testing.T) {
+	policies := testDefaultStagedPoliciesList
 	encoder, results := testCapturingUnaggregatedEncoder(t)
 	require.NoError(t, testUnaggregatedEncode(t, encoder, testBatchTimer, policies))
-	expected := expectedResultsForUnaggregatedMetricWithPolicies(t, testBatchTimer, policies)
+	expected := expectedResultsForUnaggregatedMetricWithPoliciesList(t, testBatchTimer, policies)
 	require.Equal(t, expected, *results)
 }
 
-func TestUnaggregatedEncodeGaugeWithDefaultPolicies(t *testing.T) {
-	policies := testDefaultStagedPolicies
+func TestUnaggregatedEncodeGaugeWithDefaultPoliciesList(t *testing.T) {
+	policies := testDefaultStagedPoliciesList
 	encoder, results := testCapturingUnaggregatedEncoder(t)
 	require.NoError(t, testUnaggregatedEncode(t, encoder, testGauge, policies))
-	expected := expectedResultsForUnaggregatedMetricWithPolicies(t, testGauge, policies)
+	expected := expectedResultsForUnaggregatedMetricWithPoliciesList(t, testGauge, policies)
 	require.Equal(t, expected, *results)
 }
 
-func TestUnaggregatedEncodeAllTypesWithDefaultPolicies(t *testing.T) {
+func TestUnaggregatedEncodeAllTypesWithDefaultPoliciesList(t *testing.T) {
 	var expected []interface{}
 	encoder, results := testCapturingUnaggregatedEncoder(t)
-	for _, input := range testInputWithAllTypesAndDefaultPolicies {
+	for _, input := range testInputWithAllTypesAndDefaultPoliciesList {
 		require.NoError(t, testUnaggregatedEncode(t, encoder, input.metric, input.policiesList))
-		expected = append(expected, expectedResultsForUnaggregatedMetricWithPolicies(t, input.metric, input.policiesList)...)
+		expected = append(expected, expectedResultsForUnaggregatedMetricWithPoliciesList(t, input.metric, input.policiesList)...)
 	}
 
 	require.Equal(t, expected, *results)
 }
 
-func TestUnaggregatedEncodeAllTypesWithSingleCustomPolicies(t *testing.T) {
+func TestUnaggregatedEncodeAllTypesWithSingleCustomPoliciesList(t *testing.T) {
 	var expected []interface{}
 	encoder, results := testCapturingUnaggregatedEncoder(t)
-	for _, input := range testInputWithAllTypesAndSingleCustomPolicies {
+	for _, input := range testInputWithAllTypesAndSingleCustomPoliciesList {
 		require.NoError(t, testUnaggregatedEncode(t, encoder, input.metric, input.policiesList))
-		expected = append(expected, expectedResultsForUnaggregatedMetricWithPolicies(t, input.metric, input.policiesList)...)
+		expected = append(expected, expectedResultsForUnaggregatedMetricWithPoliciesList(t, input.metric, input.policiesList)...)
+	}
+
+	require.Equal(t, expected, *results)
+}
+
+func TestUnaggregatedEncodeAllTypesWithMultiCustomPolicies(t *testing.T) {
+	var expected []interface{}
+	encoder, results := testCapturingUnaggregatedEncoder(t)
+	for _, input := range testInputWithAllTypesAndMultiCustomPoliciesList {
+		require.NoError(t, testUnaggregatedEncode(t, encoder, input.metric, input.policiesList))
+		expected = append(expected, expectedResultsForUnaggregatedMetricWithPoliciesList(t, input.metric, input.policiesList)...)
 	}
 
 	require.Equal(t, expected, *results)
@@ -88,7 +99,7 @@ func TestUnaggregatedEncodeAllTypesWithSingleCustomPolicies(t *testing.T) {
 
 func TestUnaggregatedEncodeVarintError(t *testing.T) {
 	counter := testCounter
-	policies := testDefaultStagedPolicies
+	policies := testDefaultStagedPoliciesList
 
 	// Intentionally return an error when encoding varint.
 	encoder := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
@@ -106,7 +117,7 @@ func TestUnaggregatedEncodeVarintError(t *testing.T) {
 
 func TestUnaggregatedEncodeFloat64Error(t *testing.T) {
 	gauge := testGauge
-	policies := testDefaultStagedPolicies
+	policies := testDefaultStagedPoliciesList
 
 	// Intentionally return an error when encoding float64.
 	encoder := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
@@ -124,7 +135,7 @@ func TestUnaggregatedEncodeFloat64Error(t *testing.T) {
 
 func TestUnaggregatedEncodeBytesError(t *testing.T) {
 	timer := testBatchTimer
-	policies := testDefaultStagedPolicies
+	policies := testDefaultStagedPoliciesList
 
 	// Intentionally return an error when encoding array length.
 	encoder := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
@@ -168,7 +179,7 @@ func TestUnaggregatedEncodeArrayLenError(t *testing.T) {
 
 func TestUnaggregatedEncoderReset(t *testing.T) {
 	metric := testCounter
-	policies := testDefaultStagedPolicies
+	policies := testDefaultStagedPoliciesList
 
 	encoder := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 	baseEncoder := encoder.encoderBase.(*baseEncoder)
@@ -254,7 +265,7 @@ func expectedResultsForPoliciesList(t *testing.T, pl policy.PoliciesList) []inte
 	return results
 }
 
-func expectedResultsForUnaggregatedMetricWithPolicies(
+func expectedResultsForUnaggregatedMetricWithPoliciesList(
 	t *testing.T,
 	m unaggregated.MetricUnion,
 	pl policy.PoliciesList,

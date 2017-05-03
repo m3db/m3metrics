@@ -127,13 +127,30 @@ func (as *activeRuleSet) matchMappings(id []byte, timeNs int64) policy.StagedPol
 	)
 	for _, mappingRule := range as.mappingRules {
 		snapshot := mappingRule.ActiveSnapshot(timeNs)
-		if snapshot == nil || snapshot.tombstoned || !snapshot.filter.Matches(id) {
+		if snapshot == nil {
+			continue
+		}
+		// NB(xichen): if the snapshot is tombstoned, we don't perform id matching with it.
+		// However, because it may affect the final resolved policies for this id, we need
+		// to update the cutover time. This is okay even though the tombstoned snapshot doesn't
+		// match the id because the cutover time of the result policies only needs to be best effort
+		// as long as it is before the time passed in.
+		if snapshot.tombstoned {
+			if cutoverNs < snapshot.cutoverNs {
+				cutoverNs = snapshot.cutoverNs
+			}
+			continue
+		}
+		if !snapshot.filter.Matches(id) {
 			continue
 		}
 		if cutoverNs < snapshot.cutoverNs {
 			cutoverNs = snapshot.cutoverNs
 		}
 		policies = append(policies, snapshot.policies...)
+	}
+	if len(policies) == 0 {
+		return policy.EmptyStagedPolicies
 	}
 	resolved := resolvePolicies(policies)
 	return policy.NewStagedPolicies(cutoverNs, false, resolved)
@@ -147,7 +164,16 @@ func (as *activeRuleSet) matchRollups(id []byte, timeNs int64) []RollupResult {
 	)
 	for _, rollupRule := range as.rollupRules {
 		snapshot := rollupRule.ActiveSnapshot(timeNs)
-		if snapshot == nil || snapshot.tombstoned || !snapshot.filter.Matches(id) {
+		if snapshot == nil {
+			continue
+		}
+		if snapshot.tombstoned {
+			if cutoverNs < snapshot.cutoverNs {
+				cutoverNs = snapshot.cutoverNs
+			}
+			continue
+		}
+		if !snapshot.filter.Matches(id) {
 			continue
 		}
 		if cutoverNs < snapshot.cutoverNs {
@@ -172,6 +198,9 @@ func (as *activeRuleSet) matchRollups(id []byte, timeNs int64) []RollupResult {
 	}
 
 	// Resolve the policies for each rollup target.
+	if len(rollups) == 0 {
+		return nil
+	}
 	for i := range rollups {
 		rollups[i].Policies = resolvePolicies(rollups[i].Policies)
 	}
@@ -408,8 +437,11 @@ func mergeRollupResults(
 
 		// If the current id is smaller, it means the id is deleted in the next rollup result.
 		if compareResult < 0 {
-			tombstonedPolicies := policy.NewStagedPolicies(nextCutoverNs, true, nil)
-			currRollupResults[currRollupIdx].PoliciesList = append(currRollupResults[currRollupIdx].PoliciesList, tombstonedPolicies)
+			currRollupPolicies := currRollupResult.PoliciesList[len(currRollupResult.PoliciesList)-1]
+			if !currRollupPolicies.Tombstoned {
+				tombstonedPolicies := policy.NewStagedPolicies(nextCutoverNs, true, nil)
+				currRollupResults[currRollupIdx].PoliciesList = append(currRollupResults[currRollupIdx].PoliciesList, tombstonedPolicies)
+			}
 			currRollupIdx++
 			continue
 		}
@@ -422,8 +454,12 @@ func mergeRollupResults(
 	// If there are leftover ids in the current rollup result, these ids must have been deleted
 	// in the next rollup result.
 	for currRollupIdx < numCurrRollupResults {
-		tombstonedPolicies := policy.NewStagedPolicies(nextCutoverNs, true, nil)
-		currRollupResults[currRollupIdx].PoliciesList = append(currRollupResults[currRollupIdx].PoliciesList, tombstonedPolicies)
+		currRollupResult := currRollupResults[currRollupIdx]
+		currRollupPolicies := currRollupResult.PoliciesList[len(currRollupResult.PoliciesList)-1]
+		if !currRollupPolicies.Tombstoned {
+			tombstonedPolicies := policy.NewStagedPolicies(nextCutoverNs, true, nil)
+			currRollupResults[currRollupIdx].PoliciesList = append(currRollupResults[currRollupIdx].PoliciesList, tombstonedPolicies)
+		}
 		currRollupIdx++
 	}
 

@@ -54,9 +54,9 @@ var (
 		GaugeVal: 123.456,
 	}
 
-	testDefaultStagedPolicies = policy.DefaultPoliciesList
+	testDefaultStagedPoliciesList = policy.DefaultPoliciesList
 
-	testSingleCustomStagedPolicies = policy.PoliciesList{
+	testSingleCustomStagedPoliciesList = policy.PoliciesList{
 		policy.NewStagedPolicies(
 			time.Now().UnixNano(),
 			false,
@@ -64,6 +64,25 @@ var (
 				policy.NewPolicy(20*time.Second, xtime.Second, 6*time.Hour),
 				policy.NewPolicy(time.Minute, xtime.Minute, 2*24*time.Hour),
 				policy.NewPolicy(10*time.Minute, xtime.Minute, 25*24*time.Hour),
+			},
+		),
+	}
+
+	testMultiCustomStagedPoliciesList = policy.PoliciesList{
+		policy.NewStagedPolicies(
+			time.Now().UnixNano(),
+			false,
+			[]policy.Policy{
+				policy.NewPolicy(20*time.Second, xtime.Second, 6*time.Hour),
+				policy.NewPolicy(time.Minute, xtime.Minute, 2*24*time.Hour),
+				policy.NewPolicy(10*time.Minute, xtime.Minute, 25*24*time.Hour),
+			},
+		),
+		policy.NewStagedPolicies(
+			time.Now().Add(time.Minute).UnixNano(),
+			true,
+			[]policy.Policy{
+				policy.NewPolicy(time.Second, xtime.Second, time.Hour),
 			},
 		),
 	}
@@ -78,22 +97,22 @@ var (
 		),
 	}
 
-	testInputWithAllTypesAndDefaultPolicies = []metricWithPoliciesList{
+	testInputWithAllTypesAndDefaultPoliciesList = []metricWithPoliciesList{
 		{
 			metric:       testCounter,
-			policiesList: testDefaultStagedPolicies,
+			policiesList: testDefaultStagedPoliciesList,
 		},
 		{
 			metric:       testBatchTimer,
-			policiesList: testDefaultStagedPolicies,
+			policiesList: testDefaultStagedPoliciesList,
 		},
 		{
 			metric:       testGauge,
-			policiesList: testDefaultStagedPolicies,
+			policiesList: testDefaultStagedPoliciesList,
 		},
 	}
 
-	testInputWithAllTypesAndSingleCustomPolicies = []metricWithPoliciesList{
+	testInputWithAllTypesAndSingleCustomPoliciesList = []metricWithPoliciesList{
 		// Retain this metric at 20 second resolution for 6 hours,
 		// then 1 minute for 2 days, then 10 minutes for 25 days.
 		{
@@ -137,35 +156,101 @@ var (
 			},
 		},
 	}
+
+	testInputWithAllTypesAndMultiCustomPoliciesList = []metricWithPoliciesList{
+		{
+			metric: testBatchTimer,
+			policiesList: policy.PoliciesList{
+				policy.NewStagedPolicies(
+					time.Now().UnixNano(),
+					false,
+					[]policy.Policy{
+						policy.NewPolicy(20*time.Second, xtime.Second, 6*time.Hour),
+						policy.NewPolicy(time.Minute, xtime.Minute, 2*24*time.Hour),
+						policy.NewPolicy(10*time.Minute, xtime.Minute, 25*24*time.Hour),
+					},
+				),
+				policy.NewStagedPolicies(
+					time.Now().Add(time.Minute).UnixNano(),
+					true,
+					[]policy.Policy{
+						policy.NewPolicy(time.Second, xtime.Second, time.Hour),
+					},
+				),
+			},
+		},
+		{
+			metric: testCounter,
+			policiesList: policy.PoliciesList{
+				policy.NewStagedPolicies(
+					time.Now().UnixNano(),
+					true,
+					[]policy.Policy{
+						policy.NewPolicy(time.Second, xtime.Second, time.Hour),
+					},
+				),
+				policy.NewStagedPolicies(
+					time.Now().Add(time.Hour).UnixNano(),
+					false,
+					[]policy.Policy{
+						policy.NewPolicy(10*time.Minute, xtime.Minute, 45*24*time.Hour),
+					},
+				),
+			},
+		},
+		{
+			metric: testGauge,
+			policiesList: policy.PoliciesList{
+				policy.NewStagedPolicies(
+					time.Now().UnixNano(),
+					false,
+					[]policy.Policy{
+						policy.NewPolicy(10*time.Minute, xtime.Minute, 45*24*time.Hour),
+					},
+				),
+				policy.NewStagedPolicies(
+					time.Now().Add(time.Nanosecond).UnixNano(),
+					false,
+					[]policy.Policy{
+						policy.NewPolicy(5*time.Minute, xtime.Minute, 36*time.Hour),
+					},
+				),
+			},
+		},
+	}
 )
 
-func TestUnaggregatedEncodeDecodeCounterWithDefaultPolicies(t *testing.T) {
+func TestUnaggregatedEncodeDecodeCounterWithDefaultPoliciesList(t *testing.T) {
 	validateUnaggregatedRoundtrip(t, metricWithPoliciesList{
 		metric:       testCounter,
-		policiesList: testDefaultStagedPolicies,
+		policiesList: testDefaultStagedPoliciesList,
 	})
 }
 
-func TestUnaggregatedEncodeDecodeBatchTimerWithDefaultPolicies(t *testing.T) {
+func TestUnaggregatedEncodeDecodeBatchTimerWithDefaultPoliciesList(t *testing.T) {
 	validateUnaggregatedRoundtrip(t, metricWithPoliciesList{
 		metric:       testBatchTimer,
-		policiesList: testDefaultStagedPolicies,
+		policiesList: testDefaultStagedPoliciesList,
 	})
 }
 
-func TestUnaggregatedEncodeDecodeGaugeWithDefaultPolicies(t *testing.T) {
+func TestUnaggregatedEncodeDecodeGaugeWithDefaultPoliciesList(t *testing.T) {
 	validateUnaggregatedRoundtrip(t, metricWithPoliciesList{
 		metric:       testGauge,
-		policiesList: testDefaultStagedPolicies,
+		policiesList: testDefaultStagedPoliciesList,
 	})
 }
 
-func TestUnaggregatedEncodeDecodeAllTypesWithDefaultPolicies(t *testing.T) {
-	validateUnaggregatedRoundtrip(t, testInputWithAllTypesAndDefaultPolicies...)
+func TestUnaggregatedEncodeDecodeAllTypesWithDefaultPoliciesList(t *testing.T) {
+	validateUnaggregatedRoundtrip(t, testInputWithAllTypesAndDefaultPoliciesList...)
 }
 
-func TestUnaggregatedEncodeDecodeAllTypesWithCustomPolicies(t *testing.T) {
-	validateUnaggregatedRoundtrip(t, testInputWithAllTypesAndSingleCustomPolicies...)
+func TestUnaggregatedEncodeDecodeAllTypesWithSingleCustomPoliciesList(t *testing.T) {
+	validateUnaggregatedRoundtrip(t, testInputWithAllTypesAndSingleCustomPoliciesList...)
+}
+
+func TestUnaggregatedEncodeDecodeAllTypesWithMultiCustomPoliciesList(t *testing.T) {
+	validateUnaggregatedRoundtrip(t, testInputWithAllTypesAndMultiCustomPoliciesList...)
 }
 
 func TestUnaggregatedEncodeDecodeStress(t *testing.T) {
@@ -173,7 +258,7 @@ func TestUnaggregatedEncodeDecodeStress(t *testing.T) {
 	numMetrics := 10000
 	allMetrics := []unaggregated.MetricUnion{testCounter, testBatchTimer, testGauge}
 	allPolicies := []policy.PoliciesList{
-		testDefaultStagedPolicies,
+		testDefaultStagedPoliciesList,
 		policy.PoliciesList{
 			policy.NewStagedPolicies(
 				time.Now().UnixNano(),
@@ -182,6 +267,29 @@ func TestUnaggregatedEncodeDecodeStress(t *testing.T) {
 					policy.NewPolicy(time.Second, xtime.Second, 6*time.Hour),
 					policy.NewPolicy(time.Minute, xtime.Minute, 2*24*time.Hour),
 				},
+			),
+		},
+		policy.PoliciesList{
+			policy.NewStagedPolicies(
+				time.Now().UnixNano(),
+				false,
+				[]policy.Policy{
+					policy.NewPolicy(20*time.Second, xtime.Second, 6*time.Hour),
+					policy.NewPolicy(time.Minute, xtime.Minute, 2*24*time.Hour),
+					policy.NewPolicy(10*time.Minute, xtime.Minute, 25*24*time.Hour),
+				},
+			),
+			policy.NewStagedPolicies(
+				time.Now().Add(time.Minute).UnixNano(),
+				true,
+				[]policy.Policy{
+					policy.NewPolicy(time.Second, xtime.Second, time.Hour),
+				},
+			),
+			policy.NewStagedPolicies(
+				time.Now().Add(time.Minute).UnixNano(),
+				false,
+				[]policy.Policy{},
 			),
 		},
 	}
@@ -275,6 +383,15 @@ func compareUnaggregatedMetric(t *testing.T, expected unaggregated.MetricUnion, 
 	}
 }
 
+func comparedPoliciesList(t *testing.T, expected policy.PoliciesList, actual policy.PoliciesList) {
+	require.Equal(t, len(expected), len(actual))
+	for i := 0; i < len(expected); i++ {
+		require.Equal(t, expected[i].CutoverNs, actual[i].CutoverNs)
+		require.Equal(t, expected[i].Tombstoned, actual[i].Tombstoned)
+		require.Equal(t, expected[i].Policies(), actual[i].Policies())
+	}
+}
+
 func validateUnaggregatedRoundtrip(t *testing.T, inputs ...metricWithPoliciesList) {
 	encoder := testUnaggregatedEncoder(t)
 	it := testUnaggregatedIterator(t, nil)
@@ -313,14 +430,14 @@ func validateUnaggregatedRoundtripWithEncoderAndIterator(
 
 	// Assert the results match expectations.
 	require.Equal(t, io.EOF, it.Err())
-	validateMetricsWithPolicies(t, inputs, results)
+	validateMetricsWithPoliciesList(t, inputs, results)
 }
 
-func validateMetricsWithPolicies(t *testing.T, inputs, results []metricWithPoliciesList) {
+func validateMetricsWithPoliciesList(t *testing.T, inputs, results []metricWithPoliciesList) {
 	require.Equal(t, len(inputs), len(results))
 	for i := 0; i < len(inputs); i++ {
 		compareUnaggregatedMetric(t, inputs[i].metric, results[i].metric)
-		require.Equal(t, inputs[i].policiesList, results[i].policiesList)
+		comparedPoliciesList(t, inputs[i].policiesList, results[i].policiesList)
 	}
 }
 

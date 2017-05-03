@@ -38,40 +38,72 @@ import (
 
 func TestUnaggregatedIteratorDecodeDefaultPoliciesList(t *testing.T) {
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
-	enc.encodePoliciesList(testDefaultStagedPolicies)
+	enc.encodePoliciesList(testDefaultStagedPoliciesList)
 	require.NoError(t, enc.err())
 	it := testUnaggregatedIterator(t, enc.Encoder().Buffer()).(*unaggregatedIterator)
 	it.decodePoliciesList()
 	require.NoError(t, it.Err())
 	_, pl := it.Value()
-	require.Equal(t, testDefaultStagedPolicies, pl)
+	require.Equal(t, testDefaultStagedPoliciesList, pl)
 }
 
 func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListWithAlloc(t *testing.T) {
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
-	enc.encodePoliciesList(testSingleCustomStagedPolicies)
+	enc.encodePoliciesList(testSingleCustomStagedPoliciesList)
 	require.NoError(t, enc.err())
 	it := testUnaggregatedIterator(t, enc.Encoder().Buffer()).(*unaggregatedIterator)
 	it.decodePoliciesList()
 	require.NoError(t, it.Err())
 	_, pl := it.Value()
-	require.Equal(t, testSingleCustomStagedPolicies, pl)
-	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPolicies))
-	require.Equal(t, it.cachedPolicies[0], testSingleCustomStagedPolicies[0].Policies())
+	require.Equal(t, testSingleCustomStagedPoliciesList, pl)
+	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPoliciesList))
+	require.Equal(t, it.cachedPolicies[0], testSingleCustomStagedPoliciesList[0].Policies())
 }
 
-func TestUnaggregatedIteratorDecodeSingleCustomPoliciesNoPoliciesListAlloc(t *testing.T) {
+func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListNoPoliciesListAlloc(t *testing.T) {
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
-	enc.encodePoliciesList(testSingleCustomStagedPolicies)
+	enc.encodePoliciesList(testSingleCustomStagedPoliciesList)
 	require.NoError(t, enc.err())
 	it := testUnaggregatedIterator(t, enc.Encoder().Buffer()).(*unaggregatedIterator)
-	it.cachedPoliciesList = make(policy.PoliciesList, len(testSingleCustomStagedPolicies)*3)
+	it.cachedPoliciesList = make(policy.PoliciesList, len(testSingleCustomStagedPoliciesList)*3)
 	it.decodePoliciesList()
 	require.NoError(t, it.Err())
 	_, pl := it.Value()
-	require.Equal(t, testSingleCustomStagedPolicies, pl)
-	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPolicies))
-	require.Equal(t, it.cachedPolicies[0], testSingleCustomStagedPolicies[0].Policies())
+	require.Equal(t, testSingleCustomStagedPoliciesList, pl)
+	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPoliciesList))
+	require.Equal(t, it.cachedPolicies[0], testSingleCustomStagedPoliciesList[0].Policies())
+}
+
+func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListNoAlloc(t *testing.T) {
+	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
+	enc.encodePoliciesList(testSingleCustomStagedPoliciesList)
+	require.NoError(t, enc.err())
+	it := testUnaggregatedIterator(t, enc.Encoder().Buffer()).(*unaggregatedIterator)
+	it.cachedPoliciesList = make(policy.PoliciesList, len(testSingleCustomStagedPoliciesList)*3)
+	it.cachedPolicies = make([][]policy.Policy, len(testSingleCustomStagedPoliciesList)*3)
+	it.cachedPolicies[0] = make([]policy.Policy, 32)
+	it.decodePoliciesList()
+	require.NoError(t, it.Err())
+	_, pl := it.Value()
+	require.Equal(t, testSingleCustomStagedPoliciesList, pl)
+	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPoliciesList))
+	require.Equal(t, it.cachedPolicies[0], testSingleCustomStagedPoliciesList[0].Policies())
+}
+
+func TestUnaggregatedIteratorDecodeMultiCustomPoliciesListWithAlloc(t *testing.T) {
+	input := testMultiCustomStagedPoliciesList
+	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
+	enc.encodePoliciesList(input)
+	require.NoError(t, enc.err())
+	it := testUnaggregatedIterator(t, enc.Encoder().Buffer()).(*unaggregatedIterator)
+	it.decodePoliciesList()
+	require.NoError(t, it.Err())
+	_, pl := it.Value()
+	require.Equal(t, input, pl)
+	require.Equal(t, len(it.cachedPolicies), len(input))
+	for i := 0; i < len(input); i++ {
+		require.Equal(t, it.cachedPolicies[i], input[i].Policies())
+	}
 }
 
 func TestUnaggregatedIteratorDecodeIDDecodeBytesLenError(t *testing.T) {
@@ -264,7 +296,7 @@ func TestUnaggregatedIteratorDecodeBatchTimerWithAllocPoolAlloc(t *testing.T) {
 func TestUnaggregatedIteratorDecodeNewerVersionThanSupported(t *testing.T) {
 	input := metricWithPoliciesList{
 		metric:       testCounter,
-		policiesList: testDefaultStagedPolicies,
+		policiesList: testDefaultStagedPoliciesList,
 	}
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 
@@ -293,7 +325,7 @@ func TestUnaggregatedIteratorDecodeNewerVersionThanSupported(t *testing.T) {
 func TestUnaggregatedIteratorDecodeRootObjectMoreFieldsThanExpected(t *testing.T) {
 	input := metricWithPoliciesList{
 		metric:       testCounter,
-		policiesList: testDefaultStagedPolicies,
+		policiesList: testDefaultStagedPoliciesList,
 	}
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 
@@ -316,7 +348,7 @@ func TestUnaggregatedIteratorDecodeRootObjectMoreFieldsThanExpected(t *testing.T
 func TestUnaggregatedIteratorDecodeCounterWithPoliciesMoreFieldsThanExpected(t *testing.T) {
 	input := metricWithPoliciesList{
 		metric:       testCounter,
-		policiesList: testDefaultStagedPolicies,
+		policiesList: testDefaultStagedPoliciesList,
 	}
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 
@@ -339,7 +371,7 @@ func TestUnaggregatedIteratorDecodeCounterWithPoliciesMoreFieldsThanExpected(t *
 func TestUnaggregatedIteratorDecodeCounterMoreFieldsThanExpected(t *testing.T) {
 	input := metricWithPoliciesList{
 		metric:       testCounter,
-		policiesList: testDefaultStagedPolicies,
+		policiesList: testDefaultStagedPoliciesList,
 	}
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 
@@ -361,7 +393,7 @@ func TestUnaggregatedIteratorDecodeCounterMoreFieldsThanExpected(t *testing.T) {
 func TestUnaggregatedIteratorDecodeBatchTimerMoreFieldsThanExpected(t *testing.T) {
 	input := metricWithPoliciesList{
 		metric:       testBatchTimer,
-		policiesList: testDefaultStagedPolicies,
+		policiesList: testDefaultStagedPoliciesList,
 	}
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 
@@ -386,7 +418,7 @@ func TestUnaggregatedIteratorDecodeBatchTimerMoreFieldsThanExpected(t *testing.T
 func TestUnaggregatedIteratorDecodeGaugeMoreFieldsThanExpected(t *testing.T) {
 	input := metricWithPoliciesList{
 		metric:       testGauge,
-		policiesList: testDefaultStagedPolicies,
+		policiesList: testDefaultStagedPoliciesList,
 	}
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 
@@ -483,7 +515,7 @@ func TestUnaggregatedIteratorDecodePolicyMoreFieldsThanExpected(t *testing.T) {
 func TestUnaggregatedIteratorDecodePoliciesListMoreFieldsThanExpected(t *testing.T) {
 	input := metricWithPoliciesList{
 		metric:       testGauge,
-		policiesList: testSingleCustomStagedPolicies,
+		policiesList: testSingleCustomStagedPoliciesList,
 	}
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 
@@ -508,7 +540,7 @@ func TestUnaggregatedIteratorDecodePoliciesListMoreFieldsThanExpected(t *testing
 func TestUnaggregatedIteratorDecodeCounterFewerFieldsThanExpected(t *testing.T) {
 	input := metricWithPoliciesList{
 		metric:       testCounter,
-		policiesList: testDefaultStagedPolicies,
+		policiesList: testDefaultStagedPoliciesList,
 	}
 	enc := testUnaggregatedEncoder(t).(*unaggregatedEncoder)
 
@@ -579,5 +611,5 @@ func validateUnaggregatedDecodeResults(
 		})
 	}
 	require.Equal(t, expectedErr, it.Err())
-	validateMetricsWithPolicies(t, expectedResults, results)
+	validateMetricsWithPoliciesList(t, expectedResults, results)
 }

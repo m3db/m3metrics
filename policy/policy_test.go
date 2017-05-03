@@ -62,3 +62,136 @@ func TestStagedPoliciesHasCustomPolicies(t *testing.T) {
 	require.False(t, sp.hasDefaultPolicies())
 	require.Equal(t, policies, sp.Policies())
 }
+
+func TestStagedPoliciesSamePoliciesDefaultPolicies(t *testing.T) {
+	inputs := []struct {
+		sp       [2]StagedPolicies
+		expected bool
+	}{
+		{
+			sp: [2]StagedPolicies{
+				NewStagedPolicies(0, false, nil),
+				NewStagedPolicies(0, true, []Policy{}),
+			},
+			expected: true,
+		},
+		{
+			sp: [2]StagedPolicies{
+				NewStagedPolicies(0, false, nil),
+				NewStagedPolicies(0, true, []Policy{
+					NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+					NewPolicy(time.Minute, xtime.Minute, 12*time.Hour),
+				}),
+			},
+			expected: false,
+		},
+		{
+			sp: [2]StagedPolicies{
+				NewStagedPolicies(1000, false, []Policy{
+					NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+					NewPolicy(time.Minute, xtime.Minute, 12*time.Hour),
+				}),
+				NewStagedPolicies(0, true, []Policy{
+					NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+					NewPolicy(time.Minute, xtime.Minute, 12*time.Hour),
+				}),
+			},
+			expected: true,
+		},
+		{
+			sp: [2]StagedPolicies{
+				NewStagedPolicies(1000, false, []Policy{
+					NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+					NewPolicy(time.Minute, xtime.Minute, 12*time.Hour),
+				}),
+				NewStagedPolicies(0, true, []Policy{
+					NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+					NewPolicy(time.Minute, xtime.Minute, 12*time.Hour),
+					NewPolicy(10*time.Minute, xtime.Minute, 24*time.Hour),
+				}),
+			},
+			expected: false,
+		},
+		{
+			sp: [2]StagedPolicies{
+				NewStagedPolicies(0, true, []Policy{
+					NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+					NewPolicy(time.Minute, xtime.Minute, 12*time.Hour),
+					NewPolicy(10*time.Minute, xtime.Minute, 24*time.Hour),
+				}),
+				NewStagedPolicies(1000, false, []Policy{
+					NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+					NewPolicy(time.Minute, xtime.Minute, 12*time.Hour),
+				}),
+			},
+			expected: false,
+		},
+	}
+	for _, input := range inputs {
+		require.Equal(t, input.expected, input.sp[0].SamePolicies(input.sp[1]))
+	}
+}
+
+func TestStagedPoliciesIsEmpty(t *testing.T) {
+	inputs := []struct {
+		sp       StagedPolicies
+		expected bool
+	}{
+		{
+			sp:       NewStagedPolicies(0, false, nil),
+			expected: true,
+		},
+		{
+			sp:       NewStagedPolicies(0, false, []Policy{}),
+			expected: true,
+		},
+		{
+			sp:       NewStagedPolicies(100, false, nil),
+			expected: false,
+		},
+		{
+			sp:       NewStagedPolicies(0, true, nil),
+			expected: false,
+		},
+		{
+			sp: NewStagedPolicies(0, true, []Policy{
+				NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+				NewPolicy(time.Minute, xtime.Minute, 12*time.Hour),
+			}),
+			expected: false,
+		},
+	}
+	for _, input := range inputs {
+		require.Equal(t, input.expected, input.sp.isEmpty())
+	}
+}
+
+func TestPoliciesListIsDefault(t *testing.T) {
+	inputs := []struct {
+		pl       PoliciesList
+		expected bool
+	}{
+		{
+			pl:       DefaultPoliciesList,
+			expected: true,
+		},
+		{
+			pl:       []StagedPolicies{},
+			expected: false,
+		},
+		{
+			pl: []StagedPolicies{NewStagedPolicies(0, true, []Policy{
+				NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
+				NewPolicy(time.Minute, xtime.Minute, 12*time.Hour),
+			})},
+			expected: false,
+		},
+		{
+			pl:       []StagedPolicies{EmptyStagedPolicies, EmptyStagedPolicies},
+			expected: false,
+		},
+	}
+	for _, input := range inputs {
+		require.Equal(t, input.expected, input.pl.IsDefault())
+	}
+}
