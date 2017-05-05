@@ -85,7 +85,7 @@ func (it *baseIterator) decodePolicy() policy.Policy {
 func (it *baseIterator) decodeResolution() policy.Resolution {
 	numActualFields := it.decodeNumObjectFields()
 	resolutionType := it.decodeObjectType()
-	numExpectedFields, ok := it.checkNumFieldsForTypeWithActual(
+	numExpectedFields, ok := it.checkExpectedNumFieldsForType(
 		resolutionType,
 		numActualFields,
 	)
@@ -127,7 +127,7 @@ func (it *baseIterator) decodeResolution() policy.Resolution {
 func (it *baseIterator) decodeRetention() policy.Retention {
 	numActualFields := it.decodeNumObjectFields()
 	retentionType := it.decodeObjectType()
-	numExpectedFields, ok := it.checkNumFieldsForTypeWithActual(
+	numExpectedFields, ok := it.checkExpectedNumFieldsForType(
 		retentionType,
 		numActualFields,
 	)
@@ -251,11 +251,11 @@ func (it *baseIterator) skip(numFields int) {
 
 func (it *baseIterator) checkNumFieldsForType(objType objectType) (int, int, bool) {
 	numActualFields := it.decodeNumObjectFields()
-	numExpectedFields, ok := it.checkNumFieldsForTypeWithActual(objType, numActualFields)
+	numExpectedFields, ok := it.checkExpectedNumFieldsForType(objType, numActualFields)
 	return numExpectedFields, numActualFields, ok
 }
 
-func (it *baseIterator) checkNumFieldsForTypeWithActual(
+func (it *baseIterator) checkExpectedNumFieldsForType(
 	objType objectType,
 	numActualFields int,
 ) (int, bool) {

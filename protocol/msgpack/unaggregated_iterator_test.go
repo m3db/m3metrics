@@ -56,7 +56,7 @@ func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListWithAlloc(t *testing.
 	require.NoError(t, it.Err())
 	_, pl := it.Value()
 	require.Equal(t, testSingleCustomStagedPoliciesList, pl)
-	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPoliciesList))
+	require.True(t, len(it.cachedPolicies) >= len(testSingleCustomStagedPoliciesList))
 	policies, _ := testSingleCustomStagedPoliciesList[0].Policies()
 	require.Equal(t, it.cachedPolicies[0], policies)
 }
@@ -71,7 +71,7 @@ func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListNoPoliciesListAlloc(t
 	require.NoError(t, it.Err())
 	_, pl := it.Value()
 	require.Equal(t, testSingleCustomStagedPoliciesList, pl)
-	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPoliciesList))
+	require.True(t, len(it.cachedPolicies) >= len(testSingleCustomStagedPoliciesList))
 	policies, _ := testSingleCustomStagedPoliciesList[0].Policies()
 	require.Equal(t, it.cachedPolicies[0], policies)
 }
@@ -88,7 +88,7 @@ func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListNoAlloc(t *testing.T)
 	require.NoError(t, it.Err())
 	_, pl := it.Value()
 	require.Equal(t, testSingleCustomStagedPoliciesList, pl)
-	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPoliciesList))
+	require.True(t, len(it.cachedPolicies) >= len(testSingleCustomStagedPoliciesList))
 	policies, _ := testSingleCustomStagedPoliciesList[0].Policies()
 	require.Equal(t, it.cachedPolicies[0], policies)
 }
@@ -103,7 +103,7 @@ func TestUnaggregatedIteratorDecodeMultiCustomPoliciesListWithAlloc(t *testing.T
 	require.NoError(t, it.Err())
 	_, pl := it.Value()
 	require.Equal(t, input, pl)
-	require.Equal(t, len(it.cachedPolicies), len(input))
+	require.True(t, len(it.cachedPolicies) >= len(input))
 	for i := 0; i < len(input); i++ {
 		policies, _ := input[i].Policies()
 		require.Equal(t, it.cachedPolicies[i], policies)

@@ -256,7 +256,7 @@ func (it *mockBaseIterator) checkNumFieldsForType(objType objectType) (int, int,
 	return 0, 0, true
 }
 
-func (it *mockBaseIterator) checkNumFieldsForTypeWithActual(
+func (it *mockBaseIterator) checkExpectedNumFieldsForType(
 	objType objectType,
 	numActualFields int,
 ) (int, bool) {

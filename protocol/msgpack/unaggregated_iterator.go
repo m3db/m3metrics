@@ -225,7 +225,7 @@ func (it *unaggregatedIterator) decodeGauge() {
 func (it *unaggregatedIterator) decodePoliciesList() {
 	numActualFields := it.decodeNumObjectFields()
 	policiesListType := it.decodeObjectType()
-	numExpectedFields, ok := it.checkNumFieldsForTypeWithActual(
+	numExpectedFields, ok := it.checkExpectedNumFieldsForType(
 		policiesListType,
 		numActualFields,
 	)
@@ -244,8 +244,6 @@ func (it *unaggregatedIterator) decodePoliciesList() {
 		}
 		if len(it.cachedPolicies) < numStagedPolicies {
 			it.cachedPolicies = make([][]policy.Policy, numStagedPolicies)
-		} else {
-			it.cachedPolicies = it.cachedPolicies[:numStagedPolicies]
 		}
 		for policyIdx := 0; policyIdx < numStagedPolicies; policyIdx++ {
 			decodedStagedPolicies := it.decodeStagedPolicies(policyIdx)

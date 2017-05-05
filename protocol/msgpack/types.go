@@ -193,9 +193,9 @@ type iteratorBase interface {
 	// the number of expected fields for a given object type.
 	checkNumFieldsForType(objType objectType) (int, int, bool)
 
-	// checkNumFieldsForTypeWithActual compares the given number of actual fields with
+	// checkExpectedNumFieldsForType compares the given number of actual fields with
 	// the number of expected fields for a given object type.
-	checkNumFieldsForTypeWithActual(objType objectType, numActualFields int) (int, bool)
+	checkExpectedNumFieldsForType(objType objectType, numActualFields int) (int, bool)
 }
 
 // UnaggregatedEncoder is an encoder for encoding different types of unaggregated metrics.
