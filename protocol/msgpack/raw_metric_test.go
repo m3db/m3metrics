@@ -94,7 +94,7 @@ func TestRawMetricDecodeIDSuccess(t *testing.T) {
 func TestRawMetricDecodeTimestampExistingError(t *testing.T) {
 	m := testRawMetric()
 	m.it.setErr(errTestDecodeRawMetric)
-	_, err := m.TimeNs()
+	_, err := m.TimeNanos()
 	require.Equal(t, errTestDecodeRawMetric, err)
 }
 
@@ -104,20 +104,20 @@ func TestRawMetricDecodeTimestampDecodeError(t *testing.T) {
 		m.it.setErr(errTestDecodeRawMetric)
 		return 0
 	}
-	_, err := m.TimeNs()
+	_, err := m.TimeNanos()
 	require.Equal(t, errTestDecodeRawMetric, err)
 }
 
 func TestRawMetricDecodeTimestampSuccess(t *testing.T) {
 	m := testRawMetric()
-	timeNs, err := m.TimeNs()
+	timeNanos, err := m.TimeNanos()
 	require.NoError(t, err)
-	require.Equal(t, testMetric.TimeNs, timeNs)
+	require.Equal(t, testMetric.TimeNanos, timeNanos)
 	require.True(t, m.timeDecoded)
 
 	// Get timestamp again to make sure we don't re-decode the timestamp.
 	require.NoError(t, err)
-	require.Equal(t, testMetric.TimeNs, timeNs)
+	require.Equal(t, testMetric.TimeNanos, timeNanos)
 }
 
 func TestRawMetricDecodeValueExistingError(t *testing.T) {
@@ -186,9 +186,9 @@ func TestRawMetricNilID(t *testing.T) {
 
 func TestRawMetricReset(t *testing.T) {
 	metrics := []aggregated.Metric{
-		{ID: metric.ID("foo"), TimeNs: testMetric.TimeNs, Value: 1.0},
-		{ID: metric.ID("bar"), TimeNs: testMetric.TimeNs, Value: 2.3},
-		{ID: metric.ID("baz"), TimeNs: testMetric.TimeNs, Value: 4234.234},
+		{ID: metric.ID("foo"), TimeNanos: testMetric.TimeNanos, Value: 1.0},
+		{ID: metric.ID("bar"), TimeNanos: testMetric.TimeNanos, Value: 2.3},
+		{ID: metric.ID("baz"), TimeNanos: testMetric.TimeNanos, Value: 4234.234},
 	}
 	rawMetric := NewRawMetric(nil, 16)
 	for i := 0; i < len(metrics); i++ {
@@ -201,9 +201,9 @@ func TestRawMetricReset(t *testing.T) {
 
 func TestRawMetricRoundtripStress(t *testing.T) {
 	metrics := []aggregated.Metric{
-		{ID: metric.ID("foo"), TimeNs: testMetric.TimeNs, Value: 1.0},
-		{ID: metric.ID("bar"), TimeNs: testMetric.TimeNs, Value: 2.3},
-		{ID: metric.ID("baz"), TimeNs: testMetric.TimeNs, Value: 4234.234},
+		{ID: metric.ID("foo"), TimeNanos: testMetric.TimeNanos, Value: 1.0},
+		{ID: metric.ID("bar"), TimeNanos: testMetric.TimeNanos, Value: 2.3},
+		{ID: metric.ID("baz"), TimeNanos: testMetric.TimeNanos, Value: 4234.234},
 	}
 	var (
 		inputs  []aggregated.Metric
@@ -267,7 +267,7 @@ func testRawMetric() *rawMetric {
 	mockIt := &mockBaseIterator{}
 	mockIt.decodeVersionFn = func() int { return metricVersion }
 	mockIt.decodeBytesLenFn = func() int { return len(testMetric.ID) }
-	mockIt.decodeVarintFn = func() int64 { return testMetric.TimeNs }
+	mockIt.decodeVarintFn = func() int64 { return testMetric.TimeNanos }
 	mockIt.decodeFloat64Fn = func() float64 { return testMetric.Value }
 	mockIt.bufReader = bytes.NewReader(testRawMetricData)
 

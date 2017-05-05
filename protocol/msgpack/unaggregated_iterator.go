@@ -264,9 +264,9 @@ func (it *unaggregatedIterator) decodePoliciesList() {
 func (it *unaggregatedIterator) decodeStagedPolicies(policyIdx int) policy.StagedPolicies {
 	numExpectedFields, numActualFields, ok := it.checkNumFieldsForType(stagedPoliciesType)
 	if !ok {
-		return policy.EmptyStagedPolicies
+		return policy.DefaultStagedPolicies
 	}
-	cutoverNs := it.decodeVarint()
+	cutoverNanos := it.decodeVarint()
 	tombstoned := it.decodeBool()
 	numPolicies := it.decodeArrayLen()
 	if cap(it.cachedPolicies[policyIdx]) < numPolicies {
@@ -277,7 +277,7 @@ func (it *unaggregatedIterator) decodeStagedPolicies(policyIdx int) policy.Stage
 	for i := 0; i < numPolicies; i++ {
 		it.cachedPolicies[policyIdx] = append(it.cachedPolicies[policyIdx], it.decodePolicy())
 	}
-	stagedPolicies := policy.NewStagedPolicies(cutoverNs, tombstoned, it.cachedPolicies[policyIdx])
+	stagedPolicies := policy.NewStagedPolicies(cutoverNanos, tombstoned, it.cachedPolicies[policyIdx])
 	it.skip(numActualFields - numExpectedFields)
 	return stagedPolicies
 }

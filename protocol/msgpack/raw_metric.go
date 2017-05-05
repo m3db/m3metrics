@@ -65,13 +65,13 @@ func (m *rawMetric) ID() (metric.ID, error) {
 	return m.metric.ID, nil
 }
 
-func (m *rawMetric) TimeNs() (int64, error) {
+func (m *rawMetric) TimeNanos() (int64, error) {
 	m.decodeID()
 	m.decodeTime()
 	if err := m.it.err(); err != nil {
 		return 0, err
 	}
-	return m.metric.TimeNs, nil
+	return m.metric.TimeNanos, nil
 }
 
 func (m *rawMetric) Value() (float64, error) {
@@ -151,11 +151,11 @@ func (m *rawMetric) decodeTime() {
 	if m.it.err() != nil || m.timeDecoded {
 		return
 	}
-	timeNs := m.it.decodeVarint()
+	timeNanos := m.it.decodeVarint()
 	if m.it.err() != nil {
 		return
 	}
-	m.metric.TimeNs = timeNs
+	m.metric.TimeNanos = timeNanos
 	m.timeDecoded = true
 }
 

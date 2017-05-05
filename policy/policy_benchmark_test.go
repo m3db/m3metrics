@@ -26,76 +26,76 @@ import (
 )
 
 var (
-	testNowNs = time.Now().UnixNano()
+	testNowNanos = time.Now().UnixNano()
 )
 
 func BenchmarkStagedPoliciesAsStruct(b *testing.B) {
-	sp := NewStagedPolicies(testNowNs, false, defaultPolicies)
+	sp := NewStagedPolicies(testNowNanos, false, DefaultPolicies)
 	for n := 0; n < b.N; n++ {
 		validatePolicyByValue(b, sp)
 	}
 }
 
 func BenchmarkStagedPoliciesAsPointer(b *testing.B) {
-	sp := NewStagedPolicies(testNowNs, false, defaultPolicies)
+	sp := NewStagedPolicies(testNowNanos, false, DefaultPolicies)
 	for n := 0; n < b.N; n++ {
 		validatePolicyByPointer(b, &sp)
 	}
 }
 
 func BenchmarkStagedPoliciesAsInterface(b *testing.B) {
-	sp := &testStagedPolicies{cutoverNs: testNowNs, policies: defaultPolicies}
+	sp := &testStagedPolicies{cutoverNanos: testNowNanos, policies: DefaultPolicies}
 	for n := 0; n < b.N; n++ {
 		validatePolicyByInterface(b, sp)
 	}
 }
 
 func BenchmarkStagedPoliciesAsStructExported(b *testing.B) {
-	sp := testStagedPolicies{cutoverNs: testNowNs, policies: defaultPolicies}
+	sp := testStagedPolicies{cutoverNanos: testNowNanos, policies: DefaultPolicies}
 	for n := 0; n < b.N; n++ {
 		validatePolicyByStructExported(b, sp)
 	}
 }
 
 type testStagedPoliciesInt64 interface {
-	CutoverNs() int64
+	CutoverNanos() int64
 }
 
 // StagedPolicies represent a list of policies at a specified version.
 type testStagedPolicies struct {
-	cutoverNs  int64
-	tombstoned bool
-	policies   []Policy
+	cutoverNanos int64
+	tombstoned   bool
+	policies     []Policy
 }
 
-func (v testStagedPolicies) ValCutoverNs() int64 {
-	return v.cutoverNs
+func (v testStagedPolicies) ValCutoverNanos() int64 {
+	return v.cutoverNanos
 }
 
-func (v *testStagedPolicies) CutoverNs() int64 {
-	return v.cutoverNs
+func (v *testStagedPolicies) CutoverNanos() int64 {
+	return v.cutoverNanos
 }
 
 func validatePolicyByValue(b *testing.B, sp StagedPolicies) {
-	if sp.CutoverNs != testNowNs {
+	if sp.CutoverNanos != testNowNanos {
 		b.FailNow()
 	}
 }
 
 func validatePolicyByPointer(b *testing.B, sp *StagedPolicies) {
-	if sp.CutoverNs != testNowNs {
+	if sp.CutoverNanos != testNowNanos {
 		b.FailNow()
 	}
 }
 
 func validatePolicyByInterface(b *testing.B, sp testStagedPoliciesInt64) {
-	if sp.CutoverNs() != testNowNs {
+	if sp.CutoverNanos() != testNowNanos {
 		b.FailNow()
 	}
 }
 
 func validatePolicyByStructExported(b *testing.B, sp testStagedPolicies) {
-	if sp.ValCutoverNs() != testNowNs {
+	if sp.ValCutoverNanos() != testNowNanos {
 		b.FailNow()
 	}
 }

@@ -37,9 +37,9 @@ import (
 
 var (
 	testMetric = aggregated.Metric{
-		ID:     metric.ID("foo"),
-		TimeNs: time.Now().UnixNano(),
-		Value:  123.45,
+		ID:        metric.ID("foo"),
+		TimeNanos: time.Now().UnixNano(),
+		Value:     123.45,
 	}
 	testChunkedMetric = aggregated.ChunkedMetric{
 		ChunkedID: metric.ChunkedID{
@@ -47,13 +47,13 @@ var (
 			Data:   []byte("bar"),
 			Suffix: []byte(".baz"),
 		},
-		TimeNs: time.Now().UnixNano(),
-		Value:  123.45,
+		TimeNanos: time.Now().UnixNano(),
+		Value:     123.45,
 	}
 	testMetric2 = aggregated.Metric{
-		ID:     metric.ID("bar"),
-		TimeNs: time.Now().UnixNano(),
-		Value:  678.90,
+		ID:        metric.ID("bar"),
+		TimeNanos: time.Now().UnixNano(),
+		Value:     678.90,
 	}
 	testPolicy = policy.NewPolicy(time.Second, xtime.Second, time.Hour)
 )
@@ -142,9 +142,9 @@ func validateAggregatedRoundtripWithEncoderAndIterator(
 			id = append(id, inputMetric.ChunkedID.Suffix...)
 			expected = append(expected, metricWithPolicy{
 				metric: aggregated.Metric{
-					ID:     id,
-					TimeNs: inputMetric.TimeNs,
-					Value:  inputMetric.Value,
+					ID:        id,
+					TimeNanos: inputMetric.TimeNanos,
+					Value:     inputMetric.Value,
 				},
 				policy: input.policy,
 			})

@@ -234,10 +234,10 @@ func expectedResultsForPolicy(t *testing.T, p policy.Policy) []interface{} {
 }
 
 func expectedResultsForStagedPolicies(t *testing.T, sp policy.StagedPolicies) []interface{} {
-	policies := sp.Policies()
+	policies, _ := sp.Policies()
 	results := []interface{}{
 		numFieldsForType(stagedPoliciesType),
-		sp.CutoverNs,
+		sp.CutoverNanos,
 		sp.Tombstoned,
 		len(policies),
 	}

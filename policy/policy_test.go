@@ -46,10 +46,10 @@ func TestPoliciesByResolutionAsc(t *testing.T) {
 }
 
 func TestStagedPoliciesHasDefaultPolicies(t *testing.T) {
-	sp := NewStagedPolicies(testNowNs, true, nil)
-	require.Equal(t, testNowNs, sp.CutoverNs)
-	require.True(t, sp.hasDefaultPolicies())
-	require.Equal(t, defaultPolicies, sp.Policies())
+	sp := NewStagedPolicies(testNowNanos, true, nil)
+	require.Equal(t, testNowNanos, sp.CutoverNanos)
+	_, isDefault := sp.Policies()
+	require.True(t, isDefault)
 }
 
 func TestStagedPoliciesHasCustomPolicies(t *testing.T) {
@@ -57,10 +57,11 @@ func TestStagedPoliciesHasCustomPolicies(t *testing.T) {
 		NewPolicy(10*time.Second, xtime.Second, 6*time.Hour),
 		NewPolicy(10*time.Second, xtime.Second, 2*time.Hour),
 	}
-	sp := NewStagedPolicies(testNowNs, false, policies)
-	require.Equal(t, testNowNs, sp.CutoverNs)
-	require.False(t, sp.hasDefaultPolicies())
-	require.Equal(t, policies, sp.Policies())
+	sp := NewStagedPolicies(testNowNanos, false, policies)
+	require.Equal(t, testNowNanos, sp.CutoverNanos)
+	actual, isDefault := sp.Policies()
+	require.False(t, isDefault)
+	require.Equal(t, policies, actual)
 }
 
 func TestStagedPoliciesSamePoliciesDefaultPolicies(t *testing.T) {
@@ -162,7 +163,7 @@ func TestStagedPoliciesIsEmpty(t *testing.T) {
 		},
 	}
 	for _, input := range inputs {
-		require.Equal(t, input.expected, input.sp.isEmpty())
+		require.Equal(t, input.expected, input.sp.IsDefault())
 	}
 }
 
@@ -187,7 +188,7 @@ func TestPoliciesListIsDefault(t *testing.T) {
 			expected: false,
 		},
 		{
-			pl:       []StagedPolicies{EmptyStagedPolicies, EmptyStagedPolicies},
+			pl:       []StagedPolicies{DefaultStagedPolicies, DefaultStagedPolicies},
 			expected: false,
 		},
 	}

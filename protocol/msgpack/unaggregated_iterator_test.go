@@ -57,7 +57,8 @@ func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListWithAlloc(t *testing.
 	_, pl := it.Value()
 	require.Equal(t, testSingleCustomStagedPoliciesList, pl)
 	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPoliciesList))
-	require.Equal(t, it.cachedPolicies[0], testSingleCustomStagedPoliciesList[0].Policies())
+	policies, _ := testSingleCustomStagedPoliciesList[0].Policies()
+	require.Equal(t, it.cachedPolicies[0], policies)
 }
 
 func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListNoPoliciesListAlloc(t *testing.T) {
@@ -71,7 +72,8 @@ func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListNoPoliciesListAlloc(t
 	_, pl := it.Value()
 	require.Equal(t, testSingleCustomStagedPoliciesList, pl)
 	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPoliciesList))
-	require.Equal(t, it.cachedPolicies[0], testSingleCustomStagedPoliciesList[0].Policies())
+	policies, _ := testSingleCustomStagedPoliciesList[0].Policies()
+	require.Equal(t, it.cachedPolicies[0], policies)
 }
 
 func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListNoAlloc(t *testing.T) {
@@ -87,7 +89,8 @@ func TestUnaggregatedIteratorDecodeSingleCustomPoliciesListNoAlloc(t *testing.T)
 	_, pl := it.Value()
 	require.Equal(t, testSingleCustomStagedPoliciesList, pl)
 	require.Equal(t, len(it.cachedPolicies), len(testSingleCustomStagedPoliciesList))
-	require.Equal(t, it.cachedPolicies[0], testSingleCustomStagedPoliciesList[0].Policies())
+	policies, _ := testSingleCustomStagedPoliciesList[0].Policies()
+	require.Equal(t, it.cachedPolicies[0], policies)
 }
 
 func TestUnaggregatedIteratorDecodeMultiCustomPoliciesListWithAlloc(t *testing.T) {
@@ -102,7 +105,8 @@ func TestUnaggregatedIteratorDecodeMultiCustomPoliciesListWithAlloc(t *testing.T
 	require.Equal(t, input, pl)
 	require.Equal(t, len(it.cachedPolicies), len(input))
 	for i := 0; i < len(input); i++ {
-		require.Equal(t, it.cachedPolicies[i], input[i].Policies())
+		policies, _ := input[i].Policies()
+		require.Equal(t, it.cachedPolicies[i], policies)
 	}
 }
 

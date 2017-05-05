@@ -42,18 +42,17 @@ var (
 	// EmptyPolicy represents an empty policy.
 	EmptyPolicy Policy
 
-	// EmptyStagedPolicies represents an empty staged policies.
-	EmptyStagedPolicies StagedPolicies
-
-	// DefaultPoliciesList represents a default policies list.
-	DefaultPoliciesList = PoliciesList{EmptyStagedPolicies}
-
-	// defaultPolicies are the default policies.
-	// TODO(xichen): possibly make this dynamically configurable in the future.
-	defaultPolicies = []Policy{
+	// DefaultPolicies are the default policies.
+	DefaultPolicies = []Policy{
 		NewPolicy(10*time.Second, xtime.Second, 2*24*time.Hour),
 		NewPolicy(time.Minute, xtime.Minute, 30*24*time.Hour),
 	}
+
+	// DefaultStagedPolicies represents a default staged policies.
+	DefaultStagedPolicies StagedPolicies
+
+	// DefaultPoliciesList represents a default policies list.
+	DefaultPoliciesList = PoliciesList{DefaultStagedPolicies}
 
 	errNilPolicySchema = errors.New("nil policy schema")
 )
@@ -154,7 +153,7 @@ func (pr ByResolutionAsc) Less(i, j int) bool {
 // StagedPolicies represent a list of policies at a specified version.
 type StagedPolicies struct {
 	// Cutover is when the policies take effect.
-	CutoverNs int64
+	CutoverNanos int64
 
 	// Tombstoned determines whether the associated (rollup) metric has been tombstoned.
 	Tombstoned bool
@@ -164,29 +163,34 @@ type StagedPolicies struct {
 }
 
 // NewStagedPolicies create a new staged policies.
-func NewStagedPolicies(cutoverNs int64, tombstoned bool, policies []Policy) StagedPolicies {
-	return StagedPolicies{CutoverNs: cutoverNs, Tombstoned: tombstoned, policies: policies}
+func NewStagedPolicies(cutoverNanos int64, tombstoned bool, policies []Policy) StagedPolicies {
+	return StagedPolicies{CutoverNanos: cutoverNanos, Tombstoned: tombstoned, policies: policies}
 }
 
 // Reset resets the staged policies.
-func (p *StagedPolicies) Reset() { *p = EmptyStagedPolicies }
+func (p *StagedPolicies) Reset() { *p = DefaultStagedPolicies }
 
-// Policies returns the policies.
-func (p StagedPolicies) Policies() []Policy {
-	if p.hasDefaultPolicies() {
-		return defaultPolicies
-	}
-	return p.policies
+// IsDefault returns whether this is a default staged policies.
+func (p StagedPolicies) IsDefault() bool {
+	return p.CutoverNanos == 0 && !p.Tombstoned && p.hasDefaultPolicies()
+}
+
+// Policies returns the policies and whether the policies are the default policies.
+func (p StagedPolicies) Policies() ([]Policy, bool) {
+	return p.policies, p.hasDefaultPolicies()
 }
 
 // SamePolicies returns whether two staged policies have the same policy list,
 // assuming the policies are sorted in the same order.
 func (p StagedPolicies) SamePolicies(other StagedPolicies) bool {
-	if p.hasDefaultPolicies() && other.hasDefaultPolicies() {
+	currPolicies, currIsDefault := p.Policies()
+	otherPolicies, otherIsDefault := other.Policies()
+	if currIsDefault && otherIsDefault {
 		return true
 	}
-	currPolicies := p.Policies()
-	otherPolicies := other.Policies()
+	if currIsDefault || otherIsDefault {
+		return false
+	}
 	if len(currPolicies) != len(otherPolicies) {
 		return false
 	}
@@ -201,7 +205,7 @@ func (p StagedPolicies) SamePolicies(other StagedPolicies) bool {
 // String is the representation of staged policies.
 func (p StagedPolicies) String() string {
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("{cutover:%s,tombstoned:%v,policies:[", time.Unix(0, p.CutoverNs).String(), p.Tombstoned))
+	buf.WriteString(fmt.Sprintf("{cutover:%s,tombstoned:%v,policies:[", time.Unix(0, p.CutoverNanos).String(), p.Tombstoned))
 	for i := range p.policies {
 		buf.WriteString(p.policies[i].String())
 		if i < len(p.policies)-1 {
@@ -210,10 +214,6 @@ func (p StagedPolicies) String() string {
 	}
 	buf.WriteString("]}")
 	return buf.String()
-}
-
-func (p StagedPolicies) isEmpty() bool {
-	return p.CutoverNs == 0 && !p.Tombstoned && p.hasDefaultPolicies()
 }
 
 func (p StagedPolicies) hasDefaultPolicies() bool {
@@ -225,5 +225,5 @@ type PoliciesList []StagedPolicies
 
 // IsDefault determines whether this is a default policies list.
 func (l PoliciesList) IsDefault() bool {
-	return len(l) == 1 && l[0].isEmpty()
+	return len(l) == 1 && l[0].IsDefault()
 }

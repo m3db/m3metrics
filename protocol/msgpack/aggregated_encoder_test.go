@@ -73,7 +73,7 @@ func TestAggregatedEncodeMetric(t *testing.T) {
 		int64(metricVersion),
 		int(numFieldsForType(metricType)),
 		[]byte(testMetric.ID),
-		testMetric.TimeNs,
+		testMetric.TimeNanos,
 		testMetric.Value,
 	}
 	require.Equal(t, expected, *result)

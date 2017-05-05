@@ -31,8 +31,8 @@ import (
 // Metric is a metric, which is essentially a named value at certain time.
 type Metric struct {
 	metric.ID
-	TimeNs int64
-	Value  float64
+	TimeNanos int64
+	Value     float64
 }
 
 // String is the string representation of a metric.
@@ -40,7 +40,7 @@ func (m Metric) String() string {
 	return fmt.Sprintf(
 		"{id:%s,timestamp:%s,value:%f}",
 		m.ID.String(),
-		time.Unix(0, m.TimeNs).String(),
+		time.Unix(0, m.TimeNanos).String(),
 		m.Value,
 	)
 }
@@ -48,8 +48,8 @@ func (m Metric) String() string {
 // ChunkedMetric is a metric with a chunked ID.
 type ChunkedMetric struct {
 	metric.ChunkedID
-	TimeNs int64
-	Value  float64
+	TimeNanos int64
+	Value     float64
 }
 
 // RawMetric is a metric in its raw form (e.g., encoded bytes associated with
@@ -58,8 +58,8 @@ type RawMetric interface {
 	// ID is the metric identifier.
 	ID() (metric.ID, error)
 
-	// TimeNs is the metric timestamp in nanoseconds.
-	TimeNs() (int64, error)
+	// TimeNanos is the metric timestamp in nanoseconds.
+	TimeNanos() (int64, error)
 
 	// Value is the metric value.
 	Value() (float64, error)

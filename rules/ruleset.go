@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	timeNsMax = int64(math.MaxInt64)
+	timeNanosMax = int64(math.MaxInt64)
 )
 
 var (
@@ -69,12 +69,12 @@ func newActiveRuleSet(
 	uniqueCutoverTimes := make(map[int64]struct{})
 	for _, mappingRule := range mappingRules {
 		for _, snapshot := range mappingRule.snapshots {
-			uniqueCutoverTimes[snapshot.cutoverNs] = struct{}{}
+			uniqueCutoverTimes[snapshot.cutoverNanos] = struct{}{}
 		}
 	}
 	for _, rollupRule := range rollupRules {
 		for _, snapshot := range rollupRule.snapshots {
-			uniqueCutoverTimes[snapshot.cutoverNs] = struct{}{}
+			uniqueCutoverTimes[snapshot.cutoverNanos] = struct{}{}
 		}
 	}
 
@@ -97,36 +97,36 @@ func newActiveRuleSet(
 // at previous iteration and incrementally update match results.
 func (as *activeRuleSet) MatchAll(id []byte, from time.Time, to time.Time) MatchResult {
 	var (
-		fromNs             = from.UnixNano()
-		toNs               = to.UnixNano()
-		currMappingResults = policy.PoliciesList{as.matchMappings(id, fromNs)}
-		currRollupResults  = as.matchRollups(id, fromNs)
-		nextIdx            = as.nextCutoverIdx(fromNs)
-		nextCutoverNs      = as.cutoverNsAt(nextIdx)
+		fromNanos          = from.UnixNano()
+		toNanos            = to.UnixNano()
+		currMappingResults = policy.PoliciesList{as.matchMappings(id, fromNanos)}
+		currRollupResults  = as.matchRollups(id, fromNanos)
+		nextIdx            = as.nextCutoverIdx(fromNanos)
+		nextCutoverNanos   = as.cutoverNanosAt(nextIdx)
 	)
 
-	for nextIdx < len(as.cutoverTimesAsc) && nextCutoverNs < toNs {
-		nextMappingPolicies := as.matchMappings(id, nextCutoverNs)
-		nextRollupResults := as.matchRollups(id, nextCutoverNs)
+	for nextIdx < len(as.cutoverTimesAsc) && nextCutoverNanos < toNanos {
+		nextMappingPolicies := as.matchMappings(id, nextCutoverNanos)
+		nextRollupResults := as.matchRollups(id, nextCutoverNanos)
 		currMappingResults = mergeMappingResults(currMappingResults, nextMappingPolicies)
-		currRollupResults = mergeRollupResults(currRollupResults, nextRollupResults, nextCutoverNs)
+		currRollupResults = mergeRollupResults(currRollupResults, nextRollupResults, nextCutoverNanos)
 		nextIdx++
-		nextCutoverNs = as.cutoverNsAt(nextIdx)
+		nextCutoverNanos = as.cutoverNanosAt(nextIdx)
 	}
 
 	// The result expires when it reaches the first cutover time after t among all
 	// active rules because the metric may then be matched against a different set of rules.
-	return NewMatchResult(nextCutoverNs, currMappingResults, currRollupResults)
+	return NewMatchResult(nextCutoverNanos, currMappingResults, currRollupResults)
 }
 
-func (as *activeRuleSet) matchMappings(id []byte, timeNs int64) policy.StagedPolicies {
+func (as *activeRuleSet) matchMappings(id []byte, timeNanos int64) policy.StagedPolicies {
 	// TODO(xichen): pool the policies.
 	var (
-		cutoverNs int64
-		policies  []policy.Policy
+		cutoverNanos int64
+		policies     []policy.Policy
 	)
 	for _, mappingRule := range as.mappingRules {
-		snapshot := mappingRule.ActiveSnapshot(timeNs)
+		snapshot := mappingRule.ActiveSnapshot(timeNanos)
 		if snapshot == nil {
 			continue
 		}
@@ -136,48 +136,48 @@ func (as *activeRuleSet) matchMappings(id []byte, timeNs int64) policy.StagedPol
 		// match the id because the cutover time of the result policies only needs to be best effort
 		// as long as it is before the time passed in.
 		if snapshot.tombstoned {
-			if cutoverNs < snapshot.cutoverNs {
-				cutoverNs = snapshot.cutoverNs
+			if cutoverNanos < snapshot.cutoverNanos {
+				cutoverNanos = snapshot.cutoverNanos
 			}
 			continue
 		}
 		if !snapshot.filter.Matches(id) {
 			continue
 		}
-		if cutoverNs < snapshot.cutoverNs {
-			cutoverNs = snapshot.cutoverNs
+		if cutoverNanos < snapshot.cutoverNanos {
+			cutoverNanos = snapshot.cutoverNanos
 		}
 		policies = append(policies, snapshot.policies...)
 	}
 	if len(policies) == 0 {
-		return policy.EmptyStagedPolicies
+		return policy.DefaultStagedPolicies
 	}
 	resolved := resolvePolicies(policies)
-	return policy.NewStagedPolicies(cutoverNs, false, resolved)
+	return policy.NewStagedPolicies(cutoverNanos, false, resolved)
 }
 
-func (as *activeRuleSet) matchRollups(id []byte, timeNs int64) []RollupResult {
+func (as *activeRuleSet) matchRollups(id []byte, timeNanos int64) []RollupResult {
 	// TODO(xichen): pool the rollup targets.
 	var (
-		cutoverNs int64
-		rollups   []rollupTarget
+		cutoverNanos int64
+		rollups      []rollupTarget
 	)
 	for _, rollupRule := range as.rollupRules {
-		snapshot := rollupRule.ActiveSnapshot(timeNs)
+		snapshot := rollupRule.ActiveSnapshot(timeNanos)
 		if snapshot == nil {
 			continue
 		}
 		if snapshot.tombstoned {
-			if cutoverNs < snapshot.cutoverNs {
-				cutoverNs = snapshot.cutoverNs
+			if cutoverNanos < snapshot.cutoverNanos {
+				cutoverNanos = snapshot.cutoverNanos
 			}
 			continue
 		}
 		if !snapshot.filter.Matches(id) {
 			continue
 		}
-		if cutoverNs < snapshot.cutoverNs {
-			cutoverNs = snapshot.cutoverNs
+		if cutoverNanos < snapshot.cutoverNanos {
+			cutoverNanos = snapshot.cutoverNanos
 		}
 		for _, target := range snapshot.targets {
 			found := false
@@ -205,11 +205,11 @@ func (as *activeRuleSet) matchRollups(id []byte, timeNs int64) []RollupResult {
 		rollups[i].Policies = resolvePolicies(rollups[i].Policies)
 	}
 
-	return as.toRollupResults(id, cutoverNs, rollups)
+	return as.toRollupResults(id, cutoverNanos, rollups)
 }
 
 // toRollupResults encodes rollup target name and values into ids for each rollup target.
-func (as *activeRuleSet) toRollupResults(id []byte, cutoverNs int64, targets []rollupTarget) []RollupResult {
+func (as *activeRuleSet) toRollupResults(id []byte, cutoverNanos int64, targets []rollupTarget) []RollupResult {
 	// NB(r): This is n^2 however this should be quite fast still as
 	// long as there is not an absurdly high number of rollup
 	// targets for any given ID and that iterfn is alloc free.
@@ -238,7 +238,7 @@ func (as *activeRuleSet) toRollupResults(id []byte, cutoverNs int64, targets []r
 		}
 		result := RollupResult{
 			ID:           as.newIDFn(target.Name, tagPairs),
-			PoliciesList: policy.PoliciesList{policy.NewStagedPolicies(cutoverNs, false, target.Policies)},
+			PoliciesList: policy.PoliciesList{policy.NewStagedPolicies(cutoverNanos, false, target.Policies)},
 		}
 		rollups = append(rollups, result)
 	}
@@ -262,12 +262,12 @@ func (as *activeRuleSet) nextCutoverIdx(t int64) int {
 	return i
 }
 
-// cutoverNsAt returns the cutover time at given index.
-func (as *activeRuleSet) cutoverNsAt(idx int) int64 {
+// cutoverNanosAt returns the cutover time at given index.
+func (as *activeRuleSet) cutoverNanosAt(idx int) int64 {
 	if idx < len(as.cutoverTimesAsc) {
 		return as.cutoverTimesAsc[idx]
 	}
-	return timeNsMax
+	return timeNanosMax
 }
 
 // RuleSet is a set of rules associated with a namespace.
@@ -278,8 +278,8 @@ type RuleSet interface {
 	// Version returns the ruleset version.
 	Version() int
 
-	// CutoverNs returns when the ruleset takes effect.
-	CutoverNs() int64
+	// CutoverNanos returns when the ruleset takes effect.
+	CutoverNanos() int64
 
 	// TombStoned returns whether the ruleset is tombstoned.
 	TombStoned() bool
@@ -289,17 +289,17 @@ type RuleSet interface {
 }
 
 type ruleSet struct {
-	uuid            string
-	version         int
-	namespace       []byte
-	createdAtNs     int64
-	lastUpdatedAtNs int64
-	tombstoned      bool
-	cutoverNs       int64
-	iterFn          filters.NewSortedTagIteratorFn
-	newIDFn         NewIDFn
-	mappingRules    []*mappingRule
-	rollupRules     []*rollupRule
+	uuid               string
+	version            int
+	namespace          []byte
+	createdAtNanos     int64
+	lastUpdatedAtNanos int64
+	tombstoned         bool
+	cutoverNanos       int64
+	iterFn             filters.NewSortedTagIteratorFn
+	newIDFn            NewIDFn
+	mappingRules       []*mappingRule
+	rollupRules        []*rollupRule
 }
 
 // NewRuleSet creates a new ruleset.
@@ -325,35 +325,35 @@ func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) 
 		rollupRules = append(rollupRules, rc)
 	}
 	return &ruleSet{
-		uuid:            rs.Uuid,
-		version:         version,
-		namespace:       []byte(rs.Namespace),
-		createdAtNs:     rs.CreatedAt,
-		lastUpdatedAtNs: rs.LastUpdatedAt,
-		tombstoned:      rs.Tombstoned,
-		cutoverNs:       rs.CutoverTime,
-		iterFn:          iterFn,
-		newIDFn:         opts.NewIDFn(),
-		mappingRules:    mappingRules,
-		rollupRules:     rollupRules,
+		uuid:               rs.Uuid,
+		version:            version,
+		namespace:          []byte(rs.Namespace),
+		createdAtNanos:     rs.CreatedAt,
+		lastUpdatedAtNanos: rs.LastUpdatedAt,
+		tombstoned:         rs.Tombstoned,
+		cutoverNanos:       rs.CutoverTime,
+		iterFn:             iterFn,
+		newIDFn:            opts.NewIDFn(),
+		mappingRules:       mappingRules,
+		rollupRules:        rollupRules,
 	}, nil
 }
 
-func (rs *ruleSet) Namespace() []byte { return rs.namespace }
-func (rs *ruleSet) Version() int      { return rs.version }
-func (rs *ruleSet) CutoverNs() int64  { return rs.cutoverNs }
-func (rs *ruleSet) TombStoned() bool  { return rs.tombstoned }
+func (rs *ruleSet) Namespace() []byte   { return rs.namespace }
+func (rs *ruleSet) Version() int        { return rs.version }
+func (rs *ruleSet) CutoverNanos() int64 { return rs.cutoverNanos }
+func (rs *ruleSet) TombStoned() bool    { return rs.tombstoned }
 
 func (rs *ruleSet) ActiveSet(t time.Time) Matcher {
-	timeNs := t.UnixNano()
+	timeNanos := t.UnixNano()
 	mappingRules := make([]*mappingRule, 0, len(rs.mappingRules))
 	for _, mappingRule := range rs.mappingRules {
-		activeRule := mappingRule.ActiveRule(timeNs)
+		activeRule := mappingRule.ActiveRule(timeNanos)
 		mappingRules = append(mappingRules, activeRule)
 	}
 	rollupRules := make([]*rollupRule, 0, len(rs.rollupRules))
 	for _, rollupRule := range rs.rollupRules {
-		activeRule := rollupRule.ActiveRule(timeNs)
+		activeRule := rollupRule.ActiveRule(timeNanos)
 		rollupRules = append(rollupRules, activeRule)
 	}
 	return newActiveRuleSet(rs.iterFn, rs.newIDFn, mappingRules, rollupRules)
@@ -409,7 +409,7 @@ func mergeMappingResults(
 func mergeRollupResults(
 	currRollupResults []RollupResult,
 	nextRollupResults []RollupResult,
-	nextCutoverNs int64,
+	nextCutoverNanos int64,
 ) []RollupResult {
 	var (
 		numCurrRollupResults = len(currRollupResults)
@@ -439,7 +439,7 @@ func mergeRollupResults(
 		if compareResult < 0 {
 			currRollupPolicies := currRollupResult.PoliciesList[len(currRollupResult.PoliciesList)-1]
 			if !currRollupPolicies.Tombstoned {
-				tombstonedPolicies := policy.NewStagedPolicies(nextCutoverNs, true, nil)
+				tombstonedPolicies := policy.NewStagedPolicies(nextCutoverNanos, true, nil)
 				currRollupResults[currRollupIdx].PoliciesList = append(currRollupResults[currRollupIdx].PoliciesList, tombstonedPolicies)
 			}
 			currRollupIdx++
@@ -457,7 +457,7 @@ func mergeRollupResults(
 		currRollupResult := currRollupResults[currRollupIdx]
 		currRollupPolicies := currRollupResult.PoliciesList[len(currRollupResult.PoliciesList)-1]
 		if !currRollupPolicies.Tombstoned {
-			tombstonedPolicies := policy.NewStagedPolicies(nextCutoverNs, true, nil)
+			tombstonedPolicies := policy.NewStagedPolicies(nextCutoverNanos, true, nil)
 			currRollupResults[currRollupIdx].PoliciesList = append(currRollupResults[currRollupIdx].PoliciesList, tombstonedPolicies)
 		}
 		currRollupIdx++

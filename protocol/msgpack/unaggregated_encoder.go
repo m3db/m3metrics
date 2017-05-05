@@ -158,9 +158,9 @@ func (enc *unaggregatedEncoder) encodePoliciesList(pl policy.PoliciesList) {
 
 func (enc *unaggregatedEncoder) encodeStagedPolicies(sp policy.StagedPolicies) {
 	enc.encodeNumObjectFields(numFieldsForType(stagedPoliciesType))
-	enc.encodeVarint(sp.CutoverNs)
+	enc.encodeVarint(sp.CutoverNanos)
 	enc.encodeBool(sp.Tombstoned)
-	policies := sp.Policies()
+	policies, _ := sp.Policies()
 	enc.encodeArrayLen(len(policies))
 	for _, policy := range policies {
 		enc.encodePolicy(policy)

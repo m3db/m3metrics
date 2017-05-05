@@ -38,7 +38,7 @@ func TestMatchResultHasExpired(t *testing.T) {
 
 func TestMatchResult(t *testing.T) {
 	var (
-		testExpireAtNs     = int64(67890)
+		testExpireAtNanos  = int64(67890)
 		testResultMappings = policy.PoliciesList{
 			policy.NewStagedPolicies(
 				12345,
@@ -137,7 +137,7 @@ func TestMatchResult(t *testing.T) {
 		},
 	}
 
-	res := NewMatchResult(testExpireAtNs, testResultMappings, testResultRollups)
+	res := NewMatchResult(testExpireAtNanos, testResultMappings, testResultRollups)
 	for _, input := range inputs {
 		require.Equal(t, input.expectedMappings, res.MappingsAt(input.matchAt))
 		require.Equal(t, len(input.expectedRollups), res.NumRollups())

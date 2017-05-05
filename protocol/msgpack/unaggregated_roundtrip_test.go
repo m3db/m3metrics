@@ -386,9 +386,12 @@ func compareUnaggregatedMetric(t *testing.T, expected unaggregated.MetricUnion, 
 func comparedPoliciesList(t *testing.T, expected policy.PoliciesList, actual policy.PoliciesList) {
 	require.Equal(t, len(expected), len(actual))
 	for i := 0; i < len(expected); i++ {
-		require.Equal(t, expected[i].CutoverNs, actual[i].CutoverNs)
+		require.Equal(t, expected[i].CutoverNanos, actual[i].CutoverNanos)
 		require.Equal(t, expected[i].Tombstoned, actual[i].Tombstoned)
-		require.Equal(t, expected[i].Policies(), actual[i].Policies())
+		expectedPolicies, expectedIsDefault := expected[i].Policies()
+		actualPolicies, actualIsDefault := actual[i].Policies()
+		require.Equal(t, expectedIsDefault, actualIsDefault)
+		require.Equal(t, expectedPolicies, actualPolicies)
 	}
 }
 
@@ -442,11 +445,12 @@ func validateMetricsWithPoliciesList(t *testing.T, inputs, results []metricWithP
 }
 
 func toStagedPolicies(t *testing.T, p policy.StagedPolicies) policy.StagedPolicies {
-	policies := make([]policy.Policy, len(p.Policies()))
-	for i, policy := range p.Policies() {
-		policies[i] = policy
+	srcPolicies, _ := p.Policies()
+	destPolicies := make([]policy.Policy, len(srcPolicies))
+	for i, policy := range srcPolicies {
+		destPolicies[i] = policy
 	}
-	return policy.NewStagedPolicies(p.CutoverNs, p.Tombstoned, policies)
+	return policy.NewStagedPolicies(p.CutoverNanos, p.Tombstoned, destPolicies)
 }
 
 func toPoliciesList(t *testing.T, pl policy.PoliciesList) policy.PoliciesList {
