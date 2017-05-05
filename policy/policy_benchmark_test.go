@@ -23,35 +23,41 @@ package policy
 import (
 	"testing"
 	"time"
+
+	"github.com/m3db/m3x/time"
 )
 
 var (
 	testNowNanos = time.Now().UnixNano()
+	testPolicies = []Policy{
+		NewPolicy(10*time.Second, xtime.Second, 2*24*time.Hour),
+		NewPolicy(time.Minute, xtime.Minute, 30*24*time.Hour),
+	}
 )
 
 func BenchmarkStagedPoliciesAsStruct(b *testing.B) {
-	sp := NewStagedPolicies(testNowNanos, false, DefaultPolicies)
+	sp := NewStagedPolicies(testNowNanos, false, testPolicies)
 	for n := 0; n < b.N; n++ {
 		validatePolicyByValue(b, sp)
 	}
 }
 
 func BenchmarkStagedPoliciesAsPointer(b *testing.B) {
-	sp := NewStagedPolicies(testNowNanos, false, DefaultPolicies)
+	sp := NewStagedPolicies(testNowNanos, false, testPolicies)
 	for n := 0; n < b.N; n++ {
 		validatePolicyByPointer(b, &sp)
 	}
 }
 
 func BenchmarkStagedPoliciesAsInterface(b *testing.B) {
-	sp := &testStagedPolicies{cutoverNanos: testNowNanos, policies: DefaultPolicies}
+	sp := &testStagedPolicies{cutoverNanos: testNowNanos, policies: testPolicies}
 	for n := 0; n < b.N; n++ {
 		validatePolicyByInterface(b, sp)
 	}
 }
 
 func BenchmarkStagedPoliciesAsStructExported(b *testing.B) {
-	sp := testStagedPolicies{cutoverNanos: testNowNanos, policies: DefaultPolicies}
+	sp := testStagedPolicies{cutoverNanos: testNowNanos, policies: testPolicies}
 	for n := 0; n < b.N; n++ {
 		validatePolicyByStructExported(b, sp)
 	}

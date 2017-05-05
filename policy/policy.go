@@ -42,12 +42,6 @@ var (
 	// EmptyPolicy represents an empty policy.
 	EmptyPolicy Policy
 
-	// DefaultPolicies are the default policies.
-	DefaultPolicies = []Policy{
-		NewPolicy(10*time.Second, xtime.Second, 2*24*time.Hour),
-		NewPolicy(time.Minute, xtime.Minute, 30*24*time.Hour),
-	}
-
 	// DefaultStagedPolicies represents a default staged policies.
 	DefaultStagedPolicies StagedPolicies
 
