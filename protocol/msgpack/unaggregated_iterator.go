@@ -240,6 +240,9 @@ func (it *unaggregatedIterator) decodePoliciesList() {
 		if cap(it.cachedPoliciesList) < numStagedPolicies {
 			it.cachedPoliciesList = make(policy.PoliciesList, 0, numStagedPolicies)
 		} else {
+			for i := 0; i < len(it.cachedPoliciesList); i++ {
+				it.cachedPoliciesList[i].Reset()
+			}
 			it.cachedPoliciesList = it.cachedPoliciesList[:0]
 		}
 		if len(it.cachedPolicies) < numStagedPolicies {

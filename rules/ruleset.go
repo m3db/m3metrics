@@ -394,6 +394,8 @@ func resolvePolicies(policies []policy.Policy) []policy.Policy {
 	return policies[:curr+1]
 }
 
+// mergeMappingResults assumes the policies contained in currMappingResults
+// are sorted by cutover time in time ascending order.
 func mergeMappingResults(
 	currMappingResults policy.PoliciesList,
 	nextMappingPolicies policy.StagedPolicies,
@@ -406,6 +408,8 @@ func mergeMappingResults(
 	return currMappingResults
 }
 
+// mergeRollupResults assumes both currRollupResult and nextRollupResult
+// are sorted by the ids of roll up results in ascending order.
 func mergeRollupResults(
 	currRollupResults []RollupResult,
 	nextRollupResults []RollupResult,
