@@ -27,7 +27,7 @@ import (
 )
 
 func TestEmptyTagsFilterMatches(t *testing.T) {
-	f, err := NewTagsFilter(nil, NewMockSortedTagIterator, Conjunction)
+	f, err := NewTagsFilter(nil, Conjunction, testTagsFilterOptions())
 	require.NoError(t, err)
 	require.True(t, f.Matches([]byte("foo")))
 }
@@ -37,7 +37,7 @@ func TestTagsFilterMatches(t *testing.T) {
 		"tagName1": "tagValue1",
 		"tagName2": "tagValue2",
 	}
-	f, err := NewTagsFilter(filters, NewMockSortedTagIterator, Conjunction)
+	f, err := NewTagsFilter(filters, Conjunction, testTagsFilterOptions())
 	inputs := []mockFilterData{
 		{val: "tagName1=tagValue1,tagName2=tagValue2", match: true},
 		{val: "tagName0=tagValue0,tagName1=tagValue1,tagName2=tagValue2,tagName3=tagValue3", match: true},
@@ -50,7 +50,7 @@ func TestTagsFilterMatches(t *testing.T) {
 		require.Equal(t, input.match, f.Matches([]byte(input.val)))
 	}
 
-	f, err = NewTagsFilter(filters, NewMockSortedTagIterator, Disjunction)
+	f, err = NewTagsFilter(filters, Disjunction, testTagsFilterOptions())
 	inputs = []mockFilterData{
 		{val: "tagName1=tagValue1,tagName2=tagValue2", match: true},
 		{val: "tagName0=tagValue0,tagName1=tagValue1,tagName2=tagValue2,tagName3=tagValue3", match: true},
@@ -73,11 +73,19 @@ func TestTagsFilterString(t *testing.T) {
 		"tagName1": "tagValue1",
 		"tagName2": "tagValue2",
 	}
-	f, err := NewTagsFilter(filters, NewMockSortedTagIterator, Conjunction)
+	f, err := NewTagsFilter(filters, Conjunction, testTagsFilterOptions())
 	require.NoError(t, err)
 	require.Equal(t, `tagName1:Equals("tagValue1") && tagName2:Equals("tagValue2")`, f.String())
 
-	f, err = NewTagsFilter(filters, NewMockSortedTagIterator, Disjunction)
+	f, err = NewTagsFilter(filters, Disjunction, testTagsFilterOptions())
 	require.NoError(t, err)
 	require.Equal(t, `tagName1:Equals("tagValue1") || tagName2:Equals("tagValue2")`, f.String())
+}
+
+func testTagsFilterOptions() TagsFilterOptions {
+	return TagsFilterOptions{
+		NameTagName:         []byte("name"),
+		NameAndTagsFn:       func(b []byte) ([]byte, []byte, error) { return nil, b, nil },
+		SortedTagIteratorFn: NewMockSortedTagIterator,
+	}
 }
