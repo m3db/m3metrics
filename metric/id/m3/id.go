@@ -48,7 +48,6 @@ const (
 var (
 	errInvalidM3Metric = fmt.Errorf("invalid m3 metric")
 	m3Prefix           = []byte("m3+")
-	nameTagName        = []byte("name")
 	rollupTagPair      = id.TagPair{
 		Name:  []byte("m3_rollup"),
 		Value: []byte("true"),
@@ -80,25 +79,26 @@ func NewRollupID(name []byte, tagPairs []id.TagPair) []byte {
 }
 
 // TODO(xichen): pool the mids.
-type mid struct {
-	id     []byte
-	iterFn id.SortedTagIteratorFn
+type metricID struct {
+	id       []byte
+	iterPool id.SortedTagIteratorPool
 }
 
 // NewID creates a new m3 metric id.
-func NewID(id []byte, iterFn id.SortedTagIteratorFn) id.ID {
-	return mid{id: id, iterFn: iterFn}
+func NewID(id []byte, iterPool id.SortedTagIteratorPool) id.ID {
+	return metricID{id: id, iterPool: iterPool}
 }
 
-func (id mid) Bytes() []byte { return id.id }
+func (id metricID) Bytes() []byte { return id.id }
 
-func (id mid) TagValue(tagName []byte) ([]byte, bool) {
+func (id metricID) TagValue(tagName []byte) ([]byte, bool) {
 	_, tagPairs, err := NameAndTags(id.Bytes())
 	if err != nil {
 		return nil, false
 	}
 
-	it := id.iterFn(tagPairs)
+	it := id.iterPool.Get()
+	it.Reset(tagPairs)
 	defer it.Close()
 
 	for it.Next() {
@@ -127,28 +127,28 @@ func NameAndTags(id []byte) ([]byte, []byte, error) {
 }
 
 type sortedTagIterator struct {
-	tagPairs []byte
-	idx      int
-	tagName  []byte
-	tagValue []byte
-	err      error
-	pool     id.SortedTagIteratorPool
+	sortedTagPairs []byte
+	idx            int
+	tagName        []byte
+	tagValue       []byte
+	err            error
+	pool           id.SortedTagIteratorPool
 }
 
 // NewSortedTagIterator creates a new sorted tag iterator.
-func NewSortedTagIterator(tagPairs []byte) id.SortedTagIterator {
-	return NewPooledSortedTagIterator(tagPairs, nil)
+func NewSortedTagIterator(sortedTagPairs []byte) id.SortedTagIterator {
+	return NewPooledSortedTagIterator(sortedTagPairs, nil)
 }
 
 // NewPooledSortedTagIterator creates a new pooled sorted tag iterator.
-func NewPooledSortedTagIterator(tagPairs []byte, pool id.SortedTagIteratorPool) id.SortedTagIterator {
+func NewPooledSortedTagIterator(sortedTagPairs []byte, pool id.SortedTagIteratorPool) id.SortedTagIterator {
 	it := &sortedTagIterator{pool: pool}
-	it.Reset(tagPairs)
+	it.Reset(sortedTagPairs)
 	return it
 }
 
-func (it *sortedTagIterator) Reset(tagPairs []byte) {
-	it.tagPairs = tagPairs
+func (it *sortedTagIterator) Reset(sortedTagPairs []byte) {
+	it.sortedTagPairs = sortedTagPairs
 	it.idx = 0
 	it.tagName = nil
 	it.tagValue = nil
@@ -156,23 +156,23 @@ func (it *sortedTagIterator) Reset(tagPairs []byte) {
 }
 
 func (it *sortedTagIterator) Next() bool {
-	if it.err != nil || it.idx >= len(it.tagPairs) {
+	if it.err != nil || it.idx >= len(it.sortedTagPairs) {
 		return false
 	}
-	nameSplitterIdx := bytes.IndexByte(it.tagPairs[it.idx:], tagNameSplitter)
+	nameSplitterIdx := bytes.IndexByte(it.sortedTagPairs[it.idx:], tagNameSplitter)
 	if nameSplitterIdx == -1 {
 		it.err = errInvalidM3Metric
 		return false
 	}
 	nameSplitterIdx = it.idx + nameSplitterIdx
-	pairSplitterIdx := bytes.IndexByte(it.tagPairs[nameSplitterIdx+1:], tagPairSplitter)
+	pairSplitterIdx := bytes.IndexByte(it.sortedTagPairs[nameSplitterIdx+1:], tagPairSplitter)
 	if pairSplitterIdx != -1 {
 		pairSplitterIdx = nameSplitterIdx + 1 + pairSplitterIdx
 	} else {
-		pairSplitterIdx = len(it.tagPairs)
+		pairSplitterIdx = len(it.sortedTagPairs)
 	}
-	it.tagName = it.tagPairs[it.idx:nameSplitterIdx]
-	it.tagValue = it.tagPairs[nameSplitterIdx+1 : pairSplitterIdx]
+	it.tagName = it.sortedTagPairs[it.idx:nameSplitterIdx]
+	it.tagValue = it.sortedTagPairs[nameSplitterIdx+1 : pairSplitterIdx]
 	it.idx = pairSplitterIdx
 	return true
 }
@@ -186,7 +186,7 @@ func (it *sortedTagIterator) Err() error {
 }
 
 func (it *sortedTagIterator) Close() {
-	it.tagPairs = nil
+	it.sortedTagPairs = nil
 	it.idx = 0
 	it.tagName = nil
 	it.tagValue = nil

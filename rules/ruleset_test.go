@@ -1714,7 +1714,7 @@ func testRollupRulesConfig() []*schema.RollupRule {
 
 func testTagsFilterOptions() filters.TagsFilterOptions {
 	return filters.TagsFilterOptions{
-		NameTagName:         []byte("name"),
+		NameTagKey:          []byte("name"),
 		NameAndTagsFn:       func(b []byte) ([]byte, []byte, error) { return nil, b, nil },
 		SortedTagIteratorFn: filters.NewMockSortedTagIterator,
 	}

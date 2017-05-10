@@ -47,7 +47,7 @@ func (tn tagFiltersByNameAsc) Less(i, j int) bool { return bytes.Compare(tn[i].n
 // TagsFilterOptions provide a set of tag filter options.
 type TagsFilterOptions struct {
 	// Name of the name tag.
-	NameTagName []byte
+	NameTagKey []byte
 
 	// Function to extract name and tags from an id.
 	NameAndTagsFn id.NameAndTagsFn
@@ -80,7 +80,7 @@ func NewTagsFilter(
 			return nil, err
 		}
 		bName := []byte(name)
-		if bytes.Equal(opts.NameTagName, bName) {
+		if bytes.Equal(opts.NameTagKey, bName) {
 			nameFilter = valFilter
 		} else {
 			tagFilters = append(tagFilters, tagFilter{
@@ -103,7 +103,7 @@ func (f *tagsFilter) String() string {
 	var buf bytes.Buffer
 	numTagFilters := len(f.tagFilters)
 	if f.nameFilter != nil {
-		buf.WriteString(fmt.Sprintf("%s:%s", f.opts.NameTagName, f.nameFilter.String()))
+		buf.WriteString(fmt.Sprintf("%s:%s", f.opts.NameTagKey, f.nameFilter.String()))
 		if numTagFilters > 0 {
 			buf.WriteString(separator)
 		}

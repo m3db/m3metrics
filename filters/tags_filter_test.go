@@ -84,7 +84,7 @@ func TestTagsFilterString(t *testing.T) {
 
 func testTagsFilterOptions() TagsFilterOptions {
 	return TagsFilterOptions{
-		NameTagName:         []byte("name"),
+		NameTagKey:          []byte("name"),
 		NameAndTagsFn:       func(b []byte) ([]byte, []byte, error) { return nil, b, nil },
 		SortedTagIteratorFn: NewMockSortedTagIterator,
 	}

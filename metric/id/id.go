@@ -32,7 +32,7 @@ type ID interface {
 }
 
 // NameAndTagsFn returns the name and the tag pairs given an id.
-type NameAndTagsFn func(id []byte) ([]byte, []byte, error)
+type NameAndTagsFn func(id []byte) (name []byte, tags []byte, err error)
 
 // NewIDFn creates a new metric ID based on the metric name and metric tag pairs.
 type NewIDFn func(name []byte, tags []TagPair) []byte

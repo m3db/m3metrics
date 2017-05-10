@@ -45,11 +45,10 @@ func (tp TagPairsByNameAsc) Less(i, j int) bool {
 // SortedTagIteratorFn creates a new sorted tag iterator given id tag pairs.
 type SortedTagIteratorFn func(tagPairs []byte) SortedTagIterator
 
-// SortedTagIterator iterates over a set of tag names and values
-// sorted by tag names in ascending order.
+// SortedTagIterator iterates over a set of tag pairs sorted by tag names.
 type SortedTagIterator interface {
 	// Reset resets the iterator.
-	Reset(tagPairs []byte)
+	Reset(sortedTagPairs []byte)
 
 	// Next returns true if there are more tag names and values.
 	Next() bool

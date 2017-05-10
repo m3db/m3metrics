@@ -29,7 +29,7 @@ import (
 
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
-	mid "github.com/m3db/m3metrics/metric/id"
+	metricID "github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
 )
 
@@ -52,14 +52,14 @@ type activeRuleSet struct {
 	rollupRules     []*rollupRule
 	cutoverTimesAsc []int64
 	tagFilterOpts   filters.TagsFilterOptions
-	newRollupIDFn   mid.NewIDFn
+	newRollupIDFn   metricID.NewIDFn
 }
 
 func newActiveRuleSet(
 	mappingRules []*mappingRule,
 	rollupRules []*rollupRule,
 	tagFilterOpts filters.TagsFilterOptions,
-	newRollupIDFn mid.NewIDFn,
+	newRollupIDFn metricID.NewIDFn,
 ) *activeRuleSet {
 	uniqueCutoverTimes := make(map[int64]struct{})
 	for _, mappingRule := range mappingRules {
@@ -224,7 +224,7 @@ func (as *activeRuleSet) toRollupResults(id []byte, cutoverNanos int64, targets 
 		return nil
 	}
 
-	var tagPairs []mid.TagPair
+	var tagPairs []metricID.TagPair
 	rollups := make([]RollupResult, 0, len(targets))
 	for _, target := range targets {
 		tagPairs = tagPairs[:0]
@@ -240,7 +240,7 @@ func (as *activeRuleSet) toRollupResults(id []byte, cutoverNanos int64, targets 
 			tagName, tagVal := tagIter.Current()
 			res := bytes.Compare(tagName, target.Tags[targetTagIdx])
 			if res == 0 {
-				tagPairs = append(tagPairs, mid.TagPair{Name: tagName, Value: tagVal})
+				tagPairs = append(tagPairs, metricID.TagPair{Name: tagName, Value: tagVal})
 				targetTagIdx++
 				hasMoreTags = tagIter.Next()
 				continue
@@ -316,7 +316,7 @@ type ruleSet struct {
 	mappingRules       []*mappingRule
 	rollupRules        []*rollupRule
 	tagsFilterOpts     filters.TagsFilterOptions
-	newRollupIDFn      mid.NewIDFn
+	newRollupIDFn      metricID.NewIDFn
 }
 
 // NewRuleSet creates a new ruleset.
