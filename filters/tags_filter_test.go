@@ -21,6 +21,8 @@
 package filters
 
 import (
+	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -32,7 +34,7 @@ func TestEmptyTagsFilterMatches(t *testing.T) {
 	require.True(t, f.Matches([]byte("foo")))
 }
 
-func TestTagsFilterMatches(t *testing.T) {
+func TestTagsFilterMatchesNoNameTag(t *testing.T) {
 	filters := map[string]string{
 		"tagName1": "tagValue1",
 		"tagName2": "tagValue2",
@@ -68,7 +70,44 @@ func TestTagsFilterMatches(t *testing.T) {
 	}
 }
 
-func TestTagsFilterString(t *testing.T) {
+func TestTagsFilterMatchesWithNameTag(t *testing.T) {
+	filters := map[string]string{
+		"name":     "foo",
+		"tagName1": "tagValue1",
+		"tagName2": "tagValue2",
+	}
+
+	f, err := NewTagsFilter(filters, Conjunction, testTagsFilterOptionsWithNameTag())
+	require.NoError(t, err)
+	inputs := []mockFilterData{
+		{val: "foo+tagName0=tagValue0,tagName1=tagValue1,tagName2=tagValue2", match: true},
+		{val: "tagName1=tagValue1,tagName2=tagValue2", match: false},
+		{val: "foo+tagName1=tagValue1", match: false},
+		{val: "foo+tagName1=tagValue2,tagName2=tagValue1", match: false},
+	}
+	for _, input := range inputs {
+		require.Equal(t, input.match, f.Matches([]byte(input.val)))
+	}
+
+	f, err = NewTagsFilter(filters, Disjunction, testTagsFilterOptionsWithNameTag())
+	require.NoError(t, err)
+	inputs = []mockFilterData{
+		{val: "foo+tagName1=tagValue1,tagName2=tagValue2", match: true},
+		{val: "foo+tagName1=tagValue2,tagName2=tagValue2", match: true},
+		{val: "bar+tagName1=tagValue1", match: true},
+		{val: "foo+tagName1=tagValue2", match: true},
+		{val: "foo+tagName2=tagValue1", match: true},
+		{val: "foo+tagName15=tagValue2,tagName3=tagValue2", match: true},
+		{val: "tagName1=tagValue1,tagName2=tagValue2", match: false},
+		{val: "bar+tagName1=tagValue2,tagName2=tagValue1", match: false},
+		{val: "bar+tagName3=tagValue3", match: false},
+	}
+	for _, input := range inputs {
+		require.Equal(t, input.match, f.Matches([]byte(input.val)))
+	}
+}
+
+func TestTagsFilterStringNoNameTag(t *testing.T) {
 	filters := map[string]string{
 		"tagName1": "tagValue1",
 		"tagName2": "tagValue2",
@@ -82,10 +121,39 @@ func TestTagsFilterString(t *testing.T) {
 	require.Equal(t, `tagName1:Equals("tagValue1") || tagName2:Equals("tagValue2")`, f.String())
 }
 
+func TestTagsFilterStringWithNameTag(t *testing.T) {
+	filters := map[string]string{
+		"name":     "foo",
+		"tagName1": "tagValue1",
+		"tagName2": "tagValue2",
+	}
+	f, err := NewTagsFilter(filters, Conjunction, testTagsFilterOptionsWithNameTag())
+	require.NoError(t, err)
+	require.Equal(t, `name:Equals("foo") && tagName1:Equals("tagValue1") && tagName2:Equals("tagValue2")`, f.String())
+
+	f, err = NewTagsFilter(filters, Disjunction, testTagsFilterOptionsWithNameTag())
+	require.NoError(t, err)
+	require.Equal(t, `name:Equals("foo") || tagName1:Equals("tagValue1") || tagName2:Equals("tagValue2")`, f.String())
+}
+
 func testTagsFilterOptions() TagsFilterOptions {
 	return TagsFilterOptions{
 		NameTagKey:          []byte("name"),
 		NameAndTagsFn:       func(b []byte) ([]byte, []byte, error) { return nil, b, nil },
+		SortedTagIteratorFn: NewMockSortedTagIterator,
+	}
+}
+
+func testTagsFilterOptionsWithNameTag() TagsFilterOptions {
+	return TagsFilterOptions{
+		NameTagKey: []byte("name"),
+		NameAndTagsFn: func(b []byte) ([]byte, []byte, error) {
+			idx := bytes.IndexByte(b, '+')
+			if idx == -1 {
+				return nil, nil, errors.New("invalid metric")
+			}
+			return b[:idx], b[idx+1:], nil
+		},
 		SortedTagIteratorFn: NewMockSortedTagIterator,
 	}
 }

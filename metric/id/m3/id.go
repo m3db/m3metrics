@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Uber Technologies, Inc.
+// Copyright (c) 2017 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@ package m3
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"sort"
 
 	"github.com/m3db/m3metrics/metric/id"
@@ -46,7 +46,7 @@ const (
 )
 
 var (
-	errInvalidM3Metric = fmt.Errorf("invalid m3 metric")
+	errInvalidM3Metric = errors.New("invalid m3 metric")
 	m3Prefix           = []byte("m3+")
 	rollupTagPair      = id.TagPair{
 		Name:  []byte("m3_rollup"),
@@ -173,7 +173,7 @@ func (it *sortedTagIterator) Next() bool {
 	}
 	it.tagName = it.sortedTagPairs[it.idx:nameSplitterIdx]
 	it.tagValue = it.sortedTagPairs[nameSplitterIdx+1 : pairSplitterIdx]
-	it.idx = pairSplitterIdx
+	it.idx = pairSplitterIdx + 1
 	return true
 }
 

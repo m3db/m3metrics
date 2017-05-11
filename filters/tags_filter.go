@@ -126,8 +126,14 @@ func (f *tagsFilter) Matches(id []byte) bool {
 	if err != nil {
 		return false
 	}
-	if f.nameFilter != nil && !f.nameFilter.Matches(name) {
-		return false
+	if f.nameFilter != nil {
+		match := f.nameFilter.Matches(name)
+		if match && f.op == Disjunction {
+			return true
+		}
+		if !match && f.op == Conjunction {
+			return false
+		}
 	}
 
 	iter := f.opts.SortedTagIteratorFn(tags)
