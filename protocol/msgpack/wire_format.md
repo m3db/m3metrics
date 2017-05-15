@@ -53,6 +53,7 @@
   * Cutover
   * Tombstoned
   * List of Policy objects
+  * Policies Bitflag
 
 * Policy object
   * Number of Policy fields
