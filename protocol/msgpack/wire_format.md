@@ -52,8 +52,8 @@
   * Number of StagedPolicies fields
   * Cutover
   * Tombstoned
-  * List of Policy objects
   * Policies Bitflag
+  * List of Policy objects
 
 * Policy object
   * Number of Policy fields

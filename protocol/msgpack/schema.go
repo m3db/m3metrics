@@ -75,7 +75,7 @@ const (
 	numMetricFields                     = 3
 	numDefaultStagedPoliciesListFields  = 1
 	numCustomStagedPoliciesListFields   = 2
-	numStagedPoliciesFields             = 3
+	numStagedPoliciesFields             = 4
 	numPolicyFields                     = 2
 	numKnownResolutionFields            = 2
 	numUnknownResolutionFields          = 3

@@ -126,6 +126,60 @@ func TestEncoder(t *testing.T) {
 	}
 }
 
+func TestEncoderReset(t *testing.T) {
+	var (
+		enc             = NewEncoder()
+		policy          = NewPolicy(time.Second, xtime.Second, time.Hour)
+		policies        = []Policy{policy}
+		buffer          = make([]Policy, 0)
+		expectedBitflag = EmptyBitflag
+	)
+
+	actualBitflag, actualPolicies := enc.Encode(policies, buffer)
+	require.Equal(t, expectedBitflag, actualBitflag)
+	require.Equal(t, policies, actualPolicies)
+
+	enc.Reset()
+
+	// After a Reset we expect that the previously seen policy will not be
+	// encoded in the bitflag.
+	actualBitflag, actualPolicies = enc.Encode(policies, buffer)
+	require.Equal(t, expectedBitflag, actualBitflag)
+	require.Equal(t, policies, actualPolicies)
+}
+
+func TestEncoderOverflow(t *testing.T) {
+	var (
+		enc              = NewEncoder()
+		policies         = make([]Policy, 0, 64)
+		expectedPolicies = make([]Policy, 0, 1)
+		buffer           = make([]Policy, 0)
+		expectedBitflag  = EmptyBitflag
+	)
+
+	for i := 0; i <= 64; i++ {
+		policy := NewPolicy(time.Duration(i)*time.Second, xtime.Second, time.Hour)
+		policies = append(policies, policy)
+		if i == 64 {
+			expectedPolicies = append(expectedPolicies, policy)
+			continue
+		}
+		expectedBitflag = expectedBitflag.Set(uint(i))
+	}
+
+	actualBitflag, actualPolicies := enc.Encode(policies, buffer)
+	require.Equal(t, EmptyBitflag, actualBitflag)
+	require.Equal(t, policies, actualPolicies)
+
+	buffer = buffer[:0]
+
+	// An encoder can only encode up to 63 policies so any policies over that
+	// limit should not be encoded in the bitflag.
+	actualBitflag, actualPolicies = enc.Encode(policies, buffer)
+	require.Equal(t, expectedBitflag, actualBitflag)
+	require.Equal(t, expectedPolicies, actualPolicies)
+}
+
 func TestDecoder(t *testing.T) {
 	var (
 		dec          = NewDecoder()
@@ -185,7 +239,7 @@ func TestDecoder(t *testing.T) {
 	}
 }
 
-func TestDecodeError(t *testing.T) {
+func TestDecoderError(t *testing.T) {
 	var (
 		dec      = NewDecoder()
 		policies = make([]Policy, 0)
@@ -195,6 +249,27 @@ func TestDecodeError(t *testing.T) {
 	// Decoder should return an error when encountering a bitflag it has
 	// never seen before.
 	_, _, err := dec.Decode(policies, bitflag)
+	require.Error(t, err)
+}
+
+func TestDecoderReset(t *testing.T) {
+	var (
+		dec      = NewDecoder()
+		policy   = NewPolicy(time.Second, xtime.Second, time.Hour)
+		policies = []Policy{policy}
+		bitflag  = EmptyBitflag
+	)
+
+	_, _, err := dec.Decode(policies, bitflag)
+	require.NoError(t, err)
+
+	dec.Reset()
+	bitflag = bitflag.Set(0)
+	policies = []Policy{}
+
+	// After a Reset the decoder should not be aware of any previously seen
+	// policies.
+	_, _, err = dec.Decode(policies, bitflag)
 	require.Error(t, err)
 }
 

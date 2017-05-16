@@ -29,6 +29,7 @@ import (
 	"github.com/m3db/m3metrics/metric/unaggregated"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3x/pool"
+	"github.com/tmthrgd/go-popcount"
 )
 
 const (
@@ -52,6 +53,7 @@ type unaggregatedIterator struct {
 	timerValues        []float64
 	cachedPolicies     [][]policy.Policy
 	cachedPoliciesList policy.PoliciesList
+	policiesDecoder    policy.Decoder
 }
 
 // NewUnaggregatedIterator creates a new unaggregated iterator.
@@ -66,6 +68,7 @@ func NewUnaggregatedIterator(reader io.Reader, opts UnaggregatedIteratorOptions)
 		largeFloatsPool:     opts.LargeFloatsPool(),
 		iteratorPool:        opts.IteratorPool(),
 		timerValues:         make([]float64, 0, defaultInitTimerValuesCapacity),
+		policiesDecoder:     policy.NewDecoder(),
 	}
 	return it
 }
@@ -76,6 +79,7 @@ func (it *unaggregatedIterator) Reset(reader io.Reader) {
 	it.closed = false
 	it.metric.Reset()
 	it.reset(reader)
+	it.policiesDecoder.Reset()
 }
 
 func (it *unaggregatedIterator) Metric() unaggregated.MetricUnion {
@@ -288,16 +292,30 @@ func (it *unaggregatedIterator) decodeStagedPolicies(policyIdx int) policy.Stage
 	}
 	cutoverNanos := it.decodeVarint()
 	tombstoned := it.decodeBool()
-	numPolicies := it.decodeArrayLen()
-	if cap(it.cachedPolicies[policyIdx]) < numPolicies {
-		it.cachedPolicies[policyIdx] = make([]policy.Policy, 0, numPolicies)
+	bitflag := policy.Bitflag(it.decodeVarint())
+	numBitflagPolicies := popcount.Count64(uint64(bitflag))
+	numArrayPolicies := it.decodeArrayLen()
+	numTotalPolicies := int(numBitflagPolicies) + numArrayPolicies
+	if cap(it.cachedPolicies[policyIdx]) < numTotalPolicies {
+		it.cachedPolicies[policyIdx] = make([]policy.Policy, 0, numTotalPolicies)
 	} else {
 		it.cachedPolicies[policyIdx] = it.cachedPolicies[policyIdx][:0]
 	}
-	for i := 0; i < numPolicies; i++ {
+	for i := 0; i < numArrayPolicies; i++ {
 		it.cachedPolicies[policyIdx] = append(it.cachedPolicies[policyIdx], it.decodePolicy())
 	}
-	stagedPolicies := policy.NewStagedPolicies(cutoverNanos, tombstoned, it.cachedPolicies[policyIdx])
+	// TODO(jeromefroe): The bitflag returned from the decoder uniquely identifies a
+	// slice of policies for a given connection when there are less than 63 unique
+	// policies. Consequently, we should update the definition of PoliciesList to
+	// include this bitflag so we can cheaply compare two PoliciesList's for equality.
+	policies := it.cachedPolicies[policyIdx]
+	_, policies, err := it.policiesDecoder.Decode(policies, bitflag)
+	if err != nil {
+		it.setErr(err)
+		it.skip(numActualFields - numExpectedFields)
+		return policy.DefaultStagedPolicies
+	}
+	stagedPolicies := policy.NewStagedPolicies(cutoverNanos, tombstoned, policies)
 	it.skip(numActualFields - numExpectedFields)
 	return stagedPolicies
 }

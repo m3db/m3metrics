@@ -96,15 +96,22 @@ func (i BitflagIterator) Index() int {
 	return i.idx
 }
 
-// Encoder encodes policies into a bitflag.
-type Encoder struct {
+// Encoder is capable of encoding policies into a bitflag representation.
+type Encoder interface {
+	Encode(policies, buffer []Policy) (Bitflag, []Policy)
+
+	Reset()
+}
+
+// encoder encodes policies into a bitflag.
+type encoder struct {
 	dynamicTable map[Policy]uint
 }
 
 // NewEncoder returns a new Encoder.
 func NewEncoder() Encoder {
 	dt := make(map[Policy]uint, defaultTableSize)
-	return Encoder{dt}
+	return &encoder{dt}
 }
 
 // Encode encodes a slice of polices into a bitflag. It returns a bitflag
@@ -113,7 +120,7 @@ func NewEncoder() Encoder {
 // its table so that subsequent calls to Encode will be able to encode them
 // in the returned bitflag as well. It accepts a buffer argument so that
 // slices of policies can be reused between calls.
-func (e *Encoder) Encode(policies, buffer []Policy) (Bitflag, []Policy) {
+func (e *encoder) Encode(policies, buffer []Policy) (Bitflag, []Policy) {
 	var flag Bitflag
 	if buffer == nil {
 		buffer = make([]Policy, 0)
@@ -121,8 +128,10 @@ func (e *Encoder) Encode(policies, buffer []Policy) (Bitflag, []Policy) {
 
 	for _, policy := range policies {
 		id, ok := e.dynamicTable[policy]
-		if !ok && len(e.dynamicTable) <= defaultTableSize {
-			e.dynamicTable[policy] = uint(len(e.dynamicTable))
+		if !ok {
+			if len(e.dynamicTable) <= defaultTableSize {
+				e.dynamicTable[policy] = uint(len(e.dynamicTable))
+			}
 			buffer = append(buffer, policy)
 			continue
 		}
@@ -133,15 +142,31 @@ func (e *Encoder) Encode(policies, buffer []Policy) (Bitflag, []Policy) {
 	return flag, buffer
 }
 
-// Decoder decodes a bitflag representing a slice of policies.
-type Decoder struct {
+// Reset clears the encoder's internal table of policies so that all
+// policies will be new policies.
+func (e *encoder) Reset() {
+	for key := range e.dynamicTable {
+		delete(e.dynamicTable, key)
+	}
+}
+
+// Decoder is capable of decoding a bitflag representation of policies into
+// the corresponding policies.
+type Decoder interface {
+	Decode(policies []Policy, flag Bitflag) (Bitflag, []Policy, error)
+
+	Reset()
+}
+
+// decoder decodes a bitflag representing a slice of policies.
+type decoder struct {
 	dynamicTable []Policy
 }
 
 // NewDecoder returns a new decoder for policy bitflags.
 func NewDecoder() Decoder {
 	dt := make([]Policy, 0, defaultTableSize)
-	return Decoder{dt}
+	return &decoder{dt}
 }
 
 // Decode decodes a policies bitflag, appending the associated policies
@@ -150,7 +175,7 @@ func NewDecoder() Decoder {
 // to Decode. Decode also returns a bitflag representing all the policies
 // which were passed into it, including those in both the policies bitflag
 // and the slice of policies.
-func (d *Decoder) Decode(
+func (d *decoder) Decode(
 	policies []Policy,
 	flag Bitflag,
 ) (Bitflag, []Policy, error) {
@@ -189,3 +214,7 @@ func (d *Decoder) Decode(
 
 	return flag, policies, nil
 }
+
+// Reset clears the decoder's internal table of policies so that all
+// policies will be new policies.
+func (d *decoder) Reset() { d.dynamicTable = d.dynamicTable[:0] }
