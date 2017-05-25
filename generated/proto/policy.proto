@@ -22,15 +22,38 @@ syntax = "proto3";
 package schema;
 
 message Resolution {
-	int64 window_size = 1;
-	int64 precision = 2;
+  int64 window_size = 1;
+  int64 precision = 2;
 }
 
 message Retention {
-	int64 period = 1;
+  int64 period = 1;
+}
+
+message StoragePolicy {
+  Resolution resolution = 1;
+  Retention retention = 2;
 }
 
 message Policy {
-	Resolution resolution = 1;
-	Retention retention = 2;
+  StoragePolicy storage_policy = 1;
+  repeated AggregationType aggregation_types = 2;
+}
+
+enum AggregationType {
+  UNKNOWN = 0;
+  LAST = 1;
+  LOWER = 2;
+  UPPER = 3;
+  MEAN = 4;
+  MEDIAN = 5;
+  COUNT = 6;
+  SUM = 7;
+  SUMSQ = 8;
+  STDEV = 9;
+  P50 = 10;
+  P95 = 11;
+  P99 = 12;
+  P999 = 13;
+  P9999 = 14;
 }

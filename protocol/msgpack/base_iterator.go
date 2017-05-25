@@ -73,11 +73,57 @@ func (it *baseIterator) reader() bufReader { return it.bufReader }
 func (it *baseIterator) decodePolicy() policy.Policy {
 	numExpectedFields, numActualFields, ok := it.checkNumFieldsForType(policyType)
 	if !ok {
-		return policy.EmptyPolicy
+		return policy.DefaultPolicy
+	}
+	p := it.decodeStoragePolicy()
+	aggTypes := it.decodeCompressedAggregationTypes()
+	it.skip(numActualFields - numExpectedFields)
+	return policy.NewPolicy(p, aggTypes)
+}
+
+func (it *baseIterator) decodeCompressedAggregationTypes() policy.AggregationID {
+	numActualFields := it.decodeNumObjectFields()
+	aggregationEncodeType := it.decodeObjectType()
+	numExpectedFields, ok := it.checkExpectedNumFieldsForType(
+		aggregationEncodeType,
+		numActualFields,
+	)
+	if !ok {
+		return policy.DefaultAggregationID
+	}
+
+	var aggTypes policy.AggregationID
+	switch aggregationEncodeType {
+	case defaultAggregationID:
+	case shortAggregationID:
+		value := it.decodeVarint()
+		aggTypes[0] = uint64(value)
+	case longAggregationID:
+		numValues := it.decodeArrayLen()
+		if numValues > policy.AggregationIDLen {
+			it.decodeErr = fmt.Errorf("invalid CompressedAggregationType length: %d", numValues)
+			return aggTypes
+		}
+
+		for i := 0; i < numValues; i++ {
+			aggTypes[i] = uint64(it.decodeVarint())
+		}
+	default:
+		it.decodeErr = fmt.Errorf("unrecognized aggregation encode type %v", aggregationEncodeType)
+		return aggTypes
+	}
+	it.skip(numActualFields - numExpectedFields)
+	return aggTypes
+}
+
+func (it *baseIterator) decodeStoragePolicy() policy.StoragePolicy {
+	numExpectedFields, numActualFields, ok := it.checkNumFieldsForType(storagePolicyType)
+	if !ok {
+		return policy.DefaultStoragePolicy
 	}
 	resolution := it.decodeResolution()
 	retention := it.decodeRetention()
-	p := policy.NewPolicy(resolution.Window, resolution.Precision, time.Duration(retention))
+	p := policy.NewStoragePolicy(resolution.Window, resolution.Precision, time.Duration(retention))
 	it.skip(numActualFields - numExpectedFields)
 	return p
 }

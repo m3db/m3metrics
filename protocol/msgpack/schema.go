@@ -53,11 +53,15 @@ const (
 	defaultPoliciesListType
 	customPoliciesListType
 	stagedPoliciesType
-	policyType
+	storagePolicyType
 	knownResolutionType
 	unknownResolutionType
 	knownRetentionType
 	unknownRetentionType
+	defaultAggregationID
+	shortAggregationID
+	longAggregationID
+	policyType
 
 	// Total number of object types.
 	numObjectTypes = iota
@@ -76,11 +80,15 @@ const (
 	numDefaultStagedPoliciesListFields  = 1
 	numCustomStagedPoliciesListFields   = 2
 	numStagedPoliciesFields             = 3
-	numPolicyFields                     = 2
+	numStoragePolicyFields              = 2
 	numKnownResolutionFields            = 2
 	numUnknownResolutionFields          = 3
 	numKnownRetentionFields             = 2
 	numUnknownRetentionFields           = 2
+	numDefaultAggregationIDFields       = 1
+	numShortAggregationIDFields         = 2
+	numLongAggregationIDFields          = 2
+	numPolicyFields                     = 2
 )
 
 // NB(xichen): use a slice instead of a map to avoid lookup overhead.
@@ -109,9 +117,13 @@ func init() {
 	setNumFieldsForType(defaultPoliciesListType, numDefaultStagedPoliciesListFields)
 	setNumFieldsForType(customPoliciesListType, numCustomStagedPoliciesListFields)
 	setNumFieldsForType(stagedPoliciesType, numStagedPoliciesFields)
-	setNumFieldsForType(policyType, numPolicyFields)
+	setNumFieldsForType(storagePolicyType, numStoragePolicyFields)
 	setNumFieldsForType(knownResolutionType, numKnownResolutionFields)
 	setNumFieldsForType(unknownResolutionType, numUnknownResolutionFields)
 	setNumFieldsForType(knownRetentionType, numKnownRetentionFields)
 	setNumFieldsForType(unknownRetentionType, numKnownRetentionFields)
+	setNumFieldsForType(defaultAggregationID, numDefaultAggregationIDFields)
+	setNumFieldsForType(shortAggregationID, numShortAggregationIDFields)
+	setNumFieldsForType(longAggregationID, numLongAggregationIDFields)
+	setNumFieldsForType(policyType, numPolicyFields)
 }

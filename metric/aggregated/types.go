@@ -77,22 +77,22 @@ type RawMetric interface {
 // MetricWithPolicy is a metric with applicable policy.
 type MetricWithPolicy struct {
 	Metric
-	policy.Policy
+	policy.StoragePolicy
 }
 
 // String is the string representation of a metric with policy.
 func (mp MetricWithPolicy) String() string {
-	return fmt.Sprintf("{metric:%s,policy:%s}", mp.Metric.String(), mp.Policy.String())
+	return fmt.Sprintf("{metric:%s,policy:%s}", mp.Metric.String(), mp.StoragePolicy.String())
 }
 
 // ChunkedMetricWithPolicy is a chunked metric with applicable policy.
 type ChunkedMetricWithPolicy struct {
 	ChunkedMetric
-	policy.Policy
+	policy.StoragePolicy
 }
 
 // RawMetricWithPolicy is a raw metric with applicable policy.
 type RawMetricWithPolicy struct {
 	RawMetric
-	policy.Policy
+	policy.StoragePolicy
 }

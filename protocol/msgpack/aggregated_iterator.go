@@ -36,7 +36,7 @@ type aggregatedIterator struct {
 	iteratorPool        AggregatedIteratorPool
 	closed              bool
 	metric              aggregated.RawMetric
-	policy              policy.Policy
+	policy              policy.StoragePolicy
 }
 
 // NewAggregatedIterator creates a new aggregated iterator.
@@ -60,7 +60,7 @@ func (it *aggregatedIterator) Reset(reader io.Reader) {
 	it.reset(reader)
 }
 
-func (it *aggregatedIterator) Value() (aggregated.RawMetric, policy.Policy) {
+func (it *aggregatedIterator) Value() (aggregated.RawMetric, policy.StoragePolicy) {
 	return it.metric, it.policy
 }
 
@@ -124,7 +124,7 @@ func (it *aggregatedIterator) decodeRawMetricWithPolicy() {
 		return
 	}
 	it.metric.Reset(it.decodeRawMetric())
-	it.policy = it.decodePolicy()
+	it.policy = it.decodeStoragePolicy()
 	it.skip(numActualFields - numExpectedFields)
 }
 

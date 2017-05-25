@@ -58,3 +58,5 @@ testImport:
   version: d77da356e56a7428ad25149ca77381849a6a5232
   subpackages:
   - require
+- package: github.com/cw9/bitset
+  version: d79da395ef228e37d81befaf8c71827ab0cb2275

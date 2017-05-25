@@ -25,7 +25,7 @@ import (
 	"github.com/m3db/m3metrics/policy"
 )
 
-type encodeRawMetricWithPolicyFn func(data []byte, p policy.Policy)
+type encodeRawMetricWithPolicyFn func(data []byte, p policy.StoragePolicy)
 type encodeRawMetricFn func(data []byte)
 type encodeMetricAsRawFn func(m aggregated.Metric) []byte
 type encodeChunkedMetricAsRawFn func(m aggregated.ChunkedMetric) []byte
@@ -70,7 +70,7 @@ func (enc *aggregatedEncoder) EncodeMetricWithPolicy(mp aggregated.MetricWithPol
 	}
 	enc.encodeRootObjectFn(rawMetricWithPolicyType)
 	data := enc.encodeMetricAsRawFn(mp.Metric)
-	enc.encodeRawMetricWithPolicyFn(data, mp.Policy)
+	enc.encodeRawMetricWithPolicyFn(data, mp.StoragePolicy)
 	return enc.err()
 }
 
@@ -80,7 +80,7 @@ func (enc *aggregatedEncoder) EncodeChunkedMetricWithPolicy(cmp aggregated.Chunk
 	}
 	enc.encodeRootObjectFn(rawMetricWithPolicyType)
 	data := enc.encodeChunkedMetricAsRawFn(cmp.ChunkedMetric)
-	enc.encodeRawMetricWithPolicyFn(data, cmp.Policy)
+	enc.encodeRawMetricWithPolicyFn(data, cmp.StoragePolicy)
 	return enc.err()
 }
 
@@ -89,7 +89,7 @@ func (enc *aggregatedEncoder) EncodeRawMetricWithPolicy(rp aggregated.RawMetricW
 		return err
 	}
 	enc.encodeRootObjectFn(rawMetricWithPolicyType)
-	enc.encodeRawMetricWithPolicyFn(rp.RawMetric.Bytes(), rp.Policy)
+	enc.encodeRawMetricWithPolicyFn(rp.RawMetric.Bytes(), rp.StoragePolicy)
 	return enc.err()
 }
 
@@ -122,10 +122,10 @@ func (enc *aggregatedEncoder) encodeMetricProlog() {
 	enc.buf.encodeNumObjectFields(numFieldsForType(metricType))
 }
 
-func (enc *aggregatedEncoder) encodeRawMetricWithPolicy(data []byte, p policy.Policy) {
+func (enc *aggregatedEncoder) encodeRawMetricWithPolicy(data []byte, p policy.StoragePolicy) {
 	enc.encodeNumObjectFields(numFieldsForType(rawMetricWithPolicyType))
 	enc.encodeRawMetricFn(data)
-	enc.encodePolicy(p)
+	enc.encodeStoragePolicy(p)
 }
 
 func (enc *aggregatedEncoder) encodeRawMetric(data []byte) {
