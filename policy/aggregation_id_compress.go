@@ -35,7 +35,7 @@ type AggregationIDCompressor interface {
 type AggregationIDDecompressor interface {
 	// Decompress decompresses aggregation types,
 	// returns error if any invalid aggregation type is encountered.
-	Decompress(compressed AggregationID) (AggregationTypes, error)
+	Decompress(pool AggregationTypesPool, compressed AggregationID) (AggregationTypes, error)
 }
 
 type aggregationIDCompressor struct {
@@ -73,7 +73,6 @@ func (c *aggregationIDCompressor) Compress(aggTypes AggregationTypes) (Aggregati
 type aggregationIDDecompressor struct {
 	bs  *bitset.BitSet
 	buf []uint64
-	res []AggregationType
 }
 
 // NewAggregationTypeDecompressor returns a new AggregationTypeDecompressor.
@@ -82,11 +81,10 @@ func NewAggregationTypeDecompressor() AggregationIDDecompressor {
 	return &aggregationIDDecompressor{
 		bs:  bs,
 		buf: bs.Bytes(),
-		res: make([]AggregationType, 0, totalAggregationTypes),
 	}
 }
 
-func (c *aggregationIDDecompressor) Decompress(id AggregationID) (AggregationTypes, error) {
+func (c *aggregationIDDecompressor) Decompress(pool AggregationTypesPool, id AggregationID) (AggregationTypes, error) {
 	// NB(cw) it's guaranteed that len(c.buf) == len(id) == AggregationIDLen, we need to copy
 	// the words from id into a slice to be used in bitset
 	for i := range id {
@@ -95,16 +93,21 @@ func (c *aggregationIDDecompressor) Decompress(id AggregationID) (AggregationTyp
 
 	c.bs.Reset(c.buf)
 
-	c.res = c.res[:0]
+	var res AggregationTypes
+	if pool == nil {
+		res = make(AggregationTypes, 0, totalAggregationTypes)
+	} else {
+		res = pool.Get()
+	}
+
 	for i, e := c.bs.NextSet(0); e; i, e = c.bs.NextSet(i + 1) {
 		aggType := AggregationType(i)
 		if !aggType.IsValid() {
 			return DefaultAggregationTypes, fmt.Errorf("invalid AggregationType: %s", aggType.String())
 		}
-		c.res = append(c.res, aggType)
+
+		res = append(res, aggType)
 	}
 
-	res := make(AggregationTypes, len(c.res))
-	copy(res, c.res)
 	return res, nil
 }

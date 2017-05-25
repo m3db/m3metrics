@@ -271,7 +271,7 @@ func (id AggregationID) Merge(other AggregationID) (AggregationID, bool) {
 
 // String for debugging.
 func (id AggregationID) String() string {
-	aggTypes, err := NewAggregationTypeDecompressor().Decompress(id)
+	aggTypes, err := NewAggregationTypeDecompressor().Decompress(nil, id)
 	if err != nil {
 		return fmt.Sprintf("[invalid AggregationID: %v]", err)
 	}
