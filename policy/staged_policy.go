@@ -112,16 +112,17 @@ func (l PoliciesList) IsDefault() bool {
 	return len(l) == 1 && l[0].IsDefault()
 }
 
-// WithDefaultAggregation updates the PoliciesList with default aggregation types.
-func (l PoliciesList) WithDefaultAggregation() PoliciesList {
+// SetDefaultAggregation updates the PoliciesList with default aggregation types.
+// NB(cw) This function updates the PoliciesList in place
+func (l PoliciesList) SetDefaultAggregation() PoliciesList {
 	for _, sp := range l {
 		pl, ok := sp.Policies()
 		if ok {
 			continue
 		}
 		for j := range pl {
-			if !pl[j].aggID.IsDefault() {
-				sp.policies[j] = NewPolicy(pl[j].sp, DefaultAggregationID)
+			if !pl[j].AggregationID.IsDefault() {
+				sp.policies[j] = NewPolicy(pl[j].StoragePolicy, DefaultAggregationID)
 			}
 		}
 	}

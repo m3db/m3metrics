@@ -43,7 +43,7 @@ const (
 	counterWithPoliciesListType
 	batchTimerWithPoliciesListType
 	gaugeWithPoliciesListType
-	rawMetricWithPolicyType
+	rawMetricWithStoragePolicyType
 
 	// Object types not exposed to the encoder interface.
 	counterType
@@ -72,7 +72,7 @@ const (
 	numCounterWithPoliciesListFields    = 2
 	numBatchTimerWithPoliciesListFields = 2
 	numGaugeWithPoliciesListFields      = 2
-	numRawMetricWithPolicyFields        = 2
+	numRawMetricWithStoragePolicyFields = 2
 	numCounterFields                    = 2
 	numBatchTimerFields                 = 2
 	numGaugeFields                      = 2
@@ -109,7 +109,7 @@ func init() {
 	setNumFieldsForType(counterWithPoliciesListType, numCounterWithPoliciesListFields)
 	setNumFieldsForType(batchTimerWithPoliciesListType, numBatchTimerWithPoliciesListFields)
 	setNumFieldsForType(gaugeWithPoliciesListType, numGaugeWithPoliciesListFields)
-	setNumFieldsForType(rawMetricWithPolicyType, numRawMetricWithPolicyFields)
+	setNumFieldsForType(rawMetricWithStoragePolicyType, numRawMetricWithStoragePolicyFields)
 	setNumFieldsForType(counterType, numCounterFields)
 	setNumFieldsForType(batchTimerType, numBatchTimerFields)
 	setNumFieldsForType(gaugeType, numGaugeFields)

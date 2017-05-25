@@ -231,8 +231,8 @@ func testCapturingUnaggregatedEncoder(t *testing.T) (UnaggregatedEncoder, *[]int
 func expectedResultsForUnaggregatedPolicy(t *testing.T, p policy.Policy) []interface{} {
 	results := []interface{}{numFieldsForType(policyType)}
 
-	results = append(results, expectedResultsForPolicy(t, p.StoragePolicy())...)
-	return append(results, expectedResultsForCompressedAggregationTypes(t, p.AggregationID())...)
+	results = append(results, expectedResultsForPolicy(t, p.StoragePolicy)...)
+	return append(results, expectedResultsForCompressedAggregationTypes(t, p.AggregationID)...)
 }
 
 func expectedResultsForCompressedAggregationTypes(t *testing.T, compressed policy.AggregationID) []interface{} {

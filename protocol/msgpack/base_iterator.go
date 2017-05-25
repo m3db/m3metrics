@@ -75,10 +75,10 @@ func (it *baseIterator) decodePolicy() policy.Policy {
 	if !ok {
 		return policy.DefaultPolicy
 	}
-	p := it.decodeStoragePolicy()
+	sp := it.decodeStoragePolicy()
 	aggTypes := it.decodeCompressedAggregationTypes()
 	it.skip(numActualFields - numExpectedFields)
-	return policy.NewPolicy(p, aggTypes)
+	return policy.NewPolicy(sp, aggTypes)
 }
 
 func (it *baseIterator) decodeCompressedAggregationTypes() policy.AggregationID {
@@ -123,9 +123,9 @@ func (it *baseIterator) decodeStoragePolicy() policy.StoragePolicy {
 	}
 	resolution := it.decodeResolution()
 	retention := it.decodeRetention()
-	p := policy.NewStoragePolicy(resolution.Window, resolution.Precision, time.Duration(retention))
+	sp := policy.NewStoragePolicy(resolution.Window, resolution.Precision, time.Duration(retention))
 	it.skip(numActualFields - numExpectedFields)
-	return p
+	return sp
 }
 
 func (it *baseIterator) decodeResolution() policy.Resolution {

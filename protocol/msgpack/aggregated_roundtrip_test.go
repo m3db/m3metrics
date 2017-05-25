@@ -74,17 +74,17 @@ func testAggregatedIterator(t *testing.T, reader io.Reader) AggregatedIterator {
 func testAggregatedEncode(t *testing.T, encoder AggregatedEncoder, m interface{}, p policy.StoragePolicy) error {
 	switch m := m.(type) {
 	case aggregated.Metric:
-		return encoder.EncodeMetricWithPolicy(aggregated.MetricWithPolicy{
+		return encoder.EncodeMetricWithStoragePolicy(aggregated.MetricWithStoragePolicy{
 			Metric:        m,
 			StoragePolicy: p,
 		})
 	case aggregated.ChunkedMetric:
-		return encoder.EncodeChunkedMetricWithPolicy(aggregated.ChunkedMetricWithPolicy{
+		return encoder.EncodeChunkedMetricWithStoragePolicy(aggregated.ChunkedMetricWithStoragePolicy{
 			ChunkedMetric: m,
 			StoragePolicy: p,
 		})
 	case aggregated.RawMetric:
-		return encoder.EncodeRawMetricWithPolicy(aggregated.RawMetricWithPolicy{
+		return encoder.EncodeRawMetricWithStoragePolicy(aggregated.RawMetricWithStoragePolicy{
 			RawMetric:     m,
 			StoragePolicy: p,
 		})

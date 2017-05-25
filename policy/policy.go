@@ -39,15 +39,15 @@ var (
 	errInvalidPolicyString = errors.New("invalid policy string")
 )
 
-// Policy contains a policy and a list of custom aggregation types.
+// Policy contains a storage policy and a list of custom aggregation types.
 type Policy struct {
-	sp    StoragePolicy
-	aggID AggregationID
+	StoragePolicy
+	AggregationID
 }
 
 // NewPolicy creates a policy.
 func NewPolicy(sp StoragePolicy, aggTypes AggregationID) Policy {
-	return Policy{sp: sp, aggID: aggTypes}
+	return Policy{StoragePolicy: sp, AggregationID: aggTypes}
 }
 
 // NewPolicyFromSchema creates a new policy from a schema policy.
@@ -68,16 +68,6 @@ func NewPolicyFromSchema(p *schema.Policy) (Policy, error) {
 
 	return NewPolicy(policy, aggID), nil
 
-}
-
-// StoragePolicy return the storage policy.
-func (p Policy) StoragePolicy() StoragePolicy {
-	return p.sp
-}
-
-// AggregationID return the AggregationID.
-func (p Policy) AggregationID() AggregationID {
-	return p.aggID
 }
 
 // UnmarshalYAML unmarshals a policy value from a string.
@@ -126,10 +116,10 @@ func ParsePolicy(str string) (Policy, error) {
 
 // String is the string representation of a policy.
 func (p Policy) String() string {
-	if p.aggID.IsDefault() {
-		return p.sp.String()
+	if p.AggregationID.IsDefault() {
+		return p.StoragePolicy.String()
 	}
-	return p.sp.String() + policyAggregationTypeSeparator + p.aggID.String()
+	return p.StoragePolicy.String() + policyAggregationTypeSeparator + p.AggregationID.String()
 }
 
 // NewPoliciesFromSchema creates multiple new policies from given schema policies.
@@ -155,30 +145,30 @@ func (pr ByResolutionAsc) Len() int      { return len(pr) }
 func (pr ByResolutionAsc) Swap(i, j int) { pr[i], pr[j] = pr[j], pr[i] }
 
 func (pr ByResolutionAsc) Less(i, j int) bool {
-	up1, up2 := pr[i], pr[j]
-	p1, p2 := up1.StoragePolicy(), up2.StoragePolicy()
-	rw1, rw2 := p1.Resolution().Window, p2.Resolution().Window
+	p1, p2 := pr[i], pr[j]
+	sp1, sp2 := p1.StoragePolicy, p2.StoragePolicy
+	rw1, rw2 := sp1.Resolution().Window, sp2.Resolution().Window
 	if rw1 < rw2 {
 		return true
 	}
 	if rw1 > rw2 {
 		return false
 	}
-	r1, r2 := p1.Retention(), p2.Retention()
+	r1, r2 := sp1.Retention(), sp2.Retention()
 	if r1 > r2 {
 		return true
 	}
 	if r1 < r2 {
 		return false
 	}
-	rp1, rp2 := p1.Resolution().Precision, p2.Resolution().Precision
+	rp1, rp2 := sp1.Resolution().Precision, sp2.Resolution().Precision
 	if rp1 < rp2 {
 		return true
 	}
 	if rp1 > rp2 {
 		return false
 	}
-	at1, at2 := up1.AggregationID(), up2.AggregationID()
+	at1, at2 := p1.AggregationID, p2.AggregationID
 	for k := 0; k < AggregationIDLen; k++ {
 		if at1[k] < at2[k] {
 			return true

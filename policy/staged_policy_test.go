@@ -222,7 +222,7 @@ func TestPoliciesListWithDefaultAggregation(t *testing.T) {
 		},
 	)
 
-	pl2 := pl.WithDefaultAggregation()
+	pl2 := pl.SetDefaultAggregation()
 
 	require.Equal(t, pl, pl2)
 	require.Equal(t, 1, len(pl2))
@@ -230,7 +230,7 @@ func TestPoliciesListWithDefaultAggregation(t *testing.T) {
 	require.Equal(t, int64(100), pl2[0].CutoverNanos)
 	require.Equal(t, true, pl2[0].Tombstoned)
 	for i := range pl2[0].policies {
-		require.Equal(t, NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour), pl2[0].policies[i].sp)
-		require.Equal(t, DefaultAggregationID, pl2[0].policies[i].aggID)
+		require.Equal(t, NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour), pl2[0].policies[i].StoragePolicy)
+		require.Equal(t, DefaultAggregationID, pl2[0].policies[i].AggregationID)
 	}
 }

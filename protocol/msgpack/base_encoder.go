@@ -77,9 +77,8 @@ func (enc *baseEncoder) encodeBytes(value []byte)                   { enc.encode
 func (enc *baseEncoder) encodeBytesLen(value int)                   { enc.encodeBytesLenFn(value) }
 func (enc *baseEncoder) encodeArrayLen(value int)                   { enc.encodeArrayLenFn(value) }
 func (enc *baseEncoder) encodeStoragePolicy(p policy.StoragePolicy) { enc.encodeStoragePolicyFn(p) }
-func (enc *baseEncoder) encodePolicy(p policy.Policy) {
-	enc.encodePolicyFn(p)
-}
+func (enc *baseEncoder) encodePolicy(p policy.Policy)               { enc.encodePolicyFn(p) }
+
 func (enc *baseEncoder) reset(encoder BufferedEncoder) {
 	enc.bufEncoder = encoder
 	enc.encodeErr = nil
@@ -94,8 +93,8 @@ func (enc *baseEncoder) encodeChunkedID(id id.ChunkedID) {
 
 func (enc *baseEncoder) encodePolicyInternal(p policy.Policy) {
 	enc.encodeNumObjectFields(numFieldsForType(policyType))
-	enc.encodeStoragePolicyFn(p.StoragePolicy())
-	enc.encodeCompressedAggregationTypes(p.AggregationID())
+	enc.encodeStoragePolicyFn(p.StoragePolicy)
+	enc.encodeCompressedAggregationTypes(p.AggregationID)
 }
 
 func (enc *baseEncoder) encodeCompressedAggregationTypes(aggTypes policy.AggregationID) {

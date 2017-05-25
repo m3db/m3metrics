@@ -36,7 +36,7 @@ type aggregatedIterator struct {
 	iteratorPool        AggregatedIteratorPool
 	closed              bool
 	metric              aggregated.RawMetric
-	policy              policy.StoragePolicy
+	storagePolicy       policy.StoragePolicy
 }
 
 // NewAggregatedIterator creates a new aggregated iterator.
@@ -61,7 +61,7 @@ func (it *aggregatedIterator) Reset(reader io.Reader) {
 }
 
 func (it *aggregatedIterator) Value() (aggregated.RawMetric, policy.StoragePolicy) {
-	return it.metric, it.policy
+	return it.metric, it.storagePolicy
 }
 
 func (it *aggregatedIterator) Next() bool {
@@ -108,8 +108,8 @@ func (it *aggregatedIterator) decodeRootObject() bool {
 		return false
 	}
 	switch objType {
-	case rawMetricWithPolicyType:
-		it.decodeRawMetricWithPolicy()
+	case rawMetricWithStoragePolicyType:
+		it.decodeRawMetricWithStoragePolicy()
 	default:
 		it.setErr(fmt.Errorf("unrecognized object type %v", objType))
 	}
@@ -118,13 +118,13 @@ func (it *aggregatedIterator) decodeRootObject() bool {
 	return it.err() == nil
 }
 
-func (it *aggregatedIterator) decodeRawMetricWithPolicy() {
-	numExpectedFields, numActualFields, ok := it.checkNumFieldsForType(rawMetricWithPolicyType)
+func (it *aggregatedIterator) decodeRawMetricWithStoragePolicy() {
+	numExpectedFields, numActualFields, ok := it.checkNumFieldsForType(rawMetricWithStoragePolicyType)
 	if !ok {
 		return
 	}
 	it.metric.Reset(it.decodeRawMetric())
-	it.policy = it.decodeStoragePolicy()
+	it.storagePolicy = it.decodeStoragePolicy()
 	it.skip(numActualFields - numExpectedFields)
 }
 

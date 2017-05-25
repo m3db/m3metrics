@@ -60,7 +60,7 @@ func NewStoragePolicy(window time.Duration, precision xtime.Unit, retention time
 	}
 }
 
-// NewStoragePolicyFromSchema creates a new unaggregated policy from a schema policy.
+// NewStoragePolicyFromSchema creates a new storage policy from a schema storage policy.
 func NewStoragePolicyFromSchema(p *schema.StoragePolicy) (StoragePolicy, error) {
 	if p == nil {
 		return DefaultStoragePolicy, errNilStoragePolicySchema
@@ -75,22 +75,22 @@ func NewStoragePolicyFromSchema(p *schema.StoragePolicy) (StoragePolicy, error) 
 
 }
 
-// String is the string representation of a policy.
+// String is the string representation of a storage policy.
 func (p StoragePolicy) String() string {
 	return fmt.Sprintf("%s%s%s", p.resolution.String(), resolutionRetentionSeparator, p.retention.String())
 }
 
-// Resolution returns the resolution of the policy.
+// Resolution returns the resolution of the storage policy.
 func (p StoragePolicy) Resolution() Resolution {
 	return p.resolution
 }
 
-// Retention return the retention of the policy.
+// Retention return the retention of the storage policy.
 func (p StoragePolicy) Retention() Retention {
 	return p.retention
 }
 
-// UnmarshalYAML unmarshals a policy value from a string.
+// UnmarshalYAML unmarshals a storage policy value from a string.
 func (p *StoragePolicy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var str string
 	if err := unmarshal(&str); err != nil {
@@ -104,7 +104,7 @@ func (p *StoragePolicy) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// ParseStoragePolicy parses a policy in the form of resolution:retention.
+// ParseStoragePolicy parses a storage policy in the form of resolution:retention.
 func ParseStoragePolicy(str string) (StoragePolicy, error) {
 	parts := strings.Split(str, resolutionRetentionSeparator)
 	if len(parts) != 2 {

@@ -37,7 +37,7 @@ func testCapturingAggregatedEncoder(t *testing.T) (AggregatedEncoder, *[]interfa
 
 func expectedResultsForRawMetricWithPolicy(t *testing.T, m aggregated.RawMetric, p policy.StoragePolicy) []interface{} {
 	results := []interface{}{
-		numFieldsForType(rawMetricWithPolicyType),
+		numFieldsForType(rawMetricWithStoragePolicyType),
 		m.Bytes(),
 	}
 	results = append(results, expectedResultsForPolicy(t, p)...)
@@ -48,7 +48,7 @@ func expectedResultsForAggregatedMetricWithPolicy(t *testing.T, m interface{}, p
 	results := []interface{}{
 		int64(aggregatedVersion),
 		numFieldsForType(rootObjectType),
-		int64(rawMetricWithPolicyType),
+		int64(rawMetricWithStoragePolicyType),
 	}
 	switch m := m.(type) {
 	case aggregated.Metric:

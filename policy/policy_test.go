@@ -133,14 +133,8 @@ func TestNewPoliciesFromSchema(t *testing.T) {
 	res, err := NewPoliciesFromSchema(input)
 	require.NoError(t, err)
 	require.Equal(t, []Policy{
-		Policy{
-			sp:    NewStoragePolicy(10*time.Second, xtime.Second, 24*time.Hour),
-			aggID: mustCompress(Mean, P999),
-		},
-		Policy{
-			sp:    NewStoragePolicy(time.Minute, xtime.Minute, 240*time.Hour),
-			aggID: mustCompress(Mean, P9999),
-		},
+		NewPolicy(NewStoragePolicy(10*time.Second, xtime.Second, 24*time.Hour), mustCompress(Mean, P999)),
+		NewPolicy(NewStoragePolicy(time.Minute, xtime.Minute, 240*time.Hour), mustCompress(Mean, P9999)),
 	}, res)
 }
 

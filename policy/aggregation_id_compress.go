@@ -59,8 +59,11 @@ func (c *aggregationIDCompressor) Compress(aggTypes AggregationTypes) (Aggregati
 		}
 		c.bs.Set(uint(aggType))
 	}
+
 	codes := c.bs.Bytes()
 	var id AggregationID
+	// NB(cw) it's guaranteed that len(id) == len(codes) == AggregationIDLen, we need to copy
+	// the words in bitset out because the bitset contains a slice internally
 	for i := 0; i < AggregationIDLen; i++ {
 		id[i] = codes[i]
 	}
@@ -84,6 +87,8 @@ func NewAggregationTypeDecompressor() AggregationIDDecompressor {
 }
 
 func (c *aggregationIDDecompressor) Decompress(id AggregationID) (AggregationTypes, error) {
+	// NB(cw) it's guaranteed that len(c.buf) == len(id) == AggregationIDLen, we need to copy
+	// the words from id into a slice to be used in bitset
 	for i := range id {
 		c.buf[i] = id[i]
 	}

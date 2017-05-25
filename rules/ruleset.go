@@ -380,10 +380,10 @@ func resolvePolicies(policies []policy.Policy) []policy.Policy {
 		// If the policy has the same resolution, it must have either the same or shorter retention
 		// period due to sorting, so we keep the one with longer retention period and ignore this
 		// policy.
-		if policies[curr].StoragePolicy().Resolution().Window == policies[i].StoragePolicy().Resolution().Window {
-			if res, merged := policies[curr].AggregationID().Merge(policies[i].AggregationID()); merged {
+		if policies[curr].Resolution().Window == policies[i].Resolution().Window {
+			if res, merged := policies[curr].AggregationID.Merge(policies[i].AggregationID); merged {
 				// Merged custom aggregation functions to the current policy.
-				policies[curr] = policy.NewPolicy(policies[curr].StoragePolicy(), res)
+				policies[curr] = policy.NewPolicy(policies[curr].StoragePolicy, res)
 			}
 			continue
 		}

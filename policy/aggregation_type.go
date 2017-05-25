@@ -44,6 +44,7 @@ const (
 	P99
 	P999
 	P9999
+
 	totalAggregationTypes = iota
 )
 
@@ -56,6 +57,7 @@ const (
 )
 
 var (
+	emptyStruct struct{}
 	// DefaultAggregationTypes is a default list of aggregation types.
 	DefaultAggregationTypes AggregationTypes
 
@@ -63,21 +65,21 @@ var (
 	DefaultAggregationID AggregationID
 
 	// ValidAggregationTypes is the list of all the valid aggregation types
-	ValidAggregationTypes = []AggregationType{
-		Last,
-		Lower,
-		Upper,
-		Mean,
-		Median,
-		Count,
-		Sum,
-		SumSq,
-		Stdev,
-		P50,
-		P95,
-		P99,
-		P999,
-		P9999,
+	ValidAggregationTypes = map[AggregationType]struct{}{
+		Last:   emptyStruct,
+		Lower:  emptyStruct,
+		Upper:  emptyStruct,
+		Mean:   emptyStruct,
+		Median: emptyStruct,
+		Count:  emptyStruct,
+		Sum:    emptyStruct,
+		SumSq:  emptyStruct,
+		Stdev:  emptyStruct,
+		P50:    emptyStruct,
+		P95:    emptyStruct,
+		P99:    emptyStruct,
+		P999:   emptyStruct,
+		P9999:  emptyStruct,
 	}
 
 	aggregationTypeStringMap map[string]AggregationType
@@ -85,7 +87,7 @@ var (
 
 func init() {
 	aggregationTypeStringMap = make(map[string]AggregationType, totalAggregationTypes)
-	for _, aggType := range ValidAggregationTypes {
+	for aggType := range ValidAggregationTypes {
 		aggregationTypeStringMap[aggType.String()] = aggType
 	}
 }
@@ -104,7 +106,8 @@ func NewAggregationTypeFromSchema(input schema.AggregationType) (AggregationType
 
 // IsValid checks if an AggregationType is valid.
 func (a AggregationType) IsValid() bool {
-	return a > 0 && a < totalAggregationTypes
+	_, ok := ValidAggregationTypes[a]
+	return ok
 }
 
 // IsValidForGauge if an AggregationType is valid for Gauge.
@@ -138,9 +141,12 @@ func (a AggregationType) IsValidForTimer() bool {
 }
 
 // ParseAggregationType parses an aggregation type.
-func ParseAggregationType(str string) (AggregationType, bool) {
+func ParseAggregationType(str string) (AggregationType, error) {
 	aggType, ok := aggregationTypeStringMap[str]
-	return aggType, ok
+	if !ok {
+		return Unknown, fmt.Errorf("invalid aggregation type: %s", str)
+	}
+	return aggType, nil
 }
 
 // AggregationTypes is a list of AggregationTypes.
@@ -212,9 +218,9 @@ func ParseAggregationTypes(str string) (AggregationTypes, error) {
 	parts := strings.Split(str, aggregationTypesSeparator)
 	res := make(AggregationTypes, len(parts))
 	for i := range parts {
-		aggType, ok := ParseAggregationType(parts[i])
-		if !ok {
-			return nil, fmt.Errorf("invalid aggregation type: %s", parts[i])
+		aggType, err := ParseAggregationType(parts[i])
+		if err != nil {
+			return nil, err
 		}
 		res[i] = aggType
 	}

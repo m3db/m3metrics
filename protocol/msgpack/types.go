@@ -308,14 +308,14 @@ type UnaggregatedIteratorPool interface {
 
 // AggregatedEncoder is an encoder for encoding aggregated metrics.
 type AggregatedEncoder interface {
-	// EncodeMetricWithPolicy encodes a metric with an applicable policy.
-	EncodeMetricWithPolicy(mp aggregated.MetricWithPolicy) error
+	// EncodeMetricWithStoragePolicy encodes a metric with an applicable storage policy.
+	EncodeMetricWithStoragePolicy(mp aggregated.MetricWithStoragePolicy) error
 
-	// EncodeChunkedMetricWithPolicy encodes a chunked metric with an applicable policy.
-	EncodeChunkedMetricWithPolicy(cmp aggregated.ChunkedMetricWithPolicy) error
+	// EncodeChunkedMetricWithStoragePolicy encodes a chunked metric with an applicable storage policy.
+	EncodeChunkedMetricWithStoragePolicy(cmp aggregated.ChunkedMetricWithStoragePolicy) error
 
-	// EncodeRawMetricWithPolicy encodes a raw metric with an applicable policy.
-	EncodeRawMetricWithPolicy(rp aggregated.RawMetricWithPolicy) error
+	// EncodeRawMetricWithStoragePolicy encodes a raw metric with an applicable storage policy.
+	EncodeRawMetricWithStoragePolicy(rp aggregated.RawMetricWithStoragePolicy) error
 
 	// Encoder returns the encoder.
 	Encoder() BufferedEncoder
