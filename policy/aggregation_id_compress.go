@@ -78,11 +78,7 @@ type aggregationIDDecompressor struct {
 
 // NewAggregationIDDecompressor returns a new AggregationIDDecompressor.
 func NewAggregationIDDecompressor() AggregationIDDecompressor {
-	bs := bitset.New(totalAggregationTypes)
-	return &aggregationIDDecompressor{
-		bs:  bs,
-		buf: bs.Bytes(),
-	}
+	return NewPooledAggregationIDDecompressor(nil)
 }
 
 // NewPooledAggregationIDDecompressor returns a new pooled AggregationTypeDecompressor.
