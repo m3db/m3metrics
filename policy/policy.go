@@ -105,7 +105,7 @@ func ParsePolicy(str string) (Policy, error) {
 			return DefaultPolicy, err
 		}
 
-		id, err = NewAggregationTypeCompressor().Compress(aggTypes)
+		id, err = NewAggregationIDCompressor().Compress(aggTypes)
 		if err != nil {
 			return DefaultPolicy, err
 		}

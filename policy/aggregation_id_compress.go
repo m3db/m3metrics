@@ -23,7 +23,7 @@ package policy
 import (
 	"fmt"
 
-	"github.com/cw9/bitset"
+	"github.com/willf/bitset"
 )
 
 // AggregationIDCompressor can compress AggregationTypes into an AggregationID.
@@ -35,15 +35,15 @@ type AggregationIDCompressor interface {
 type AggregationIDDecompressor interface {
 	// Decompress decompresses aggregation types,
 	// returns error if any invalid aggregation type is encountered.
-	Decompress(pool AggregationTypesPool, compressed AggregationID) (AggregationTypes, error)
+	Decompress(compressed AggregationID) (AggregationTypes, error)
 }
 
 type aggregationIDCompressor struct {
 	bs *bitset.BitSet
 }
 
-// NewAggregationTypeCompressor returns a new AggregationTypeCompressor.
-func NewAggregationTypeCompressor() AggregationIDCompressor {
+// NewAggregationIDCompressor returns a new AggregationIDCompressor.
+func NewAggregationIDCompressor() AggregationIDCompressor {
 	// NB(cw): If we start to support more than 64 types, the library will
 	// expand the underlying word list itself.
 	return &aggregationIDCompressor{
@@ -63,7 +63,7 @@ func (c *aggregationIDCompressor) Compress(aggTypes AggregationTypes) (Aggregati
 	codes := c.bs.Bytes()
 	var id AggregationID
 	// NB(cw) it's guaranteed that len(id) == len(codes) == AggregationIDLen, we need to copy
-	// the words in bitset out because the bitset contains a slice internally
+	// the words in bitset out because the bitset contains a slice internally.
 	for i := 0; i < AggregationIDLen; i++ {
 		id[i] = codes[i]
 	}
@@ -71,12 +71,13 @@ func (c *aggregationIDCompressor) Compress(aggTypes AggregationTypes) (Aggregati
 }
 
 type aggregationIDDecompressor struct {
-	bs  *bitset.BitSet
-	buf []uint64
+	bs   *bitset.BitSet
+	buf  []uint64
+	pool AggregationTypesPool
 }
 
-// NewAggregationTypeDecompressor returns a new AggregationTypeDecompressor.
-func NewAggregationTypeDecompressor() AggregationIDDecompressor {
+// NewAggregationIDDecompressor returns a new AggregationIDDecompressor.
+func NewAggregationIDDecompressor() AggregationIDDecompressor {
 	bs := bitset.New(totalAggregationTypes)
 	return &aggregationIDDecompressor{
 		bs:  bs,
@@ -84,20 +85,28 @@ func NewAggregationTypeDecompressor() AggregationIDDecompressor {
 	}
 }
 
-func (c *aggregationIDDecompressor) Decompress(pool AggregationTypesPool, id AggregationID) (AggregationTypes, error) {
+// NewPooledAggregationIDDecompressor returns a new pooled AggregationTypeDecompressor.
+func NewPooledAggregationIDDecompressor(pool AggregationTypesPool) AggregationIDDecompressor {
+	bs := bitset.New(totalAggregationTypes)
+	return &aggregationIDDecompressor{
+		bs:   bs,
+		buf:  bs.Bytes(),
+		pool: pool,
+	}
+}
+
+func (c *aggregationIDDecompressor) Decompress(id AggregationID) (AggregationTypes, error) {
 	// NB(cw) it's guaranteed that len(c.buf) == len(id) == AggregationIDLen, we need to copy
-	// the words from id into a slice to be used in bitset
+	// the words from id into a slice to be used in bitset.
 	for i := range id {
 		c.buf[i] = id[i]
 	}
 
-	c.bs.Reset(c.buf)
-
 	var res AggregationTypes
-	if pool == nil {
+	if c.pool == nil {
 		res = make(AggregationTypes, 0, totalAggregationTypes)
 	} else {
-		res = pool.Get()
+		res = c.pool.Get()
 	}
 
 	for i, e := c.bs.NextSet(0); e; i, e = c.bs.NextSet(i + 1) {

@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/m3db/m3x/pool"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,28 +48,28 @@ func TestAggregationIDCompressRoundTrip(t *testing.T) {
 	p.Init(func() AggregationTypes {
 		return make(AggregationTypes, 0, totalAggregationTypes)
 	})
-	compressor, decompressor := NewAggregationTypeCompressor(), NewAggregationTypeDecompressor()
+	compressor, decompressor := NewAggregationIDCompressor(), NewPooledAggregationIDDecompressor(p)
 	for _, test := range testcases {
 		codes, err := compressor.Compress(test.input)
 		if test.expectErr {
 			require.Error(t, err)
 			continue
 		}
-		res, err := decompressor.Decompress(p, codes)
+		res, err := decompressor.Decompress(codes)
 		require.NoError(t, err)
 		require.Equal(t, test.result, res)
 	}
 }
 
 func TestAggregationIDDecompressError(t *testing.T) {
-	compressor, decompressor := NewAggregationTypeCompressor(), NewAggregationTypeDecompressor()
-	_, err := decompressor.Decompress(nil, [AggregationIDLen]uint64{1}) // aggregation type: Unknown.
+	compressor, decompressor := NewAggregationIDCompressor(), NewAggregationIDDecompressor()
+	_, err := decompressor.Decompress([AggregationIDLen]uint64{1}) // aggregation type: Unknown.
 	require.Error(t, err)
 
 	max, err := compressor.Compress([]AggregationType{Last, Lower, Upper, Mean, Median, Count, Sum, SumSq, Stdev, P95, P99, P999, P9999})
 	require.NoError(t, err)
 
 	max[0] = max[0] << 1
-	_, err = decompressor.Decompress(nil, max)
+	_, err = decompressor.Decompress(max)
 	require.Error(t, err)
 }

@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	compressor                = policy.NewAggregationTypeCompressor()
+	compressor                = policy.NewAggregationIDCompressor()
 	compressedUpper, _        = compressor.Compress(policy.AggregationTypes{policy.Upper})
 	compressedCount, _        = compressor.Compress(policy.AggregationTypes{policy.Count})
 	compressedLower, _        = compressor.Compress(policy.AggregationTypes{policy.Lower})

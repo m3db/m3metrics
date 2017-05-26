@@ -113,7 +113,7 @@ func (l PoliciesList) IsDefault() bool {
 }
 
 // SetDefaultAggregation updates the PoliciesList with default aggregation types.
-// NB(cw) This function updates the PoliciesList in place
+// NB(cw) This function updates the PoliciesList in place.
 func (l PoliciesList) SetDefaultAggregation() PoliciesList {
 	for _, sp := range l {
 		pl, ok := sp.Policies()

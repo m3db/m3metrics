@@ -92,7 +92,7 @@ func TestCompressedAggregationTypesMerge(t *testing.T) {
 }
 
 func mustCompress(aggTypes ...AggregationType) AggregationID {
-	res, err := NewAggregationTypeCompressor().Compress(aggTypes)
+	res, err := NewAggregationIDCompressor().Compress(aggTypes)
 	if err != nil {
 		panic(err.Error())
 	}
