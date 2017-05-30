@@ -1,5 +1,5 @@
-hash: 07a1a24c24370b50b8cb4f21bdd6fd9b1b787f00c87b1f3f95715f93d84594f2
-updated: 2017-05-09T23:04:21.133965573-04:00
+hash: bc258b529b8275653fa881938866343a45005dfc7cb523636a7445d2dfb4de27
+updated: 2017-05-15T17:39:01.10730566-04:00
 imports:
 - name: github.com/apache/thrift
   version: 9549b25c77587b29be4e0b5c258221a4ed85d37a
@@ -41,6 +41,8 @@ imports:
   version: bb4de0191aa41b5507caa14b0650cdbddcd9280b
 - name: github.com/StackExchange/wmi
   version: e542ed97d15e640bdc14b5c12162d59e8fc67324
+- name: github.com/tmthrgd/go-popcount
+  version: 9e009648b013fc84ef2e69fdc5264dc498ac3391
 - name: github.com/uber-go/atomic
   version: e682c1008ac17bf26d2e4b5ad6cdd08520ed0b22
 - name: github.com/uber-go/tally

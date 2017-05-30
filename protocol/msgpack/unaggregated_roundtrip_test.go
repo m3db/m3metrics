@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"sort"
 	"testing"
 	"time"
 
@@ -450,6 +451,8 @@ func comparedPoliciesList(t *testing.T, expected policy.PoliciesList, actual pol
 		expectedPolicies, expectedIsDefault := expected[i].Policies()
 		actualPolicies, actualIsDefault := actual[i].Policies()
 		require.Equal(t, expectedIsDefault, actualIsDefault)
+		sort.Sort(policiesInternal(expectedPolicies))
+		sort.Sort(policiesInternal(actualPolicies))
 		require.Equal(t, expectedPolicies, actualPolicies)
 	}
 }
@@ -561,4 +564,23 @@ func toPoliciesList(t *testing.T, pl policy.PoliciesList) policy.PoliciesList {
 		policiesList = append(policiesList, toStagedPolicies(t, pl[i]))
 	}
 	return policiesList
+}
+
+// policiesInternal is an internal representation of a slice of policies
+// that can be sorted.
+type policiesInternal []policy.Policy
+
+func (policies policiesInternal) Len() int {
+	return len(policies)
+}
+
+func (policies policiesInternal) Less(i, j int) bool {
+	if policies[i].Retention() == policies[j].Retention() {
+		return policies[i].Resolution().Window < policies[j].Resolution().Window
+	}
+	return policies[i].Retention() < policies[j].Retention()
+}
+
+func (policies policiesInternal) Swap(i, j int) {
+	policies[i], policies[j] = policies[j], policies[i]
 }

@@ -25,6 +25,10 @@ import (
 	"github.com/m3db/m3metrics/policy"
 )
 
+const (
+	defaultPolicyBufferSize = 8
+)
+
 // Various object-level encoding functions to facilitate testing.
 type encodeRootObjectFn func(objType objectType)
 type encodeCounterWithPoliciesListFn func(cp unaggregated.CounterWithPoliciesList)
@@ -40,6 +44,9 @@ type encodePoliciesListFn func(spl policy.PoliciesList)
 type unaggregatedEncoder struct {
 	encoderBase
 
+	policiesEncoder policy.Encoder
+	policiesBuffer  []policy.Policy
+
 	encodeRootObjectFn                 encodeRootObjectFn
 	encodeCounterWithPoliciesListFn    encodeCounterWithPoliciesListFn
 	encodeBatchTimerWithPoliciesListFn encodeBatchTimerWithPoliciesListFn
@@ -52,7 +59,11 @@ type unaggregatedEncoder struct {
 
 // NewUnaggregatedEncoder creates a new unaggregated encoder.
 func NewUnaggregatedEncoder(encoder BufferedEncoder) UnaggregatedEncoder {
-	enc := &unaggregatedEncoder{encoderBase: newBaseEncoder(encoder)}
+	enc := &unaggregatedEncoder{
+		encoderBase:     newBaseEncoder(encoder),
+		policiesEncoder: policy.NewEncoder(),
+		policiesBuffer:  make([]policy.Policy, 0, defaultPolicyBufferSize),
+	}
 
 	enc.encodeRootObjectFn = enc.encodeRootObject
 	enc.encodeCounterWithPoliciesListFn = enc.encodeCounterWithPoliciesList
@@ -66,8 +77,11 @@ func NewUnaggregatedEncoder(encoder BufferedEncoder) UnaggregatedEncoder {
 	return enc
 }
 
-func (enc *unaggregatedEncoder) Encoder() BufferedEncoder      { return enc.encoder() }
-func (enc *unaggregatedEncoder) Reset(encoder BufferedEncoder) { enc.reset(encoder) }
+func (enc *unaggregatedEncoder) Encoder() BufferedEncoder { return enc.encoder() }
+func (enc *unaggregatedEncoder) Reset(encoder BufferedEncoder) {
+	enc.reset(encoder)
+	enc.policiesEncoder.Reset()
+}
 
 func (enc *unaggregatedEncoder) EncodeCounter(c unaggregated.Counter) error {
 	if err := enc.err(); err != nil {
@@ -188,6 +202,11 @@ func (enc *unaggregatedEncoder) encodeStagedPolicies(sp policy.StagedPolicies) {
 	enc.encodeVarint(sp.CutoverNanos)
 	enc.encodeBool(sp.Tombstoned)
 	policies, _ := sp.Policies()
+	// NB(jeromefroe): We need to ensure the policies buffer has been reset
+	// before being passed to Encode.
+	enc.policiesBuffer = enc.policiesBuffer[:0]
+	bitflag, policies := enc.policiesEncoder.Encode(policies, enc.policiesBuffer)
+	enc.encodeVarint(int64(bitflag))
 	enc.encodeArrayLen(len(policies))
 	for _, policy := range policies {
 		enc.encodePolicy(policy)

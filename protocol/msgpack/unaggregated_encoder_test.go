@@ -40,6 +40,78 @@ var (
 	errTestArrayLen = errors.New("test array len error")
 )
 
+// mockPoliciesEncoder is a mock of the policy.Encoder interface. It
+// maintains a map of both new and old policies so that one can check
+// what the return value of previous calls to Encode would have been.
+type mockPoliciesEncoder struct {
+	newPolicies           map[policy.Policy]uint
+	oldPolicies           map[policy.Policy]uint
+	numChecks, numEncodes int
+}
+
+func newMockPoliciesEncoder() *mockPoliciesEncoder {
+	return &mockPoliciesEncoder{
+		newPolicies: make(map[policy.Policy]uint),
+		oldPolicies: make(map[policy.Policy]uint),
+	}
+}
+
+// Encode encodes policies into a bitflag representation.
+func (e *mockPoliciesEncoder) Encode(policies, buffer []policy.Policy) (policy.Bitflag, []policy.Policy) {
+	// If number of calls to Encode and check are equal, then we can move any
+	// policies in the new map into the old map.
+	if e.numChecks == e.numEncodes {
+		for policy, idx := range e.newPolicies {
+			e.oldPolicies[policy] = idx
+			delete(e.newPolicies, policy)
+		}
+	}
+
+	var flag policy.Bitflag
+	if buffer == nil {
+		buffer = make([]policy.Policy, 0)
+	}
+
+	for _, policy := range policies {
+		id, ok := e.oldPolicies[policy]
+		if !ok {
+			e.newPolicies[policy] = uint(len(e.oldPolicies))
+			buffer = append(buffer, policy)
+			continue
+		}
+
+		flag = flag.Set(id)
+	}
+
+	e.numEncodes++
+	return flag, buffer
+}
+
+func (e *mockPoliciesEncoder) Reset() {
+	e.newPolicies = make(map[policy.Policy]uint)
+	e.oldPolicies = make(map[policy.Policy]uint)
+}
+
+// check returns what previous calls to Encode were have returned for the
+// provided policies.
+func (e *mockPoliciesEncoder) check(policies []policy.Policy) (policy.Bitflag, []policy.Policy) {
+	var flag policy.Bitflag
+	var buffer []policy.Policy
+
+	for _, policy := range policies {
+		id, ok := e.oldPolicies[policy]
+		if !ok {
+			buffer = append(buffer, policy)
+			continue
+		}
+
+		flag = flag.Set(id)
+	}
+
+	e.numChecks++
+	return flag, buffer
+}
+
 func TestUnaggregatedEncodeCounter(t *testing.T) {
 	encoder, results := testCapturingUnaggregatedEncoder(t)
 	require.NoError(t, testUnaggregatedEncodeMetric(t, encoder, testCounter))
@@ -64,24 +136,33 @@ func TestUnaggregatedEncodeGauge(t *testing.T) {
 func TestUnaggregatedEncodeCounterWithDefaultPoliciesList(t *testing.T) {
 	policies := testDefaultStagedPoliciesList
 	encoder, results := testCapturingUnaggregatedEncoder(t)
+	mockEncoder := newMockPoliciesEncoder()
+	unaggregatedEncoder := encoder.(*unaggregatedEncoder)
+	unaggregatedEncoder.policiesEncoder = mockEncoder
 	require.NoError(t, testUnaggregatedEncodeMetricWithPoliciesList(t, encoder, testCounter, policies))
-	expected := expectedResultsForUnaggregatedMetricWithPoliciesList(t, testCounter, policies)
+	expected := expectedResultsForUnaggregatedMetricWithPoliciesList(t, testCounter, policies, mockEncoder)
 	require.Equal(t, expected, *results)
 }
 
 func TestUnaggregatedEncodeBatchTimerWithDefaultPoliciesList(t *testing.T) {
 	policies := testDefaultStagedPoliciesList
 	encoder, results := testCapturingUnaggregatedEncoder(t)
+	mockEncoder := newMockPoliciesEncoder()
+	unaggregatedEncoder := encoder.(*unaggregatedEncoder)
+	unaggregatedEncoder.policiesEncoder = mockEncoder
 	require.NoError(t, testUnaggregatedEncodeMetricWithPoliciesList(t, encoder, testBatchTimer, policies))
-	expected := expectedResultsForUnaggregatedMetricWithPoliciesList(t, testBatchTimer, policies)
+	expected := expectedResultsForUnaggregatedMetricWithPoliciesList(t, testBatchTimer, policies, mockEncoder)
 	require.Equal(t, expected, *results)
 }
 
 func TestUnaggregatedEncodeGaugeWithDefaultPoliciesList(t *testing.T) {
 	policies := testDefaultStagedPoliciesList
 	encoder, results := testCapturingUnaggregatedEncoder(t)
+	mockEncoder := newMockPoliciesEncoder()
+	unaggregatedEncoder := encoder.(*unaggregatedEncoder)
+	unaggregatedEncoder.policiesEncoder = mockEncoder
 	require.NoError(t, testUnaggregatedEncodeMetricWithPoliciesList(t, encoder, testGauge, policies))
-	expected := expectedResultsForUnaggregatedMetricWithPoliciesList(t, testGauge, policies)
+	expected := expectedResultsForUnaggregatedMetricWithPoliciesList(t, testGauge, policies, mockEncoder)
 	require.Equal(t, expected, *results)
 }
 
@@ -99,9 +180,12 @@ func TestUnaggregatedEncodeAllMetricTypes(t *testing.T) {
 func TestUnaggregatedEncodeAllTypesWithDefaultPoliciesList(t *testing.T) {
 	var expected []interface{}
 	encoder, results := testCapturingUnaggregatedEncoder(t)
+	mockEncoder := newMockPoliciesEncoder()
+	unaggregatedEncoder := encoder.(*unaggregatedEncoder)
+	unaggregatedEncoder.policiesEncoder = mockEncoder
 	for _, input := range testInputWithAllTypesAndDefaultPoliciesList {
 		require.NoError(t, testUnaggregatedEncodeMetricWithPoliciesList(t, encoder, input.metric, input.policiesList))
-		expected = append(expected, expectedResultsForUnaggregatedMetricWithPoliciesList(t, input.metric, input.policiesList)...)
+		expected = append(expected, expectedResultsForUnaggregatedMetricWithPoliciesList(t, input.metric, input.policiesList, mockEncoder)...)
 	}
 
 	require.Equal(t, expected, *results)
@@ -110,9 +194,12 @@ func TestUnaggregatedEncodeAllTypesWithDefaultPoliciesList(t *testing.T) {
 func TestUnaggregatedEncodeAllTypesWithSingleCustomPoliciesList(t *testing.T) {
 	var expected []interface{}
 	encoder, results := testCapturingUnaggregatedEncoder(t)
+	mockEncoder := newMockPoliciesEncoder()
+	unaggregatedEncoder := encoder.(*unaggregatedEncoder)
+	unaggregatedEncoder.policiesEncoder = mockEncoder
 	for _, input := range testInputWithAllTypesAndSingleCustomPoliciesList {
 		require.NoError(t, testUnaggregatedEncodeMetricWithPoliciesList(t, encoder, input.metric, input.policiesList))
-		expected = append(expected, expectedResultsForUnaggregatedMetricWithPoliciesList(t, input.metric, input.policiesList)...)
+		expected = append(expected, expectedResultsForUnaggregatedMetricWithPoliciesList(t, input.metric, input.policiesList, mockEncoder)...)
 	}
 
 	require.Equal(t, expected, *results)
@@ -121,9 +208,12 @@ func TestUnaggregatedEncodeAllTypesWithSingleCustomPoliciesList(t *testing.T) {
 func TestUnaggregatedEncodeAllTypesWithMultiCustomPolicies(t *testing.T) {
 	var expected []interface{}
 	encoder, results := testCapturingUnaggregatedEncoder(t)
+	mockEncoder := newMockPoliciesEncoder()
+	unaggregatedEncoder := encoder.(*unaggregatedEncoder)
+	unaggregatedEncoder.policiesEncoder = mockEncoder
 	for _, input := range testInputWithAllTypesAndMultiCustomPoliciesList {
 		require.NoError(t, testUnaggregatedEncodeMetricWithPoliciesList(t, encoder, input.metric, input.policiesList))
-		expected = append(expected, expectedResultsForUnaggregatedMetricWithPoliciesList(t, input.metric, input.policiesList)...)
+		expected = append(expected, expectedResultsForUnaggregatedMetricWithPoliciesList(t, input.metric, input.policiesList, mockEncoder)...)
 	}
 
 	require.Equal(t, expected, *results)
@@ -265,12 +355,18 @@ func expectedResultsForPolicy(t *testing.T, p policy.Policy) []interface{} {
 	return results
 }
 
-func expectedResultsForStagedPolicies(t *testing.T, sp policy.StagedPolicies) []interface{} {
+func expectedResultsForStagedPolicies(
+	t *testing.T,
+	sp policy.StagedPolicies,
+	enc *mockPoliciesEncoder,
+) []interface{} {
 	policies, _ := sp.Policies()
+	bitflag, policies := enc.check(policies)
 	results := []interface{}{
 		numFieldsForType(stagedPoliciesType),
 		sp.CutoverNanos,
 		sp.Tombstoned,
+		int64(bitflag),
 		len(policies),
 	}
 	for _, p := range policies {
@@ -279,20 +375,25 @@ func expectedResultsForStagedPolicies(t *testing.T, sp policy.StagedPolicies) []
 	return results
 }
 
-func expectedResultsForPoliciesList(t *testing.T, pl policy.PoliciesList) []interface{} {
+func expectedResultsForPoliciesList(
+	t *testing.T,
+	pl policy.PoliciesList,
+	enc *mockPoliciesEncoder,
+) []interface{} {
 	if pl.IsDefault() {
 		return []interface{}{
 			numFieldsForType(defaultPoliciesListType),
 			int64(defaultPoliciesListType),
 		}
 	}
+
 	results := []interface{}{
 		numFieldsForType(customPoliciesListType),
 		int64(customPoliciesListType),
 		len(pl),
 	}
 	for _, sp := range pl {
-		results = append(results, expectedResultsForStagedPolicies(t, sp)...)
+		results = append(results, expectedResultsForStagedPolicies(t, sp, enc)...)
 	}
 	return results
 }
@@ -339,6 +440,7 @@ func expectedResultsForUnaggregatedMetricWithPoliciesList(
 	t *testing.T,
 	m unaggregated.MetricUnion,
 	pl policy.PoliciesList,
+	enc *mockPoliciesEncoder,
 ) []interface{} {
 	results := []interface{}{
 		int64(unaggregatedVersion),
@@ -377,7 +479,7 @@ func expectedResultsForUnaggregatedMetricWithPoliciesList(
 		require.Fail(t, fmt.Sprintf("unrecognized metric type %v", m.Type))
 	}
 
-	plRes := expectedResultsForPoliciesList(t, pl)
+	plRes := expectedResultsForPoliciesList(t, pl, enc)
 	results = append(results, plRes...)
 
 	return results
