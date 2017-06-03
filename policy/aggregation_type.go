@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/m3db/m3metrics/generated/proto/schema"
+	"github.com/m3db/m3x/pool"
 )
 
 // Supported aggregation types.
@@ -149,6 +150,40 @@ func (a AggregationType) IsValidForTimer() bool {
 	}
 }
 
+// Quantile returns the quantile represented by the AggregationType.
+func (a AggregationType) Quantile() (float64, bool) {
+	switch a {
+	case P10:
+		return 0.1, true
+	case P20:
+		return 0.2, true
+	case P30:
+		return 0.3, true
+	case P40:
+		return 0.4, true
+	case P50, Median:
+		return 0.5, true
+	case P60:
+		return 0.6, true
+	case P70:
+		return 0.7, true
+	case P80:
+		return 0.8, true
+	case P90:
+		return 0.9, true
+	case P95:
+		return 0.95, true
+	case P99:
+		return 0.99, true
+	case P999:
+		return 0.999, true
+	case P9999:
+		return 0.9999, true
+	default:
+		return 0, false
+	}
+}
+
 // ParseAggregationType parses an aggregation type.
 func ParseAggregationType(str string) (AggregationType, error) {
 	aggType, ok := aggregationTypeStringMap[str]
@@ -220,6 +255,38 @@ func (aggTypes AggregationTypes) IsValidForTimer() bool {
 		}
 	}
 	return true
+}
+
+// Quantiles returns all the quantiles found in the list aggregation types.
+func (aggTypes AggregationTypes) Quantiles(p pool.FloatsPool) []float64 {
+	var (
+		res         []float64
+		initialized bool
+		medianAdded bool
+	)
+	for _, aggType := range aggTypes {
+		q, ok := aggType.Quantile()
+		if !ok {
+			continue
+		}
+		// Dedup P50 and Median.
+		if aggType == P50 || aggType == Median {
+			if medianAdded {
+				continue
+			}
+			medianAdded = true
+		}
+		if !initialized {
+			if p == nil {
+				res = make([]float64, 0, len(aggTypes))
+			} else {
+				res = p.Get(len(aggTypes))
+			}
+			initialized = true
+		}
+		res = append(res, q)
+	}
+	return res
 }
 
 // ParseAggregationTypes parses a list of aggregation types in the form of type1,type2,type3.
