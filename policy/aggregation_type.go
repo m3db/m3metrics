@@ -265,8 +265,9 @@ func (aggTypes AggregationTypes) IsValidForTimer() bool {
 	return true
 }
 
-// Quantiles returns all the quantiles found in the list aggregation types.
-func (aggTypes AggregationTypes) Quantiles(p pool.FloatsPool) []float64 {
+// PooledQuantiles returns all the quantiles found in the list
+// of aggregation types. Using a floats pool if available.
+func (aggTypes AggregationTypes) PooledQuantiles(p pool.FloatsPool) []float64 {
 	var (
 		res         []float64
 		initialized bool
