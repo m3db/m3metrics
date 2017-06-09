@@ -41,6 +41,9 @@ func TestBufferedEncoderReset(t *testing.T) {
 	// Reset the encoder.
 	encoder.Reset()
 
+	require.False(t, encoder.closed)
+	require.Equal(t, 1, encoder.ref)
+
 	// Encode for the second time.
 	for _, input := range inputs {
 		encoder.Encode(input)
@@ -62,6 +65,30 @@ func TestBufferedEncoderClose(t *testing.T) {
 
 	// Close the encoder again should be a no-op.
 	encoder.Close()
+	require.True(t, encoder.closed)
+
+	// IncRef after Close should be a no-op
+	encoder.IncRef(1)
+	require.True(t, encoder.closed)
+	require.Equal(t, 0, encoder.ref)
+}
+
+func TestBufferedEncoderIncRef(t *testing.T) {
+	encoder := testBufferedEncoder()
+	require.Equal(t, 1, encoder.ref)
+
+	n := 10
+	encoder.IncRef(n)
+
+	for i := 0; i < n; i++ {
+		encoder.Close()
+		require.Equal(t, n-i, encoder.ref)
+		require.False(t, encoder.closed)
+	}
+
+	require.Equal(t, 1, encoder.ref)
+	encoder.Close()
+	require.Equal(t, 0, encoder.ref)
 	require.True(t, encoder.closed)
 }
 
