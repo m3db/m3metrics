@@ -42,7 +42,7 @@ func TestBufferedEncoderReset(t *testing.T) {
 	encoder.Reset()
 
 	require.False(t, encoder.closed)
-	require.Equal(t, 1, encoder.ref)
+	require.Equal(t, uint32(1), encoder.ref)
 
 	// Encode for the second time.
 	for _, input := range inputs {
@@ -70,25 +70,25 @@ func TestBufferedEncoderClose(t *testing.T) {
 	// IncRef after Close should be a no-op
 	encoder.IncRef(1)
 	require.True(t, encoder.closed)
-	require.Equal(t, 0, encoder.ref)
+	require.Equal(t, uint32(0), encoder.ref)
 }
 
 func TestBufferedEncoderIncRef(t *testing.T) {
 	encoder := testBufferedEncoder()
-	require.Equal(t, 1, encoder.ref)
+	require.Equal(t, uint32(1), encoder.ref)
 
-	n := 10
+	n := uint32(10)
 	encoder.IncRef(n)
 
-	for i := 0; i < n; i++ {
+	for i := uint32(0); i < n; i++ {
 		encoder.Close()
 		require.Equal(t, n-i, encoder.ref)
 		require.False(t, encoder.closed)
 	}
 
-	require.Equal(t, 1, encoder.ref)
+	require.Equal(t, uint32(1), encoder.ref)
 	encoder.Close()
-	require.Equal(t, 0, encoder.ref)
+	require.Equal(t, uint32(0), encoder.ref)
 	require.True(t, encoder.closed)
 }
 

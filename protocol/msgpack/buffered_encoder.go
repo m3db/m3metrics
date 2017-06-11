@@ -33,7 +33,7 @@ type bufferedEncoder struct {
 
 	buf    bytes.Buffer
 	closed bool
-	ref    int
+	ref    uint32
 	pool   BufferedEncoderPool
 }
 
@@ -68,7 +68,7 @@ func (enc *bufferedEncoder) Reset() {
 	enc.buf.Truncate(0)
 }
 
-func (enc *bufferedEncoder) IncRef(n int) {
+func (enc *bufferedEncoder) IncRef(n uint32) {
 	if enc.closed {
 		return
 	}
