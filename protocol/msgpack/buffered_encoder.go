@@ -26,11 +26,14 @@ import (
 	msgpack "gopkg.in/vmihailenco/msgpack.v2"
 )
 
+// NB(cw) bufferedEncoder is not meant to be used
+// in multiple threads.
 type bufferedEncoder struct {
 	*msgpack.Encoder
 
 	buf    bytes.Buffer
 	closed bool
+	ref    uint32
 	pool   BufferedEncoderPool
 }
 
@@ -51,6 +54,7 @@ func NewPooledBufferedEncoderSize(p BufferedEncoderPool, size int) BufferedEncod
 	enc.buf.Grow(size)
 	enc.Encoder = msgpack.NewEncoder(&enc.buf)
 	enc.pool = p
+	enc.ref = 1
 	return &enc
 }
 
@@ -60,13 +64,29 @@ func (enc *bufferedEncoder) Bytes() []byte { return enc.buf.Bytes() }
 
 func (enc *bufferedEncoder) Reset() {
 	enc.closed = false
+	enc.ref = 1
 	enc.buf.Truncate(0)
+}
+
+func (enc *bufferedEncoder) IncRef(n uint32) {
+	if enc.closed {
+		return
+	}
+
+	enc.ref += n
 }
 
 func (enc *bufferedEncoder) Close() {
 	if enc.closed {
 		return
 	}
+
+	enc.ref--
+
+	if enc.ref != 0 {
+		return
+	}
+
 	enc.closed = true
 	if enc.pool != nil {
 		enc.pool.Put(enc)

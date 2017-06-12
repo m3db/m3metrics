@@ -42,7 +42,11 @@ type Buffer interface {
 	// Reset resets the buffer.
 	Reset()
 
-	// Close closes the buffer.
+	// IncRef increases the reference count of the buffer.
+	IncRef(n uint32)
+
+	// Close decreases one reference count of the buffer and
+	// closes it if the reference count is 0.
 	Close()
 }
 
