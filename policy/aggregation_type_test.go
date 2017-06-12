@@ -34,6 +34,11 @@ func TestAggregationTypeIsValid(t *testing.T) {
 	require.False(t, AggregationType(int(P9999)+1).IsValid())
 }
 
+func TestAggregationTypeID(t *testing.T) {
+	require.Equal(t, MaxAggregationTypeID, P9999.ID())
+	require.Equal(t, P9999, AggregationType(MaxAggregationTypeID))
+}
+
 func TestAggregationTypesIsDefault(t *testing.T) {
 	require.True(t, DefaultAggregationTypes.IsDefault())
 

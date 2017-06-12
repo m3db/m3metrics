@@ -62,6 +62,9 @@ const (
 	// The AggregationIDLen will be 1 when totalAggregationTypes <= 64.
 	AggregationIDLen = (totalAggregationTypes-1)/64 + 1
 
+	// MaxAggregationTypeID is the largest id of all the valid aggregation types.
+	MaxAggregationTypeID = totalAggregationTypes - 1
+
 	aggregationTypesSeparator = ","
 )
 
@@ -120,6 +123,11 @@ func NewAggregationTypeFromSchema(input schema.AggregationType) (AggregationType
 		return Unknown, fmt.Errorf("invalid aggregation type from schema: %s", input)
 	}
 	return aggType, nil
+}
+
+// ID returns the id of the AggregationType.
+func (a AggregationType) ID() int {
+	return int(a)
 }
 
 // IsValid checks if an AggregationType is valid.
