@@ -54,16 +54,20 @@ const (
 	P999
 	P9999
 
-	totalAggregationTypes = iota
+	nextAggregationTypeID = iota
 )
 
 const (
+	// MaxAggregationTypeID is the largest id of all the valid aggregation types.
+	// NB(cw) MaxAggregationTypeID is guaranteed to be greater or equal
+	// to len(ValidAggregationTypes).
+	// Iff ids of all the valid aggregation types are consecutive,
+	// MaxAggregationTypeID == len(ValidAggregationTypes).
+	MaxAggregationTypeID = nextAggregationTypeID - 1
+
 	// AggregationIDLen is the length of the AggregationID.
 	// The AggregationIDLen will be 1 when totalAggregationTypes <= 64.
-	AggregationIDLen = (totalAggregationTypes-1)/64 + 1
-
-	// MaxAggregationTypeID is the largest id of all the valid aggregation types.
-	MaxAggregationTypeID = totalAggregationTypes - 1
+	AggregationIDLen = (MaxAggregationTypeID)/64 + 1
 
 	aggregationTypesSeparator = ","
 )
@@ -107,7 +111,7 @@ var (
 )
 
 func init() {
-	aggregationTypeStringMap = make(map[string]AggregationType, totalAggregationTypes)
+	aggregationTypeStringMap = make(map[string]AggregationType, MaxAggregationTypeID)
 	for aggType := range ValidAggregationTypes {
 		aggregationTypeStringMap[aggType.String()] = aggType
 	}
