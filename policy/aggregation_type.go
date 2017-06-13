@@ -66,7 +66,7 @@ const (
 	MaxAggregationTypeID = nextAggregationTypeID - 1
 
 	// AggregationIDLen is the length of the AggregationID.
-	// The AggregationIDLen will be 1 when totalAggregationTypes <= 64.
+	// The AggregationIDLen will be 1 when MaxAggregationTypeID <= 63.
 	AggregationIDLen = (MaxAggregationTypeID)/64 + 1
 
 	aggregationTypesSeparator = ","
