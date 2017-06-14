@@ -208,8 +208,7 @@ func (a AggregationType) Quantile() (float64, bool) {
 func (a AggregationType) Schema() (schema.AggregationType, error) {
 	s := schema.AggregationType(a)
 	if err := validateSchemaAggregationType(s); err != nil {
-		var defaultSchema schema.AggregationType
-		return defaultSchema, err
+		return schema.AggregationType_UNKNOWN, err
 	}
 	return s, nil
 }
@@ -217,7 +216,7 @@ func (a AggregationType) Schema() (schema.AggregationType, error) {
 func validateSchemaAggregationType(a schema.AggregationType) error {
 	_, ok := schema.AggregationType_name[int32(a)]
 	if !ok {
-		return fmt.Errorf("invalid schema aggregation type: %s", a)
+		return fmt.Errorf("invalid schema aggregation type: %v", a)
 	}
 	return nil
 }

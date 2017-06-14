@@ -30,7 +30,7 @@ type Retention time.Duration
 
 // String is the string representation of a retention period.
 func (r Retention) String() string {
-	return time.Duration(r).String()
+	return r.Duration().String()
 }
 
 // Duration returns the duration of the retention period.
