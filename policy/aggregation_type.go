@@ -108,8 +108,6 @@ var (
 	}
 
 	aggregationTypeStringMap map[string]AggregationType
-
-	defaultSchemaAggregationType schema.AggregationType
 )
 
 func init() {
@@ -210,7 +208,8 @@ func (a AggregationType) Quantile() (float64, bool) {
 func (a AggregationType) Schema() (schema.AggregationType, error) {
 	s := schema.AggregationType(a)
 	if err := validateSchemaAggregationType(s); err != nil {
-		return defaultSchemaAggregationType, err
+		var defaultSchema schema.AggregationType
+		return defaultSchema, err
 	}
 	return s, nil
 }
