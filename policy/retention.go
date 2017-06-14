@@ -33,6 +33,11 @@ func (r Retention) String() string {
 	return time.Duration(r).String()
 }
 
+// Duration returns the duration of the retention period.
+func (r Retention) Duration() time.Duration {
+	return time.Duration(r)
+}
+
 // RetentionValue is the retention value.
 type RetentionValue int
 

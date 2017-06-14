@@ -108,6 +108,8 @@ var (
 	}
 
 	aggregationTypeStringMap map[string]AggregationType
+
+	defaultSchemaAggregationType schema.AggregationType
 )
 
 func init() {
@@ -202,6 +204,23 @@ func (a AggregationType) Quantile() (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+// Schema returns the schema of the aggregation type.
+func (a AggregationType) Schema() (schema.AggregationType, error) {
+	s := schema.AggregationType(a)
+	if err := validateSchemaAggregationType(s); err != nil {
+		return defaultSchemaAggregationType, err
+	}
+	return s, nil
+}
+
+func validateSchemaAggregationType(a schema.AggregationType) error {
+	_, ok := schema.AggregationType_name[int32(a)]
+	if !ok {
+		return fmt.Errorf("invalid schema aggregation type: %s", a)
+	}
+	return nil
 }
 
 // ParseAggregationType parses an aggregation type.
@@ -328,6 +347,20 @@ func (aggTypes AggregationTypes) PooledQuantiles(p pool.FloatsPool) ([]float64, 
 		res = append(res, q)
 	}
 	return res, pooled
+}
+
+// Schema returns the schema of the aggregation types.
+func (aggTypes AggregationTypes) Schema() ([]schema.AggregationType, error) {
+	res := make([]schema.AggregationType, len(aggTypes))
+	for i, aggType := range aggTypes {
+		s, err := aggType.Schema()
+		if err != nil {
+			return nil, err
+		}
+		res[i] = s
+	}
+
+	return res, nil
 }
 
 // ParseAggregationTypes parses a list of aggregation types in the form of type1,type2,type3.
