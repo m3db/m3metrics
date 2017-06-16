@@ -78,6 +78,23 @@ func NewRollupID(name []byte, tagPairs []id.TagPair) []byte {
 	return buf.Bytes()
 }
 
+// IsRollupID determines whether an id is a rollup id.
+func IsRollupID(id []byte) bool {
+	_, tags, err := NameAndTags(id)
+	if err != nil {
+		return false
+	}
+	iter := NewSortedTagIterator(tags)
+	defer iter.Close()
+	for iter.Next() {
+		name, val := iter.Current()
+		if bytes.Equal(name, rollupTagPair.Name) && bytes.Equal(val, rollupTagPair.Value) {
+			return true
+		}
+	}
+	return false
+}
+
 // TODO(xichen): pool the mids.
 type metricID struct {
 	id       []byte
