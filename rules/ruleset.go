@@ -46,25 +46,20 @@ type MatchMode int
 
 // List of supported match modes.
 const (
-	// When performing matches in MappingPoliciesOnly mode, the matcher only finds the applicable
-	// mapping policies for the given id, without attempting to determine the rollup policies.
-	MappingPoliciesOnly MatchMode = iota
+	// When performing matches in Forward mode, the matcher matches the given id against
+	// both the mapping rules and rollup rules to find out the applicable mapping policies
+	// and rollup policies.
+	Forward MatchMode = iota
 
-	// When performing matches in Full mode, the matcher find the applicable mapping
-	// policies as well as the rollup policies for the given id.
-	Full
+	// When performing matches in Reverse mode, the matcher find the applicable mapping
+	// policies for the given id.
+	Reverse
 )
-
-// MatchOptions provide a set of options for id matching.
-type MatchOptions struct {
-	Mode                MatchMode
-	UseDefaultIfNoMatch bool
-}
 
 // Matcher matches metrics against rules to determine applicable policies.
 type Matcher interface {
-	// MatchAll returns the applicable policies for a metric id between [from, to).
-	MatchAll(id []byte, isRollupID bool, from, to time.Time, opts MatchOptions) MatchResult
+	// MatchAll returns the applicable policies for a metric id between [fromNanos, toNanos).
+	MatchAll(id []byte, fromNanos, toNanos int64, matchMode MatchMode) MatchResult
 }
 
 type activeRuleSet struct {
@@ -73,6 +68,7 @@ type activeRuleSet struct {
 	cutoverTimesAsc []int64
 	tagFilterOpts   filters.TagsFilterOptions
 	newRollupIDFn   metricID.NewIDFn
+	isRollupIDFn    metricID.MatchIDFn
 }
 
 func newActiveRuleSet(
@@ -80,6 +76,7 @@ func newActiveRuleSet(
 	rollupRules []*rollupRule,
 	tagFilterOpts filters.TagsFilterOptions,
 	newRollupIDFn metricID.NewIDFn,
+	isRollupIDFn metricID.MatchIDFn,
 ) *activeRuleSet {
 	uniqueCutoverTimes := make(map[int64]struct{})
 	for _, mappingRule := range mappingRules {
@@ -105,6 +102,7 @@ func newActiveRuleSet(
 		cutoverTimesAsc: cutoverTimesAsc,
 		tagFilterOpts:   tagFilterOpts,
 		newRollupIDFn:   newRollupIDFn,
+		isRollupIDFn:    isRollupIDFn,
 	}
 }
 
@@ -112,65 +110,75 @@ func newActiveRuleSet(
 // at previous iteration and incrementally update match results.
 func (as *activeRuleSet) MatchAll(
 	id []byte,
-	isRollupID bool,
-	from, to time.Time,
-	opts MatchOptions,
+	fromNanos, toNanos int64,
+	matchMode MatchMode,
 ) MatchResult {
+	if matchMode == Forward {
+		return as.matchAllForward(id, fromNanos, toNanos)
+	}
+	return as.matchAllReverse(id, fromNanos, toNanos)
+}
+
+func (as *activeRuleSet) matchAllForward(id []byte, fromNanos, toNanos int64) MatchResult {
 	var (
-		fromNanos          = from.UnixNano()
-		toNanos            = to.UnixNano()
+		nextIdx            = as.nextCutoverIdx(fromNanos)
+		nextCutoverNanos   = as.cutoverNanosAt(nextIdx)
+		currMappingResults = policy.PoliciesList{as.mappingsForNonRollupID(id, fromNanos)}
+		currRollupResults  = as.rollupResultsFor(id, fromNanos)
+	)
+	for nextIdx < len(as.cutoverTimesAsc) && nextCutoverNanos < toNanos {
+		nextMappingPolicies := as.mappingsForNonRollupID(id, nextCutoverNanos)
+		currMappingResults = mergeMappingResults(currMappingResults, nextMappingPolicies)
+		nextRollupResults := as.rollupResultsFor(id, nextCutoverNanos)
+		currRollupResults = mergeRollupResults(currRollupResults, nextRollupResults, nextCutoverNanos)
+		nextIdx++
+		nextCutoverNanos = as.cutoverNanosAt(nextIdx)
+	}
+
+	// The result expires when it reaches the first cutover time after toNanos among all
+	// active rules because the metric may then be matched against a different set of rules.
+	return NewMatchResult(nextCutoverNanos, currMappingResults, currRollupResults)
+}
+
+func (as *activeRuleSet) matchAllReverse(id []byte, fromNanos, toNanos int64) MatchResult {
+	var (
 		nextIdx            = as.nextCutoverIdx(fromNanos)
 		nextCutoverNanos   = as.cutoverNanosAt(nextIdx)
 		currMappingResults policy.PoliciesList
-		currRollupResults  []RollupResult
+		isRollupID         bool
 	)
-	if currMappingPolicies, found := as.mappingPoliciesFor(id, isRollupID, fromNanos, opts); found {
+
+	// Determine whether the id is a rollup metric id.
+	name, tags, err := as.tagFilterOpts.NameAndTagsFn(id)
+	if err == nil {
+		isRollupID = as.isRollupIDFn(name, tags)
+	}
+
+	if currMappingPolicies, found := as.reverseMappingsFor(id, name, tags, isRollupID, fromNanos); found {
 		currMappingResults = append(currMappingResults, currMappingPolicies)
 	}
-	if opts.Mode != MappingPoliciesOnly {
-		currRollupResults = as.rollupResultsFor(id, fromNanos)
-	}
 	for nextIdx < len(as.cutoverTimesAsc) && nextCutoverNanos < toNanos {
-		if nextMappingPolicies, found := as.mappingPoliciesFor(id, isRollupID, nextCutoverNanos, opts); found {
+		if nextMappingPolicies, found := as.reverseMappingsFor(id, name, tags, isRollupID, nextCutoverNanos); found {
 			currMappingResults = mergeMappingResults(currMappingResults, nextMappingPolicies)
-		}
-		if opts.Mode != MappingPoliciesOnly {
-			nextRollupResults := as.rollupResultsFor(id, nextCutoverNanos)
-			currRollupResults = mergeRollupResults(currRollupResults, nextRollupResults, nextCutoverNanos)
 		}
 		nextIdx++
 		nextCutoverNanos = as.cutoverNanosAt(nextIdx)
 	}
 
-	// The result expires when it reaches the first cutover time after to among all
+	// The result expires when it reaches the first cutover time after toNanos among all
 	// active rules because the metric may then be matched against a different set of rules.
-	return NewMatchResult(nextCutoverNanos, currMappingResults, currRollupResults)
+	return NewMatchResult(nextCutoverNanos, currMappingResults, nil)
 }
 
-// mappingPoliciesFor returns the mapping policies applicable to a given id at a given
-// time. It returns true if one or more matching policies are found, and false otherwise.
-func (as *activeRuleSet) mappingPoliciesFor(
-	id []byte,
+func (as *activeRuleSet) reverseMappingsFor(
+	id, name, tags []byte,
 	isRollupID bool,
 	timeNanos int64,
-	opts MatchOptions,
 ) (policy.StagedPolicies, bool) {
-	var (
-		sp      policy.StagedPolicies
-		matched bool
-	)
 	if !isRollupID {
-		sp, matched = as.mappingsForNonRollupID(id, timeNanos)
-	} else {
-		sp, matched = as.mappingsForRollupID(id, timeNanos)
+		return as.mappingsForNonRollupID(id, timeNanos), true
 	}
-	if matched {
-		return sp, true
-	}
-	if opts.UseDefaultIfNoMatch {
-		return policy.DefaultStagedPolicies, true
-	}
-	return policy.DefaultStagedPolicies, false
+	return as.mappingsForRollupID(name, tags, timeNanos)
 }
 
 // NB(xichen): in order to determine the applicable policies for a rollup metric, we need to
@@ -181,23 +189,10 @@ func (as *activeRuleSet) mappingPoliciesFor(
 // used to produce the given rollup metric id due to its tag filters, thereby causing the wrong
 // staged policies to be returned. This also implies at any given time, at most one rollup target
 // may match the given rollup id.
-func (as *activeRuleSet) mappingsForRollupID(id []byte, timeNanos int64) (policy.StagedPolicies, bool) {
-	if len(as.rollupRules) == 0 {
-		return policy.DefaultStagedPolicies, false
-	}
-
-	// If we cannot extract tags from the id, this is likely an invalid
-	// metric and we bail early.
-	name, tags, err := as.tagFilterOpts.NameAndTagsFn(id)
-	if err != nil {
-		return policy.DefaultStagedPolicies, false
-	}
-
-	var (
-		cutoverNanos int64
-		policies     []policy.Policy
-		matched      bool
-	)
+func (as *activeRuleSet) mappingsForRollupID(
+	name, tags []byte,
+	timeNanos int64,
+) (policy.StagedPolicies, bool) {
 	for _, rollupRule := range as.rollupRules {
 		snapshot := rollupRule.ActiveSnapshot(timeNanos)
 		if snapshot == nil {
@@ -231,28 +226,20 @@ func (as *activeRuleSet) mappingsForRollupID(id []byte, timeNanos int64) (policy
 
 			// If all of the target tags are matched, this is considered as a match.
 			if targetTagIdx == len(target.Tags) {
-				matched = true
-				policies = append(policies, target.Policies...)
-				if cutoverNanos < snapshot.cutoverNanos {
-					cutoverNanos = snapshot.cutoverNanos
-				}
-				break
+				policies := make([]policy.Policy, len(target.Policies))
+				copy(policies, target.Policies)
+				resolved := resolvePolicies(policies)
+				return policy.NewStagedPolicies(snapshot.cutoverNanos, false, resolved), true
 			}
 		}
-		if matched {
-			break
-		}
 	}
-	if !matched {
-		return policy.DefaultStagedPolicies, false
-	}
-	resolved := resolvePolicies(policies)
-	return policy.NewStagedPolicies(cutoverNanos, false, resolved), true
+
+	return policy.DefaultStagedPolicies, false
 }
 
 // NB(xichen): if the given id is not a rollup id, we need to match it against the mapping
 // rules to determine the corresponding mapping policies.
-func (as *activeRuleSet) mappingsForNonRollupID(id []byte, timeNanos int64) (policy.StagedPolicies, bool) {
+func (as *activeRuleSet) mappingsForNonRollupID(id []byte, timeNanos int64) policy.StagedPolicies {
 	var (
 		cutoverNanos int64
 		policies     []policy.Policy
@@ -271,10 +258,10 @@ func (as *activeRuleSet) mappingsForNonRollupID(id []byte, timeNanos int64) (pol
 		policies = append(policies, snapshot.policies...)
 	}
 	if cutoverNanos == 0 && len(policies) == 0 {
-		return policy.DefaultStagedPolicies, false
+		return policy.DefaultStagedPolicies
 	}
 	resolved := resolvePolicies(policies)
-	return policy.NewStagedPolicies(cutoverNanos, false, resolved), true
+	return policy.NewStagedPolicies(cutoverNanos, false, resolved)
 }
 
 func (as *activeRuleSet) rollupResultsFor(id []byte, timeNanos int64) []RollupResult {
@@ -443,6 +430,7 @@ type ruleSet struct {
 	rollupRules        []*rollupRule
 	tagsFilterOpts     filters.TagsFilterOptions
 	newRollupIDFn      metricID.NewIDFn
+	isRollupIDFn       metricID.MatchIDFn
 }
 
 // NewRuleSet creates a new ruleset.
@@ -479,6 +467,7 @@ func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) 
 		rollupRules:        rollupRules,
 		tagsFilterOpts:     tagsFilterOpts,
 		newRollupIDFn:      opts.NewRollupIDFn(),
+		isRollupIDFn:       opts.IsRollupIDFn(),
 	}, nil
 }
 
@@ -504,6 +493,7 @@ func (rs *ruleSet) ActiveSet(t time.Time) Matcher {
 		rollupRules,
 		rs.tagsFilterOpts,
 		rs.newRollupIDFn,
+		rs.isRollupIDFn,
 	)
 }
 

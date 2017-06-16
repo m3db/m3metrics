@@ -79,13 +79,19 @@ func NewRollupID(name []byte, tagPairs []id.TagPair) []byte {
 }
 
 // IsRollupID determines whether an id is a rollup id.
-func IsRollupID(id []byte) bool {
+// Caller may optionally pass in a pre-created sorted tag iterator for efficiency
+// reasons, in which case it is the caller's responsibility to close the iterator.
+func IsRollupID(id []byte, iter id.SortedTagIterator) bool {
 	_, tags, err := NameAndTags(id)
 	if err != nil {
 		return false
 	}
-	iter := NewSortedTagIterator(tags)
-	defer iter.Close()
+	if iter == nil {
+		iter = NewSortedTagIterator(tags)
+		defer iter.Close()
+	} else {
+		iter.Reset(tags)
+	}
 	for iter.Next() {
 		name, val := iter.Current()
 		if bytes.Equal(name, rollupTagPair.Name) && bytes.Equal(val, rollupTagPair.Value) {
