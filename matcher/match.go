@@ -48,8 +48,12 @@ type matcher struct {
 
 // NewMatcher creates a new rule matcher.
 func NewMatcher(cache Cache, opts Options) (Matcher, error) {
+	instrumentOpts := opts.InstrumentOptions()
+	scope := instrumentOpts.MetricsScope()
+	namespacesScope := scope.SubScope("namespaces")
+	namespacesOpts := opts.SetInstrumentOptions(instrumentOpts.SetMetricsScope(namespacesScope))
 	key := opts.NamespacesKey()
-	namespaces := newNamespaces(key, cache, opts)
+	namespaces := newNamespaces(key, cache, namespacesOpts)
 	// NB(xichen): if there is no cache provided, the newly created
 	// namespaces object is used as a zero-size forwarding cache that
 	// forwards all match requests to the backing rulesets.
@@ -58,7 +62,6 @@ func NewMatcher(cache Cache, opts Options) (Matcher, error) {
 		namespaces.setCache(namespaces)
 	}
 	if err := namespaces.Watch(); err != nil {
-		scope := opts.InstrumentOptions().MetricsScope()
 		errCreateWatch, ok := err.(runtime.CreateWatchError)
 		if ok {
 			scope.Counter("create-watch-errors").Inc(1)

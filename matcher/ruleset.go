@@ -29,7 +29,24 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/rules"
 	"github.com/m3db/m3x/clock"
+	"github.com/m3db/m3x/instrument"
+
+	"github.com/uber-go/tally"
 )
+
+type ruleSetMetrics struct {
+	match      instrument.MethodMetrics
+	nilMatcher tally.Counter
+	updated    tally.Counter
+}
+
+func newRuleSetMetrics(scope tally.Scope, samplingRate float64) ruleSetMetrics {
+	return ruleSetMetrics{
+		match:      instrument.NewMethodMetrics(scope, "match", samplingRate),
+		nilMatcher: scope.Counter("nil-matcher"),
+		updated:    scope.Counter("updated"),
+	}
+}
 
 // ruleSet contains the list of rules for a namespace.
 type ruleSet struct {
@@ -50,6 +67,7 @@ type ruleSet struct {
 	cutoverNanos int64
 	tombstoned   bool
 	matcher      rules.Matcher
+	metrics      ruleSetMetrics
 }
 
 func newRuleSet(
@@ -58,6 +76,7 @@ func newRuleSet(
 	cache Cache,
 	opts Options,
 ) *ruleSet {
+	instrumentOpts := opts.InstrumentOptions()
 	r := &ruleSet{
 		namespace:      namespace,
 		key:            key,
@@ -69,6 +88,7 @@ func newRuleSet(
 		ruleSetOpts:    opts.RuleSetOptions(),
 		proto:          &schema.RuleSet{},
 		version:        kv.UninitializedVersion,
+		metrics:        newRuleSetMetrics(instrumentOpts.MetricsScope(), instrumentOpts.MetricsSamplingRate()),
 	}
 	valueOpts := runtime.NewOptions().
 		SetInstrumentOptions(opts.InstrumentOptions()).
@@ -109,13 +129,17 @@ func (r *ruleSet) Tombstoned() bool {
 }
 
 func (r *ruleSet) Match(id []byte, fromNanos, toNanos int64) rules.MatchResult {
+	callStart := r.nowFn()
 	r.RLock()
-	defer r.RUnlock()
-
 	if r.matcher == nil {
+		r.RUnlock()
+		r.metrics.nilMatcher.Inc(1)
 		return rules.EmptyMatchResult
 	}
-	return r.matcher.MatchAll(id, fromNanos, toNanos, rules.ForwardMatch)
+	res := r.matcher.MatchAll(id, fromNanos, toNanos, rules.ForwardMatch)
+	r.RUnlock()
+	r.metrics.match.ReportSuccess(r.nowFn().Sub(callStart))
+	return res
 }
 
 func (r *ruleSet) toRuleSet(value kv.Value) (interface{}, error) {
@@ -143,5 +167,6 @@ func (r *ruleSet) process(value interface{}) error {
 	r.tombstoned = ruleSet.TombStoned()
 	r.matcher = ruleSet.ActiveSet(r.nowFn().Add(-r.matchRangePast))
 	r.cache.Register(r.namespace, r)
+	r.metrics.updated.Inc(1)
 	return nil
 }

@@ -32,12 +32,34 @@ import (
 	"github.com/m3db/m3x/clock"
 	"github.com/m3db/m3x/id"
 	"github.com/m3db/m3x/log"
+
+	"github.com/uber-go/tally"
 )
 
 var (
 	emptyNamespaces rules.Namespaces
 	errNilValue     = errors.New("nil value received")
 )
+
+type namespacesMetrics struct {
+	notExists   tally.Counter
+	added       tally.Counter
+	removed     tally.Counter
+	watched     tally.Counter
+	watchErrors tally.Counter
+	unwatched   tally.Counter
+}
+
+func newNamespacesMetrics(scope tally.Scope) namespacesMetrics {
+	return namespacesMetrics{
+		notExists:   scope.Counter("not-exists"),
+		added:       scope.Counter("added"),
+		removed:     scope.Counter("removed"),
+		watched:     scope.Counter("watched"),
+		watchErrors: scope.Counter("watch-errors"),
+		unwatched:   scope.Counter("unwatched"),
+	}
+}
 
 // namespaces contains the list of namespace users have defined rules for.
 // NB(xichen): namespaces implements the Cache interface and can be used as
@@ -56,25 +78,28 @@ type namespaces struct {
 	nowFn          clock.NowFn
 	matchRangePast time.Duration
 
-	proto *schema.Namespaces
-	rules map[xid.Hash]*ruleSet
+	proto   *schema.Namespaces
+	rules   map[xid.Hash]*ruleSet
+	metrics namespacesMetrics
 }
 
 func newNamespaces(key string, cache Cache, opts Options) *namespaces {
+	instrumentOpts := opts.InstrumentOptions()
 	n := &namespaces{
 		key:            key,
 		store:          opts.KVStore(),
 		cache:          cache,
 		opts:           opts,
-		log:            opts.InstrumentOptions().Logger(),
+		log:            instrumentOpts.Logger(),
 		ruleSetKeyFn:   opts.RuleSetKeyFn(),
-		proto:          &schema.Namespaces{},
-		rules:          make(map[xid.Hash]*ruleSet),
 		nowFn:          opts.ClockOptions().NowFn(),
 		matchRangePast: opts.MatchRangePast(),
+		proto:          &schema.Namespaces{},
+		rules:          make(map[xid.Hash]*ruleSet),
+		metrics:        newNamespacesMetrics(instrumentOpts.MetricsScope()),
 	}
 	valueOpts := runtime.NewOptions().
-		SetInstrumentOptions(opts.InstrumentOptions()).
+		SetInstrumentOptions(instrumentOpts).
 		SetInitWatchTimeout(opts.InitWatchTimeout()).
 		SetKVStore(n.store).
 		SetUnmarshalFn(n.toNamespaces).
@@ -91,8 +116,8 @@ func (n *namespaces) Match(namespace, id []byte, fromNanos, toNanos int64) rules
 	n.RLock()
 	ruleSet, exists := n.rules[nsHash]
 	if !exists {
-		// TODO: add metrics.
 		n.RUnlock()
+		n.metrics.notExists.Inc(1)
 		return res
 	}
 	n.RUnlock()
@@ -155,9 +180,13 @@ func (n *namespaces) process(value interface{}) error {
 		nsName, snapshots := ns.Name(), ns.Snapshots()
 		ruleSet, exists := n.rules[nsHash]
 		if !exists {
+			instrumentOpts := n.opts.InstrumentOptions()
+			ruleSetScope := instrumentOpts.MetricsScope().SubScope("ruleset")
+			ruleSetOpts := n.opts.SetInstrumentOptions(instrumentOpts.SetMetricsScope(ruleSetScope))
 			ruleSetKey := n.ruleSetKeyFn(ns.Name())
-			ruleSet = newRuleSet(nsName, ruleSetKey, n.cache, n.opts)
+			ruleSet = newRuleSet(nsName, ruleSetKey, n.cache, ruleSetOpts)
 			n.rules[nsHash] = ruleSet
+			n.metrics.added.Inc(1)
 		}
 
 		shouldWatch := true
@@ -176,12 +205,17 @@ func (n *namespaces) process(value interface{}) error {
 			}
 		}
 		if !shouldWatch {
+			n.metrics.unwatched.Inc(1)
 			ruleSet.Unwatch()
-		} else if err := ruleSet.Watch(); err != nil {
-			n.log.WithFields(
-				xlog.NewLogField("ruleSetKey", ruleSet.Key()),
-				xlog.NewLogErrField(err),
-			).Error("failed to watch ruleset updates")
+		} else {
+			n.metrics.watched.Inc(1)
+			if err := ruleSet.Watch(); err != nil {
+				n.metrics.watchErrors.Inc(1)
+				n.log.WithFields(
+					xlog.NewLogField("ruleSetKey", ruleSet.Key()),
+					xlog.NewLogErrField(err),
+				).Error("failed to watch ruleset updates")
+			}
 		}
 
 		if !exists {
@@ -200,6 +234,7 @@ func (n *namespaces) process(value interface{}) error {
 			n.cache.Unregister(ruleSet.Namespace())
 			delete(n.rules, nsHash)
 			ruleSet.Unwatch()
+			n.metrics.unwatched.Inc(1)
 		}
 	}
 
