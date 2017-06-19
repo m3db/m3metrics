@@ -173,6 +173,7 @@ func testRuleSet() (kv.Store, Cache, *ruleSet, Options) {
 	opts := NewOptions().
 		SetInitWatchTimeout(100 * time.Millisecond).
 		SetKVStore(store).
-		SetRuleSetKeyFn(func(ns []byte) string { return fmt.Sprintf("/rules/%s", ns) })
-	return store, cache, newRuleSet(testNamespace, testNamespacesKey, cache, opts), opts
+		SetRuleSetKeyFn(func(ns []byte) string { return fmt.Sprintf("/rules/%s", ns) }).
+		SetOnRuleSetUpdatedFn(func(namespace []byte, ruleSet RuleSet) { cache.Register(namespace, ruleSet) })
+	return store, cache, newRuleSet(testNamespace, testNamespacesKey, opts).(*ruleSet), opts
 }

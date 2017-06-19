@@ -45,12 +45,17 @@ var (
 	defaultDefaultNamespace = []byte("defaultNamespace")
 )
 
-func defaultRuleSetKeyFn(namespace []byte) string {
-	return fmt.Sprintf(defaultRuleSetKeyFormat, namespace)
-}
-
 // RuleSetKeyFn generates the ruleset key for a given namespace.
 type RuleSetKeyFn func(namespace []byte) string
+
+// OnNamespaceAddedFn is called when a namespace is added.
+type OnNamespaceAddedFn func(namespace []byte, ruleSet RuleSet)
+
+// OnNamespaceRemovedFn is called when a namespace is removed.
+type OnNamespaceRemovedFn func(namespace []byte)
+
+// OnRuleSetUpdatedFn is called when a ruleset is updated.
+type OnRuleSetUpdatedFn func(namespace []byte, ruleSet RuleSet)
 
 // Options provide a set of options for the msgpack-based reporter.
 type Options interface {
@@ -113,19 +118,40 @@ type Options interface {
 
 	// MatchRangePast returns the limit on the earliest time eligible for rule matching.
 	MatchRangePast() time.Duration
+
+	// SetOnNamespaceAddedFn sets the function to be called when a namespace is added.
+	SetOnNamespaceAddedFn(value OnNamespaceAddedFn) Options
+
+	// OnNamespaceAddedFn returns the function to be called when a namespace is added.
+	OnNamespaceAddedFn() OnNamespaceAddedFn
+
+	// SetOnNamespaceRemovedFn sets the function to be called when a namespace is removed.
+	SetOnNamespaceRemovedFn(value OnNamespaceRemovedFn) Options
+
+	// OnNamespaceRemovedFn returns the function to be called when a namespace is removed.
+	OnNamespaceRemovedFn() OnNamespaceRemovedFn
+
+	// SetOnRuleSetUpdatedFn sets the function to be called when a ruleset is updated.
+	SetOnRuleSetUpdatedFn(value OnRuleSetUpdatedFn) Options
+
+	// OnRuleSetUpdatedFn returns the function to be called when a ruleset is updated.
+	OnRuleSetUpdatedFn() OnRuleSetUpdatedFn
 }
 
 type options struct {
-	clockOpts        clock.Options
-	instrumentOpts   instrument.Options
-	ruleSetOpts      rules.Options
-	initWatchTimeout time.Duration
-	kvStore          kv.Store
-	namespacesKey    string
-	ruleSetKeyFn     RuleSetKeyFn
-	namespaceTag     []byte
-	defaultNamespace []byte
-	matchRangePast   time.Duration
+	clockOpts            clock.Options
+	instrumentOpts       instrument.Options
+	ruleSetOpts          rules.Options
+	initWatchTimeout     time.Duration
+	kvStore              kv.Store
+	namespacesKey        string
+	ruleSetKeyFn         RuleSetKeyFn
+	namespaceTag         []byte
+	defaultNamespace     []byte
+	matchRangePast       time.Duration
+	onNamespaceAddedFn   OnNamespaceAddedFn
+	onNamespaceRemovedFn OnNamespaceRemovedFn
+	onRuleSetUpdatedFn   OnRuleSetUpdatedFn
 }
 
 // NewOptions creates a new set of options.
@@ -242,4 +268,38 @@ func (o *options) SetMatchRangePast(value time.Duration) Options {
 
 func (o *options) MatchRangePast() time.Duration {
 	return o.matchRangePast
+}
+
+func (o *options) SetOnNamespaceAddedFn(value OnNamespaceAddedFn) Options {
+	opts := *o
+	opts.onNamespaceAddedFn = value
+	return &opts
+}
+
+func (o *options) OnNamespaceAddedFn() OnNamespaceAddedFn {
+	return o.onNamespaceAddedFn
+}
+
+func (o *options) SetOnNamespaceRemovedFn(value OnNamespaceRemovedFn) Options {
+	opts := *o
+	opts.onNamespaceRemovedFn = value
+	return &opts
+}
+
+func (o *options) OnNamespaceRemovedFn() OnNamespaceRemovedFn {
+	return o.onNamespaceRemovedFn
+}
+
+func (o *options) SetOnRuleSetUpdatedFn(value OnRuleSetUpdatedFn) Options {
+	opts := *o
+	opts.onRuleSetUpdatedFn = value
+	return &opts
+}
+
+func (o *options) OnRuleSetUpdatedFn() OnRuleSetUpdatedFn {
+	return o.onRuleSetUpdatedFn
+}
+
+func defaultRuleSetKeyFn(namespace []byte) string {
+	return fmt.Sprintf(defaultRuleSetKeyFormat, namespace)
 }

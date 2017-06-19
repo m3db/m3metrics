@@ -34,6 +34,25 @@ import (
 	"github.com/uber-go/tally"
 )
 
+// RuleSet manages runtime updates to registered rules and provides
+// API to match metic ids against rules in the corresponding ruleset.
+type RuleSet interface {
+	runtime.Value
+	Source
+
+	// Namespace returns the namespace of the ruleset.
+	Namespace() []byte
+
+	// Version returns the current version of the ruleset.
+	Version() int
+
+	// CutoverNanos returns the cutover time of the ruleset.
+	CutoverNanos() int64
+
+	// Tombstoned returns whether the ruleset is tombstoned.
+	Tombstoned() bool
+}
+
 type ruleSetMetrics struct {
 	match      instrument.MethodMetrics
 	nilMatcher tally.Counter
@@ -53,14 +72,14 @@ type ruleSet struct {
 	sync.RWMutex
 	runtime.Value
 
-	namespace      []byte
-	key            string
-	cache          Cache
-	store          kv.Store
-	opts           Options
-	nowFn          clock.NowFn
-	matchRangePast time.Duration
-	ruleSetOpts    rules.Options
+	namespace          []byte
+	key                string
+	store              kv.Store
+	opts               Options
+	nowFn              clock.NowFn
+	matchRangePast     time.Duration
+	ruleSetOpts        rules.Options
+	onRuleSetUpdatedFn OnRuleSetUpdatedFn
 
 	proto        *schema.RuleSet
 	version      int
@@ -73,22 +92,21 @@ type ruleSet struct {
 func newRuleSet(
 	namespace []byte,
 	key string,
-	cache Cache,
 	opts Options,
-) *ruleSet {
+) RuleSet {
 	instrumentOpts := opts.InstrumentOptions()
 	r := &ruleSet{
-		namespace:      namespace,
-		key:            key,
-		cache:          cache,
-		store:          opts.KVStore(),
-		opts:           opts,
-		nowFn:          opts.ClockOptions().NowFn(),
-		matchRangePast: opts.MatchRangePast(),
-		ruleSetOpts:    opts.RuleSetOptions(),
-		proto:          &schema.RuleSet{},
-		version:        kv.UninitializedVersion,
-		metrics:        newRuleSetMetrics(instrumentOpts.MetricsScope(), instrumentOpts.MetricsSamplingRate()),
+		namespace:          namespace,
+		key:                key,
+		store:              opts.KVStore(),
+		opts:               opts,
+		nowFn:              opts.ClockOptions().NowFn(),
+		matchRangePast:     opts.MatchRangePast(),
+		ruleSetOpts:        opts.RuleSetOptions(),
+		onRuleSetUpdatedFn: opts.OnRuleSetUpdatedFn(),
+		proto:              &schema.RuleSet{},
+		version:            kv.UninitializedVersion,
+		metrics:            newRuleSetMetrics(instrumentOpts.MetricsScope(), instrumentOpts.MetricsSamplingRate()),
 	}
 	valueOpts := runtime.NewOptions().
 		SetInstrumentOptions(opts.InstrumentOptions()).
@@ -166,7 +184,9 @@ func (r *ruleSet) process(value interface{}) error {
 	r.cutoverNanos = ruleSet.CutoverNanos()
 	r.tombstoned = ruleSet.TombStoned()
 	r.matcher = ruleSet.ActiveSet(r.nowFn().Add(-r.matchRangePast))
-	r.cache.Register(r.namespace, r)
+	if r.onRuleSetUpdatedFn != nil {
+		r.onRuleSetUpdatedFn(r.namespace, r)
+	}
 	r.metrics.updated.Inc(1)
 	return nil
 }

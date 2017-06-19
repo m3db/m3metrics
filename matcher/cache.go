@@ -24,7 +24,7 @@ import "github.com/m3db/m3metrics/rules"
 
 // Source is a datasource providing match results.
 type Source interface {
-	// Match returns the match result for an given id within time range
+	// Match returns the match result for a given id within time range
 	// [fromNanos, toNanos).
 	Match(id []byte, fromNanos, toNanos int64) rules.MatchResult
 }

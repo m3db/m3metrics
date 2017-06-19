@@ -117,7 +117,7 @@ func TestNamespacesProcess(t *testing.T) {
 		{namespace: []byte("catNs"), id: "cat", version: 3, tombstoned: true},
 		{namespace: []byte("lolNs"), id: "lol", version: 3, tombstoned: true},
 	} {
-		rs := newRuleSet(input.namespace, input.id, cache, opts)
+		rs := newRuleSet(input.namespace, input.id, opts).(*ruleSet)
 		rs.Value = &mockRuntimeValue{key: input.id}
 		rs.version = input.version
 		rs.tombstoned = input.tombstoned
@@ -201,10 +201,11 @@ func TestNamespacesProcess(t *testing.T) {
 	}
 	for i, ns := range update.Namespaces {
 		rs, exists := nss.rules[xid.HashFn([]byte(ns.Name))]
+		ruleSet := rs.(*ruleSet)
 		require.True(t, exists)
 		require.Equal(t, expected[i].key, rs.Key())
-		require.Equal(t, rs, c.namespaces[string(ns.Name)].source.(*ruleSet))
-		mv, ok := rs.Value.(*mockRuntimeValue)
+		require.Equal(t, ruleSet, c.namespaces[string(ns.Name)].source)
+		mv, ok := ruleSet.Value.(*mockRuntimeValue)
 		if !ok {
 			continue
 		}
@@ -219,8 +220,17 @@ func testNamespaces() (kv.Store, Cache, *namespaces, Options) {
 	opts := NewOptions().
 		SetInitWatchTimeout(100 * time.Millisecond).
 		SetKVStore(store).
-		SetNamespacesKey(testNamespacesKey)
-	return store, cache, newNamespaces(testNamespacesKey, cache, opts), opts
+		SetNamespacesKey(testNamespacesKey).
+		SetOnNamespaceAddedFn(func(namespace []byte, ruleSet RuleSet) {
+			cache.Register(namespace, ruleSet)
+		}).
+		SetOnNamespaceRemovedFn(func(namespace []byte) {
+			cache.Unregister(namespace)
+		}).
+		SetOnRuleSetUpdatedFn(func(namespace []byte, ruleSet RuleSet) {
+			cache.Register(namespace, ruleSet)
+		})
+	return store, cache, NewNamespaces(testNamespacesKey, opts).(*namespaces), opts
 }
 
 type memResults struct {

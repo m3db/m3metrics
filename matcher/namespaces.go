@@ -41,6 +41,22 @@ var (
 	errNilValue     = errors.New("nil value received")
 )
 
+// Namespaces manages runtime updates to registered namespaces and provides
+// API to match metic ids against rules in the corresponding namespaces.
+type Namespaces interface {
+	runtime.Value
+
+	// Version returns the current version for a give namespace.
+	Version(namespace []byte) int
+
+	// Match returns the matching policies for a given id in a given namespace
+	// between [fromNanos, toNanos).
+	Match(namespace, id []byte, fromNanos, toNanos int64) rules.MatchResult
+
+	// Close closes the namespaces.
+	Close()
+}
+
 type namespacesMetrics struct {
 	notExists   tally.Counter
 	added       tally.Counter
@@ -62,41 +78,41 @@ func newNamespacesMetrics(scope tally.Scope) namespacesMetrics {
 }
 
 // namespaces contains the list of namespace users have defined rules for.
-// NB(xichen): namespaces implements the Cache interface and can be used as
-// a zero-size forwarding cache that forwards all match requests to the backing
-// rulesets without caching any match results.
 type namespaces struct {
 	sync.RWMutex
 	runtime.Value
 
-	key            string
-	store          kv.Store
-	cache          Cache
-	opts           Options
-	log            xlog.Logger
-	ruleSetKeyFn   RuleSetKeyFn
-	nowFn          clock.NowFn
-	matchRangePast time.Duration
+	key                  string
+	store                kv.Store
+	opts                 Options
+	nowFn                clock.NowFn
+	log                  xlog.Logger
+	ruleSetKeyFn         RuleSetKeyFn
+	matchRangePast       time.Duration
+	onNamespaceAddedFn   OnNamespaceAddedFn
+	onNamespaceRemovedFn OnNamespaceRemovedFn
 
 	proto   *schema.Namespaces
-	rules   map[xid.Hash]*ruleSet
+	rules   map[xid.Hash]RuleSet
 	metrics namespacesMetrics
 }
 
-func newNamespaces(key string, cache Cache, opts Options) *namespaces {
+// NewNamespaces creates a new namespaces object.
+func NewNamespaces(key string, opts Options) Namespaces {
 	instrumentOpts := opts.InstrumentOptions()
 	n := &namespaces{
-		key:            key,
-		store:          opts.KVStore(),
-		cache:          cache,
-		opts:           opts,
-		log:            instrumentOpts.Logger(),
-		ruleSetKeyFn:   opts.RuleSetKeyFn(),
-		nowFn:          opts.ClockOptions().NowFn(),
-		matchRangePast: opts.MatchRangePast(),
-		proto:          &schema.Namespaces{},
-		rules:          make(map[xid.Hash]*ruleSet),
-		metrics:        newNamespacesMetrics(instrumentOpts.MetricsScope()),
+		key:                  key,
+		store:                opts.KVStore(),
+		opts:                 opts,
+		nowFn:                opts.ClockOptions().NowFn(),
+		log:                  instrumentOpts.Logger(),
+		ruleSetKeyFn:         opts.RuleSetKeyFn(),
+		matchRangePast:       opts.MatchRangePast(),
+		onNamespaceAddedFn:   opts.OnNamespaceAddedFn(),
+		onNamespaceRemovedFn: opts.OnNamespaceRemovedFn(),
+		proto:                &schema.Namespaces{},
+		rules:                make(map[xid.Hash]RuleSet),
+		metrics:              newNamespacesMetrics(instrumentOpts.MetricsScope()),
 	}
 	valueOpts := runtime.NewOptions().
 		SetInstrumentOptions(instrumentOpts).
@@ -106,6 +122,18 @@ func newNamespaces(key string, cache Cache, opts Options) *namespaces {
 		SetProcessFn(n.process)
 	n.Value = runtime.NewValue(key, valueOpts)
 	return n
+}
+
+func (n *namespaces) Version(namespace []byte) int {
+	nsHash := xid.HashFn(namespace)
+	n.RLock()
+	ruleSet, exists := n.rules[nsHash]
+	if !exists {
+		n.RUnlock()
+		return kv.UninitializedVersion
+	}
+	n.RUnlock()
+	return ruleSet.Version()
 }
 
 func (n *namespaces) Match(namespace, id []byte, fromNanos, toNanos int64) rules.MatchResult {
@@ -124,10 +152,7 @@ func (n *namespaces) Match(namespace, id []byte, fromNanos, toNanos int64) rules
 	return ruleSet.Match(id, fromNanos, toNanos)
 }
 
-func (n *namespaces) Register([]byte, Source) {}
-func (n *namespaces) Unregister([]byte)       {}
-
-func (n *namespaces) Close() error {
+func (n *namespaces) Close() {
 	// NB(xichen): we stop watching the value outside lock because otherwise we might
 	// be holding the namespace lock while attempting to acquire the value lock, and
 	// the updating goroutine might be holding the value lock and attempting to
@@ -139,13 +164,6 @@ func (n *namespaces) Close() error {
 		rs.Unwatch()
 	}
 	n.RUnlock()
-	return nil
-}
-
-func (n *namespaces) setCache(cache Cache) {
-	n.Lock()
-	n.cache = cache
-	n.Unlock()
 }
 
 func (n *namespaces) toNamespaces(value kv.Value) (interface{}, error) {
@@ -184,7 +202,7 @@ func (n *namespaces) process(value interface{}) error {
 			ruleSetScope := instrumentOpts.MetricsScope().SubScope("ruleset")
 			ruleSetOpts := n.opts.SetInstrumentOptions(instrumentOpts.SetMetricsScope(ruleSetScope))
 			ruleSetKey := n.ruleSetKeyFn(ns.Name())
-			ruleSet = newRuleSet(nsName, ruleSetKey, n.cache, ruleSetOpts)
+			ruleSet = newRuleSet(nsName, ruleSetKey, ruleSetOpts)
 			n.rules[nsHash] = ruleSet
 			n.metrics.added.Inc(1)
 		}
@@ -218,8 +236,8 @@ func (n *namespaces) process(value interface{}) error {
 			}
 		}
 
-		if !exists {
-			n.cache.Register(nsName, ruleSet)
+		if !exists && n.onNamespaceAddedFn != nil {
+			n.onNamespaceAddedFn(nsName, ruleSet)
 		}
 	}
 
@@ -231,7 +249,9 @@ func (n *namespaces) process(value interface{}) error {
 		// Process the namespaces not in the incoming update.
 		earliest := n.nowFn().Add(-n.matchRangePast)
 		if ruleSet.Tombstoned() && ruleSet.CutoverNanos() <= earliest.UnixNano() {
-			n.cache.Unregister(ruleSet.Namespace())
+			if n.onNamespaceRemovedFn != nil {
+				n.onNamespaceRemovedFn(ruleSet.Namespace())
+			}
 			delete(n.rules, nsHash)
 			ruleSet.Unwatch()
 			n.metrics.unwatched.Inc(1)

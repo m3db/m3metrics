@@ -72,7 +72,7 @@ func TestMatcherMatchDoesNotExist(t *testing.T) {
 		tagValueFn: func(tagName []byte) ([]byte, bool) { return nil, false },
 	}
 	now := time.Now()
-	matcher := testMatcher(t, nil)
+	matcher := testMatcher(t, newMemCache())
 	require.Equal(t, rules.EmptyMatchResult, matcher.Match(id, now.UnixNano(), now.UnixNano()))
 }
 

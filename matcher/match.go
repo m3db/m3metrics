@@ -42,7 +42,7 @@ type matcher struct {
 	namespaceTag     []byte
 	defaultNamespace []byte
 
-	namespaces *namespaces
+	namespaces Namespaces
 	cache      Cache
 }
 
@@ -50,17 +50,19 @@ type matcher struct {
 func NewMatcher(cache Cache, opts Options) (Matcher, error) {
 	instrumentOpts := opts.InstrumentOptions()
 	scope := instrumentOpts.MetricsScope()
-	namespacesScope := scope.SubScope("namespaces")
-	namespacesOpts := opts.SetInstrumentOptions(instrumentOpts.SetMetricsScope(namespacesScope))
+	iOpts := instrumentOpts.SetMetricsScope(scope.SubScope("namespaces"))
+	namespacesOpts := opts.SetInstrumentOptions(iOpts).
+		SetOnNamespaceAddedFn(func(namespace []byte, ruleSet RuleSet) {
+			cache.Register(namespace, ruleSet)
+		}).
+		SetOnNamespaceRemovedFn(func(namespace []byte) {
+			cache.Unregister(namespace)
+		}).
+		SetOnRuleSetUpdatedFn(func(namespace []byte, ruleSet RuleSet) {
+			cache.Register(namespace, ruleSet)
+		})
 	key := opts.NamespacesKey()
-	namespaces := newNamespaces(key, cache, namespacesOpts)
-	// NB(xichen): if there is no cache provided, the newly created
-	// namespaces object is used as a zero-size forwarding cache that
-	// forwards all match requests to the backing rulesets.
-	if cache == nil {
-		cache = namespaces
-		namespaces.setCache(namespaces)
-	}
+	namespaces := NewNamespaces(key, namespacesOpts)
 	if err := namespaces.Watch(); err != nil {
 		errCreateWatch, ok := err.(runtime.CreateWatchError)
 		if ok {
