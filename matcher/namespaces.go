@@ -128,11 +128,10 @@ func (n *namespaces) Version(namespace []byte) int {
 	nsHash := xid.HashFn(namespace)
 	n.RLock()
 	ruleSet, exists := n.rules[nsHash]
+	n.RUnlock()
 	if !exists {
-		n.RUnlock()
 		return kv.UninitializedVersion
 	}
-	n.RUnlock()
 	return ruleSet.Version()
 }
 
@@ -143,12 +142,11 @@ func (n *namespaces) Match(namespace, id []byte, fromNanos, toNanos int64) rules
 	)
 	n.RLock()
 	ruleSet, exists := n.rules[nsHash]
+	n.RUnlock()
 	if !exists {
-		n.RUnlock()
 		n.metrics.notExists.Inc(1)
 		return res
 	}
-	n.RUnlock()
 	return ruleSet.Match(id, fromNanos, toNanos)
 }
 
