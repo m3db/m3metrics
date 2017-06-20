@@ -234,7 +234,7 @@ func TestPoliciesListJSONMarshaling(t *testing.T) {
 					false,
 					[]Policy{
 						NewPolicy(NewStoragePolicy(10*time.Second, xtime.Second, 6*time.Hour), DefaultAggregationID),
-						NewPolicy(NewStoragePolicy(time.Minute, xtime.Minute, 24*time.Hour), mustCompress(Lower, Upper)),
+						NewPolicy(NewStoragePolicy(time.Minute, xtime.Minute, 24*time.Hour), mustCompress(Count, Mean)),
 					},
 				),
 				NewStagedPolicies(
@@ -250,7 +250,7 @@ func TestPoliciesListJSONMarshaling(t *testing.T) {
 					[]Policy{},
 				),
 			},
-			expected: `[{"cutoverNanos":0,"tombstoned":false,"policies":["10s@1s:6h0m0s","1m0s@1m:24h0m0s|Lower,Upper"]},` +
+			expected: `[{"cutoverNanos":0,"tombstoned":false,"policies":["10s@1s:6h0m0s","1m0s@1m:24h0m0s|Mean,Count"]},` +
 				`{"cutoverNanos":100,"tombstoned":true,"policies":["10s@1s:6h0m0s|Sum"]},` +
 				`{"cutoverNanos":200,"tombstoned":false,"policies":[]}]`,
 		},
