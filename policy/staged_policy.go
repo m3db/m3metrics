@@ -140,3 +140,12 @@ type PoliciesList []StagedPolicies
 func (l PoliciesList) IsDefault() bool {
 	return len(l) == 1 && l[0].IsDefault()
 }
+
+// VersionedPoliciesList is a versioned policies list.
+type VersionedPoliciesList struct {
+	// Version is the version associcated with the policies in the list.
+	Version int `json:"version"`
+
+	// PoliciesList contains the list of staged policies.
+	PoliciesList PoliciesList `json:"policiesList"`
+}
