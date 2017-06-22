@@ -78,6 +78,11 @@ func (r *MatchResult) HasExpired(timeNanos int64) bool { return r.expireAtNanos 
 // NumRollups returns the number of rollup metrics.
 func (r *MatchResult) NumRollups() int { return len(r.rollups) }
 
+// AllMappings returns all the mapping policies in the match result.
+func (r *MatchResult) AllMappings() policy.PoliciesList {
+	return r.mappings
+}
+
 // MappingsAt returns the active mapping policies at a given time.
 func (r *MatchResult) MappingsAt(timeNanos int64) policy.PoliciesList {
 	return activePoliciesAt(r.mappings, timeNanos)
