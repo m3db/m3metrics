@@ -150,7 +150,6 @@ func TestMatchResult(t *testing.T) {
 	}
 
 	res := NewMatchResult(0, testExpireAtNanos, testResultMappings, testResultRollups)
-	require.Equal(t, testResultMappings, res.AllMappings())
 	for _, input := range inputs {
 		require.Equal(t, input.expectedMappings, res.MappingsAt(input.matchAtNanos))
 		require.Equal(t, len(input.expectedRollups), res.NumRollups())
