@@ -46,6 +46,9 @@ var (
 type Namespaces interface {
 	runtime.Value
 
+	// Open opens the namespaces and starts watching runtime rule updates
+	Open() error
+
 	// Version returns the current version for a give namespace.
 	Version(namespace []byte) int
 
@@ -122,6 +125,27 @@ func NewNamespaces(key string, opts Options) Namespaces {
 		SetProcessFn(n.process)
 	n.Value = runtime.NewValue(key, valueOpts)
 	return n
+}
+
+func (n *namespaces) Open() error {
+	scope := n.opts.InstrumentOptions().MetricsScope()
+	if err := n.Watch(); err != nil {
+		errCreateWatch, ok := err.(runtime.CreateWatchError)
+		if ok {
+			scope.Counter("create-watch-errors").Inc(1)
+			return errCreateWatch
+		}
+		// NB(xichen): we managed to watch the key but weren't able
+		// to initialize the value. In this case, log the error instead
+		// to be more resilient to error conditions preventing process
+		// from starting up.
+		scope.Counter("init-watch-errors").Inc(1)
+		n.opts.InstrumentOptions().Logger().WithFields(
+			xlog.NewLogField("key", n.key),
+			xlog.NewLogErrField(err),
+		).Error("error initializing namespaces values")
+	}
+	return nil
 }
 
 func (n *namespaces) Version(namespace []byte) int {
