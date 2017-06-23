@@ -44,8 +44,6 @@ var (
 // Namespaces manages runtime updates to registered namespaces and provides
 // API to match metic ids against rules in the corresponding namespaces.
 type Namespaces interface {
-	runtime.Value
-
 	// Open opens the namespaces and starts watching runtime rule updates
 	Open() error
 
@@ -128,23 +126,26 @@ func NewNamespaces(key string, opts Options) Namespaces {
 }
 
 func (n *namespaces) Open() error {
-	scope := n.opts.InstrumentOptions().MetricsScope()
-	if err := n.Watch(); err != nil {
-		errCreateWatch, ok := err.(runtime.CreateWatchError)
-		if ok {
-			scope.Counter("create-watch-errors").Inc(1)
-			return errCreateWatch
-		}
-		// NB(xichen): we managed to watch the key but weren't able
-		// to initialize the value. In this case, log the error instead
-		// to be more resilient to error conditions preventing process
-		// from starting up.
-		scope.Counter("init-watch-errors").Inc(1)
-		n.opts.InstrumentOptions().Logger().WithFields(
-			xlog.NewLogField("key", n.key),
-			xlog.NewLogErrField(err),
-		).Error("error initializing namespaces values")
+	err := n.Watch()
+	if err == nil {
+		return nil
 	}
+
+	scope := n.opts.InstrumentOptions().MetricsScope()
+	errCreateWatch, ok := err.(runtime.CreateWatchError)
+	if ok {
+		scope.Counter("create-watch-errors").Inc(1)
+		return errCreateWatch
+	}
+	// NB(xichen): we managed to watch the key but weren't able
+	// to initialize the value. In this case, log the error instead
+	// to be more resilient to error conditions preventing process
+	// from starting up.
+	scope.Counter("init-watch-errors").Inc(1)
+	n.opts.InstrumentOptions().Logger().WithFields(
+		xlog.NewLogField("key", n.key),
+		xlog.NewLogErrField(err),
+	).Error("error initializing namespaces values, retrying in the background")
 	return nil
 }
 

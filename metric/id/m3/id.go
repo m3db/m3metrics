@@ -89,15 +89,14 @@ func IsRollupID(name []byte, tags []byte, iterPool id.SortedTagIteratorPool) boo
 		iter = iterPool.Get()
 		iter.Reset(tags)
 	}
+	defer iter.Close()
 
 	for iter.Next() {
 		name, val := iter.Current()
 		if bytes.Equal(name, rollupTagPair.Name) && bytes.Equal(val, rollupTagPair.Value) {
-			iter.Close()
 			return true
 		}
 	}
-	iter.Close()
 	return false
 }
 

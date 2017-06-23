@@ -58,7 +58,7 @@ func (cfg *Configuration) NewNamespaces(
 	}
 
 	namespaces := NewNamespaces(opts.NamespacesKey(), opts)
-	return namespaces, namespaces.Open()
+	return namespaces, nil
 }
 
 // NewMatcher creates a Matcher.
