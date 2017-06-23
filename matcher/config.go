@@ -82,6 +82,12 @@ func (cfg *Configuration) NewOptions(
 	clockOpts clock.Options,
 	instrumentOpts instrument.Options,
 ) (Options, error) {
+	// Configure rules kv store.
+	rulesStore, err := kvCluster.Store(cfg.RulesKVNamespace)
+	if err != nil {
+		return nil, err
+	}
+
 	// Configure rules options.
 	scope := instrumentOpts.MetricsScope().SubScope("sorted-tag-iterator-pool")
 	poolOpts := cfg.SortedTagIteratorPool.NewObjectPoolOptions(instrumentOpts.SetMetricsScope(scope))
@@ -108,12 +114,6 @@ func (cfg *Configuration) NewOptions(
 		SetTagsFilterOptions(tagsFilterOptions).
 		SetNewRollupIDFn(m3.NewRollupID).
 		SetIsRollupIDFn(isRollupIDFn)
-
-	// Configure rules kv store.
-	rulesStore, err := kvCluster.Store(cfg.RulesKVNamespace)
-	if err != nil {
-		return nil, err
-	}
 
 	// Configure ruleset key function.
 	ruleSetKeyFn := func(namespace []byte) string {

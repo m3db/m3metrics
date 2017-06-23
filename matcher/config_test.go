@@ -18,48 +18,42 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package cache
+package matcher
 
 import (
+	"testing"
 	"time"
 
-	"github.com/m3db/m3metrics/matcher"
+	"github.com/golang/mock/gomock"
+	"github.com/m3db/m3cluster/client"
+	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3x/clock"
 	"github.com/m3db/m3x/instrument"
+	"github.com/stretchr/testify/require"
 )
 
-// Configuration is config used to create a matcher.Cache.
-type Configuration struct {
-	Capacity          int           `yaml:"capacity"`
-	FreshDuration     time.Duration `yaml:"freshDuration"`
-	StutterDuration   time.Duration `yaml:"stutterDuration"`
-	EvictionBatchSize int           `yaml:"evictionBatchSize"`
-	DeletionBatchSize int           `yaml:"deletionBatchSize"`
-}
-
-// NewCache creates a matcher.Cache.
-func (cfg *Configuration) NewCache(
-	clockOpts clock.Options,
-	instrumentOpts instrument.Options,
-) matcher.Cache {
-	opts := NewOptions().
-		SetClockOptions(clockOpts).
-		SetInstrumentOptions(instrumentOpts)
-	if cfg.Capacity != 0 {
-		opts = opts.SetCapacity(cfg.Capacity)
-	}
-	if cfg.FreshDuration != 0 {
-		opts = opts.SetFreshDuration(cfg.FreshDuration)
-	}
-	if cfg.StutterDuration != 0 {
-		opts = opts.SetStutterDuration(cfg.StutterDuration)
-	}
-	if cfg.EvictionBatchSize != 0 {
-		opts = opts.SetEvictionBatchSize(cfg.EvictionBatchSize)
-	}
-	if cfg.DeletionBatchSize != 0 {
-		opts = opts.SetDeletionBatchSize(cfg.DeletionBatchSize)
+func TestConfigurationNewNamespaces(t *testing.T) {
+	cfg := Configuration{
+		InitWatchTimeout: time.Second,
+		RulesKVNamespace: "RulesKVNamespace",
+		NamespacesKey:    "NamespacesKey",
+		NamespaceTag:     "NamespaceTag",
+		DefaultNamespace: "DefaultNamespace",
+		NameTagKey:       "NameTagKey",
 	}
 
-	return NewCache(opts)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := client.NewMockClient(ctrl)
+
+	mem := mem.NewStore()
+	m.EXPECT().Store(cfg.RulesKVNamespace).Return(mem, nil)
+
+	opts, err := cfg.NewOptions(m, clock.NewOptions(), instrument.NewOptions())
+	require.NoError(t, err)
+	require.Equal(t, cfg.InitWatchTimeout, opts.InitWatchTimeout())
+	require.Equal(t, cfg.NamespacesKey, opts.NamespacesKey())
+	require.Equal(t, []byte(cfg.NamespaceTag), opts.NamespaceTag())
+	require.Equal(t, []byte(cfg.DefaultNamespace), opts.DefaultNamespace())
 }
