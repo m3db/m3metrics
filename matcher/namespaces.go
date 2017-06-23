@@ -59,22 +59,26 @@ type Namespaces interface {
 }
 
 type namespacesMetrics struct {
-	notExists   tally.Counter
-	added       tally.Counter
-	removed     tally.Counter
-	watched     tally.Counter
-	watchErrors tally.Counter
-	unwatched   tally.Counter
+	notExists         tally.Counter
+	added             tally.Counter
+	removed           tally.Counter
+	watched           tally.Counter
+	watchErrors       tally.Counter
+	unwatched         tally.Counter
+	createWatchErrors tally.Counter
+	initWatchErrors   tally.Counter
 }
 
 func newNamespacesMetrics(scope tally.Scope) namespacesMetrics {
 	return namespacesMetrics{
-		notExists:   scope.Counter("not-exists"),
-		added:       scope.Counter("added"),
-		removed:     scope.Counter("removed"),
-		watched:     scope.Counter("watched"),
-		watchErrors: scope.Counter("watch-errors"),
-		unwatched:   scope.Counter("unwatched"),
+		notExists:         scope.Counter("not-exists"),
+		added:             scope.Counter("added"),
+		removed:           scope.Counter("removed"),
+		watched:           scope.Counter("watched"),
+		watchErrors:       scope.Counter("watch-errors"),
+		unwatched:         scope.Counter("unwatched"),
+		createWatchErrors: scope.Counter("create-watch-errors"),
+		initWatchErrors:   scope.Counter("init-watch-errors"),
 	}
 }
 
@@ -131,17 +135,16 @@ func (n *namespaces) Open() error {
 		return nil
 	}
 
-	scope := n.opts.InstrumentOptions().MetricsScope()
 	errCreateWatch, ok := err.(runtime.CreateWatchError)
 	if ok {
-		scope.Counter("create-watch-errors").Inc(1)
+		n.metrics.createWatchErrors.Inc(1)
 		return errCreateWatch
 	}
 	// NB(xichen): we managed to watch the key but weren't able
 	// to initialize the value. In this case, log the error instead
 	// to be more resilient to error conditions preventing process
 	// from starting up.
-	scope.Counter("init-watch-errors").Inc(1)
+	n.metrics.initWatchErrors.Inc(1)
 	n.opts.InstrumentOptions().Logger().WithFields(
 		xlog.NewLogField("key", n.key),
 		xlog.NewLogErrField(err),
