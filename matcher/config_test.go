@@ -29,6 +29,7 @@ import (
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3x/clock"
 	"github.com/m3db/m3x/instrument"
+
 	"github.com/stretchr/testify/require"
 )
 
