@@ -44,6 +44,7 @@ type Configuration struct {
 	DefaultNamespace      string                       `yaml:"defaultNamespace" validate:"nonzero"`
 	NameTagKey            string                       `yaml:"nameTagKey" validate:"nonzero"`
 	SortedTagIteratorPool pool.ObjectPoolConfiguration `yaml:"sortedTagIteratorPool"`
+	MatchMode             string                       `yaml:"matchMode"`
 }
 
 // NewNamespaces creates a matcher.Namespaces.
@@ -82,6 +83,11 @@ func (cfg *Configuration) NewOptions(
 	clockOpts clock.Options,
 	instrumentOpts instrument.Options,
 ) (Options, error) {
+	mode, err := parseMatchMode(cfg.MatchMode)
+	if err != nil {
+		return nil, err
+	}
+
 	// Configure rules kv store.
 	rulesStore, err := kvCluster.Store(cfg.RulesKVNamespace)
 	if err != nil {
@@ -128,11 +134,22 @@ func (cfg *Configuration) NewOptions(
 		SetNamespacesKey(cfg.NamespacesKey).
 		SetRuleSetKeyFn(ruleSetKeyFn).
 		SetNamespaceTag([]byte(cfg.NamespaceTag)).
-		SetDefaultNamespace([]byte(cfg.DefaultNamespace))
+		SetDefaultNamespace([]byte(cfg.DefaultNamespace)).
+		SetMatchMode(mode)
 
 	if cfg.InitWatchTimeout != 0 {
 		opts = opts.SetInitWatchTimeout(cfg.InitWatchTimeout)
 	}
 
 	return opts, nil
+}
+
+func parseMatchMode(value string) (rules.MatchMode, error) {
+	mode := rules.MatchMode(value)
+	switch mode {
+	case rules.ForwardMatch, rules.ReverseMatch:
+		return mode, nil
+	default:
+		return mode, fmt.Errorf("unknown match mode: %s", value)
+	}
 }

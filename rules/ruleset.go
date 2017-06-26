@@ -42,18 +42,18 @@ var (
 )
 
 // MatchMode determines how match is performed.
-type MatchMode int
+type MatchMode string
 
 // List of supported match modes.
 const (
 	// When performing matches in ForwardMatch mode, the matcher matches the given id against
 	// both the mapping rules and rollup rules to find out the applicable mapping policies
 	// and rollup policies.
-	ForwardMatch MatchMode = iota
+	ForwardMatch MatchMode = "forward"
 
 	// When performing matches in ReverseMatch mode, the matcher find the applicable mapping
 	// policies for the given id.
-	ReverseMatch
+	ReverseMatch MatchMode = "reverse"
 )
 
 // Matcher matches metrics against rules to determine applicable policies.
