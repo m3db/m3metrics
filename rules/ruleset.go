@@ -23,6 +23,7 @@ package rules
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -55,6 +56,32 @@ const (
 	// policies for the given id.
 	ReverseMatch MatchMode = "reverse"
 )
+
+// UnmarshalYAML unmarshals match mode from a string.
+func (m *MatchMode) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var str string
+	if err := unmarshal(&str); err != nil {
+		return err
+	}
+
+	parsed, err := parseMatchMode(str)
+	if err != nil {
+		return err
+	}
+
+	*m = parsed
+	return nil
+}
+
+func parseMatchMode(value string) (MatchMode, error) {
+	mode := MatchMode(value)
+	switch mode {
+	case ForwardMatch, ReverseMatch:
+		return mode, nil
+	default:
+		return mode, fmt.Errorf("unknown match mode: %s", value)
+	}
+}
 
 // Matcher matches metrics against rules to determine applicable policies.
 type Matcher interface {
