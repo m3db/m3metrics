@@ -39,6 +39,10 @@ func Rule(ruleSet *schema.RuleSet, ruleName string) (*schema.MappingRule, *schem
 		rollupRule  *schema.RollupRule
 	)
 	for _, mr := range ruleSet.MappingRules {
+		if len(mr.Snapshots) == 0 {
+			continue
+		}
+
 		latestSnapshot := mr.Snapshots[len(mr.Snapshots)-1]
 		name := latestSnapshot.Name
 		if name != ruleName || latestSnapshot.Tombstoned {
@@ -51,6 +55,9 @@ func Rule(ruleSet *schema.RuleSet, ruleName string) (*schema.MappingRule, *schem
 		}
 	}
 	for _, rr := range ruleSet.RollupRules {
+		if len(rr.Snapshots) == 0 {
+			continue
+		}
 		latestSnapshot := rr.Snapshots[len(rr.Snapshots)-1]
 		name := latestSnapshot.Name
 		if name != ruleName || latestSnapshot.Tombstoned {
@@ -65,6 +72,10 @@ func Rule(ruleSet *schema.RuleSet, ruleName string) (*schema.MappingRule, *schem
 	if mappingRule != nil && rollupRule != nil {
 		return nil, nil, errMultipleMatches
 	}
+
+	if mappingRule == nil && rollupRule == nil {
+		return nil, nil, kv.ErrNotFound
+	}
 	return mappingRule, rollupRule, nil
 }
 
@@ -75,12 +86,12 @@ func RuleSet(store kv.Store, ruleSetKey string) (int, *schema.RuleSet, error) {
 		return 0, nil, err
 	}
 	version := value.Version()
-	ruleSet := &schema.RuleSet{}
-	if err := value.Unmarshal(ruleSet); err != nil {
+	var ruleSet schema.RuleSet
+	if err := value.Unmarshal(&ruleSet); err != nil {
 		return 0, nil, err
 	}
 
-	return version, ruleSet, nil
+	return version, &ruleSet, nil
 }
 
 // RuleSetKey returns the ruleset key given the service name.

@@ -23,6 +23,7 @@ package handlers
 import (
 	"testing"
 
+	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/stretchr/testify/require"
@@ -80,11 +81,13 @@ func TestNamespace(t *testing.T) {
 
 func TestNamespaceError(t *testing.T) {
 	res, err := Namespace(badNamespaces, "blah")
-	require.NoError(t, err)
+	require.Error(t, err)
+	require.Equal(t, err, kv.ErrNotFound)
 	require.Nil(t, res)
 
 	res, err = Namespace(badNamespaces, "fooNs")
-	require.Error(t, err, errMultipleMatches.Error())
+	require.Error(t, err)
+	require.Equal(t, err, errMultipleMatches)
 	require.Nil(t, res)
 }
 
@@ -119,7 +122,7 @@ func TestValidateNamespaceDNE(t *testing.T) {
 	store.Set(testNamespaceKey, testNamespaces)
 	_, _, _, err := ValidateNamespace(store, testNamespaceKey, "blah")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "doesn't exist")
+	require.Contains(t, err.Error(), "not found")
 }
 
 func TestValidateNamespaceTombstoned(t *testing.T) {

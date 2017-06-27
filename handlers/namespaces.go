@@ -33,12 +33,14 @@ func Namespaces(store kv.Store, namespacesKey string) (int, *schema.Namespaces, 
 	if err != nil {
 		return 0, nil, err
 	}
+
 	version := value.Version()
-	services := &schema.Namespaces{}
-	if err := value.Unmarshal(services); err != nil {
+	var namespaces schema.Namespaces
+	if err := value.Unmarshal(&namespaces); err != nil {
 		return 0, nil, err
 	}
-	return version, services, nil
+
+	return version, &namespaces, nil
 }
 
 // ValidateNamespace validates whether a given namespace exists.
@@ -54,13 +56,16 @@ func ValidateNamespace(store kv.Store, namespacesKey string, namespaceName strin
 	if ns == nil {
 		return 0, nil, nil, fmt.Errorf("namespace %s doesn't exist", namespaceName)
 	}
+	if len(ns.Snapshots) == 0 {
+		return 0, nil, nil, fmt.Errorf("namespace %s has no snapshots", namespaceName)
+	}
 	if ns.Snapshots[len(ns.Snapshots)-1].Tombstoned {
 		return 0, nil, nil, fmt.Errorf("namespace %s is tombstoned", namespaceName)
 	}
 	return namespacesVersion, namespaces, ns, nil
 }
 
-// Namespace returns the service with a given name, or an error if there are
+// Namespace returns the namespace with a given name, or an error if there are
 // multiple matches.
 func Namespace(services *schema.Namespaces, namespaceName string) (*schema.Namespace, error) {
 	var namespace *schema.Namespace
@@ -74,5 +79,10 @@ func Namespace(services *schema.Namespaces, namespaceName string) (*schema.Names
 			return nil, errMultipleMatches
 		}
 	}
+
+	if namespace == nil {
+		return nil, kv.ErrNotFound
+	}
+
 	return namespace, nil
 }
