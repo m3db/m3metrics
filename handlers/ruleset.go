@@ -94,7 +94,7 @@ func RuleSet(store kv.Store, ruleSetKey string) (int, *schema.RuleSet, error) {
 	return version, &ruleSet, nil
 }
 
-// RuleSetKey returns the ruleset key given the service name.
+// RuleSetKey returns the ruleset key given the namespace name.
 func RuleSetKey(keyFmt string, namespace string) string {
 	return fmt.Sprintf(keyFmt, namespace)
 }

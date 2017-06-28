@@ -47,7 +47,7 @@ func Namespaces(store kv.Store, namespacesKey string) (int, *schema.Namespaces, 
 func ValidateNamespace(store kv.Store, namespacesKey string, namespaceName string) (int, *schema.Namespaces, *schema.Namespace, error) {
 	namespacesVersion, namespaces, err := Namespaces(store, namespacesKey)
 	if err != nil {
-		return 0, nil, nil, fmt.Errorf("could not read services data: %v", err)
+		return 0, nil, nil, fmt.Errorf("could not read namespaces data: %v", err)
 	}
 	ns, err := Namespace(namespaces, namespaceName)
 	if err != nil {
@@ -67,9 +67,9 @@ func ValidateNamespace(store kv.Store, namespacesKey string, namespaceName strin
 
 // Namespace returns the namespace with a given name, or an error if there are
 // multiple matches.
-func Namespace(services *schema.Namespaces, namespaceName string) (*schema.Namespace, error) {
+func Namespace(namespaces *schema.Namespaces, namespaceName string) (*schema.Namespace, error) {
 	var namespace *schema.Namespace
-	for _, ns := range services.Namespaces {
+	for _, ns := range namespaces.Namespaces {
 		if ns.Name != namespaceName {
 			continue
 		}
