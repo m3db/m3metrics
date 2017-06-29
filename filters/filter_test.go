@@ -29,9 +29,19 @@ import (
 
 func TestFilters(t *testing.T) {
 	filters := genAndValidateFilters(t, []testPattern{
-		testPattern{pattern: "f[A-z]?*", expectedStr: "StartsWith(Equals(\"f\") then Range(\"A-z\") then AnyChar)"},
-		testPattern{pattern: "*ba[a-z]", expectedStr: "EndsWith(Equals(\"ba\") then Range(\"a-z\"))"},
-		testPattern{pattern: "fo*?ba[!0-9][0-9]{8,9}", expectedStr: "StartsWith(Equals(\"fo\")) && EndsWith(AnyChar then Equals(\"ba\") then Not(Range(\"0-9\")) then Range(\"0-9\") then Range(\"8,9\"))"},
+		testPattern{
+			pattern:     "f[A-z]?*",
+			expectedStr: "StartsWith(Equals(\"f\") then Range(\"A-z\") then AnyChar)",
+		},
+		testPattern{
+			pattern:     "*ba[a-z]",
+			expectedStr: "EndsWith(Equals(\"ba\") then Range(\"a-z\"))",
+		},
+		testPattern{
+			pattern: "fo*?ba[!0-9][0-9]{8,9}",
+			expectedStr: "StartsWith(Equals(\"fo\")) && EndsWith(AnyChar then Equals(\"ba\") then " +
+				"Not(Range(\"0-9\")) then Range(\"0-9\") then Range(\"8,9\"))",
+		},
 	})
 
 	inputs := []testInput{
@@ -44,9 +54,12 @@ func TestFilters(t *testing.T) {
 	}
 
 	for _, input := range inputs {
-		for i, expectedMatch := range input.matches {
-			require.Equal(t, expectedMatch, filters[i].Matches(input.val),
-				fmt.Sprintf("input: %s, pattern: %s", input.val, filters[i].String()))
+		for i, expected := range input.matches {
+			actual := filters[i].Matches(input.val)
+			require.Equal(
+				t, expected, actual,
+				fmt.Sprintf("input: '%s', pattern: '%s'", input.val, filters[i].String()),
+			)
 		}
 	}
 }
@@ -57,28 +70,61 @@ func TestEqualityFilter(t *testing.T) {
 		{val: "fo", match: false},
 		{val: "foob", match: false},
 	}
+
 	f := newEqualityFilter([]byte("foo"))
 	for _, input := range inputs {
-		require.Equal(t, input.match, f.Matches([]byte(input.val)))
+		actual := f.Matches([]byte(input.val))
+		require.Equal(
+			t, input.match, actual,
+			fmt.Sprintf("input: '%s', pattern: '%s'", input.val, f.String()),
+		)
 	}
 }
 
 func TestEmptyFilter(t *testing.T) {
+	inputs := []mockFilterData{
+		{val: "", match: true},
+		{val: " ", match: false},
+		{val: "foo", match: false},
+	}
+
 	f, err := NewFilter(nil)
 	require.NoError(t, err)
-	require.True(t, f.Matches([]byte("")))
-	require.False(t, f.Matches([]byte(" ")))
-	require.False(t, f.Matches([]byte("foo")))
+	for _, input := range inputs {
+		actual := f.Matches([]byte(input.val))
+		require.Equal(
+			t, input.match, actual,
+			fmt.Sprintf("input: '%s', pattern: '%s'", input.val, f.String()),
+		)
+	}
 }
 
 func TestWildcardFilters(t *testing.T) {
 	filters := genAndValidateFilters(t, []testPattern{
-		testPattern{pattern: "foo", expectedStr: "Equals(\"foo\")"},
-		testPattern{pattern: "*bar", expectedStr: "EndsWith(Equals(\"bar\"))"},
-		testPattern{pattern: "baz*", expectedStr: "StartsWith(Equals(\"baz\"))"},
-		testPattern{pattern: "*cat*", expectedStr: "Contains(\"cat\")"},
-		testPattern{pattern: "foo*bar", expectedStr: "StartsWith(Equals(\"foo\")) && EndsWith(Equals(\"bar\"))"},
-		testPattern{pattern: "*", expectedStr: "All"},
+		testPattern{
+			pattern:     "foo",
+			expectedStr: "Equals(\"foo\")",
+		},
+		testPattern{
+			pattern:     "*bar",
+			expectedStr: "EndsWith(Equals(\"bar\"))",
+		},
+		testPattern{
+			pattern:     "baz*",
+			expectedStr: "StartsWith(Equals(\"baz\"))",
+		},
+		testPattern{
+			pattern:     "*cat*",
+			expectedStr: "Contains(\"cat\")",
+		},
+		testPattern{
+			pattern:     "foo*bar",
+			expectedStr: "StartsWith(Equals(\"foo\")) && EndsWith(Equals(\"bar\"))",
+		},
+		testPattern{
+			pattern:     "*",
+			expectedStr: "All",
+		},
 	})
 
 	inputs := []testInput{
@@ -95,24 +141,56 @@ func TestWildcardFilters(t *testing.T) {
 	}
 
 	for _, input := range inputs {
-		for i, expectedMatch := range input.matches {
-			require.Equal(t, expectedMatch, filters[i].Matches(input.val),
-				fmt.Sprintf("input: %s, pattern: %s", input.val, filters[i].String()))
+		for i, expected := range input.matches {
+			actual := filters[i].Matches(input.val)
+			require.Equal(
+				t, expected, actual,
+				fmt.Sprintf("input: '%s', pattern: '%s'", input.val, filters[i].String()),
+			)
 		}
 	}
 }
 
 func TestRangeFilters(t *testing.T) {
 	filters := genAndValidateFilters(t, []testPattern{
-		testPattern{pattern: "fo[a-zA-Z0-9]", expectedStr: "Equals(\"fo\") then Range(\"a-z || A-Z || 0-9\")"},
-		testPattern{pattern: "f[o-o]?", expectedStr: "Equals(\"f\") then Range(\"o-o\") then AnyChar"},
-		testPattern{pattern: "???", expectedStr: "AnyChar then AnyChar then AnyChar"},
-		testPattern{pattern: "ba?", expectedStr: "Equals(\"ba\") then AnyChar"},
-		testPattern{pattern: "[!cC]ar", expectedStr: "Not(Range(\"cC\")) then Equals(\"ar\")"},
-		testPattern{pattern: "ba?[0-9][!a-z]9", expectedStr: "Equals(\"ba\") then AnyChar then Range(\"0-9\") then Not(Range(\"a-z\")) then Equals(\"9\")"},
-		testPattern{pattern: "{ba,fo,car}*", expectedStr: "StartsWith(Range(\"ba,fo,car\"))"},
-		testPattern{pattern: "ba{r,t}*[!a-zA-Z]", expectedStr: "StartsWith(Equals(\"ba\") then Range(\"r,t\")) && EndsWith(Not(Range(\"a-z || A-Z\")))"},
-		testPattern{pattern: "*{9}", expectedStr: "EndsWith(Range(\"9\"))"},
+		testPattern{
+			pattern:     "fo[a-zA-Z0-9]",
+			expectedStr: "Equals(\"fo\") then Range(\"a-z || A-Z || 0-9\")",
+		},
+		testPattern{
+			pattern:     "f[o-o]?",
+			expectedStr: "Equals(\"f\") then Range(\"o-o\") then AnyChar",
+		},
+		testPattern{
+			pattern:     "???",
+			expectedStr: "AnyChar then AnyChar then AnyChar",
+		},
+		testPattern{
+			pattern:     "ba?",
+			expectedStr: "Equals(\"ba\") then AnyChar",
+		},
+		testPattern{
+			pattern:     "[!cC]ar",
+			expectedStr: "Not(Range(\"cC\")) then Equals(\"ar\")",
+		},
+		testPattern{
+			pattern: "ba?[0-9][!a-z]9",
+			expectedStr: "Equals(\"ba\") then AnyChar then Range(\"0-9\") " +
+				"then Not(Range(\"a-z\")) then Equals(\"9\")",
+		},
+		testPattern{
+			pattern:     "{ba,fo,car}*",
+			expectedStr: "StartsWith(Range(\"ba,fo,car\"))",
+		},
+		testPattern{
+			pattern: "ba{r,t}*[!a-zA-Z]",
+			expectedStr: "StartsWith(Equals(\"ba\") then Range(\"r,t\")) && " +
+				"EndsWith(Not(Range(\"a-z || A-Z\")))",
+		},
+		testPattern{
+			pattern:     "*{9}",
+			expectedStr: "EndsWith(Range(\"9\"))",
+		},
 	})
 
 	inputs := []testInput{
@@ -130,9 +208,11 @@ func TestRangeFilters(t *testing.T) {
 	}
 
 	for _, input := range inputs {
-		for i, expectedMatch := range input.matches {
-			require.Equal(t, expectedMatch, filters[i].Matches(input.val),
-				fmt.Sprintf("input: %s, pattern: %s", input.val, filters[i].String()))
+		for i, expected := range input.matches {
+			actual := filters[i].Matches(input.val)
+			require.Equal(
+				t, expected, actual,
+				fmt.Sprintf("input: '%s', pattern: '%s'", input.val, filters[i].String()))
 		}
 	}
 }
@@ -156,21 +236,42 @@ func TestMultiFilter(t *testing.T) {
 	}
 
 	for _, input := range inputs {
-		for i, expectedMatch := range input.matches {
-			require.Equal(t, expectedMatch, filters[i].Matches(input.val),
-				fmt.Sprintf("input: %s, pattern: %s", input.val, filters[i].String()))
+		for i, expected := range input.matches {
+			actual := filters[i].Matches(input.val)
+			require.Equal(
+				t, expected, actual,
+				fmt.Sprintf("input: '%s', pattern: '%s'", input.val, filters[i].String()),
+			)
 		}
 	}
 }
 
 func TestNegationFilter(t *testing.T) {
 	filters := genAndValidateFilters(t, []testPattern{
-		testPattern{pattern: "!foo", expectedStr: "Not(Equals(\"foo\"))"},
-		testPattern{pattern: "!*bar", expectedStr: "Not(EndsWith(Equals(\"bar\")))"},
-		testPattern{pattern: "!baz*", expectedStr: "Not(StartsWith(Equals(\"baz\")))"},
-		testPattern{pattern: "!*cat*", expectedStr: "Not(Contains(\"cat\"))"},
-		testPattern{pattern: "!foo*bar", expectedStr: "Not(StartsWith(Equals(\"foo\")) && EndsWith(Equals(\"bar\")))"},
-		testPattern{pattern: "foo!", expectedStr: "Equals(\"foo!\")"},
+		testPattern{
+			pattern:     "!foo",
+			expectedStr: "Not(Equals(\"foo\"))",
+		},
+		testPattern{
+			pattern:     "!*bar",
+			expectedStr: "Not(EndsWith(Equals(\"bar\")))",
+		},
+		testPattern{
+			pattern:     "!baz*",
+			expectedStr: "Not(StartsWith(Equals(\"baz\")))",
+		},
+		testPattern{
+			pattern:     "!*cat*",
+			expectedStr: "Not(Contains(\"cat\"))",
+		},
+		testPattern{
+			pattern:     "!foo*bar",
+			expectedStr: "Not(StartsWith(Equals(\"foo\")) && EndsWith(Equals(\"bar\")))",
+		},
+		testPattern{
+			pattern:     "foo!",
+			expectedStr: "Equals(\"foo!\")",
+		},
 	})
 
 	inputs := []testInput{
@@ -186,10 +287,93 @@ func TestNegationFilter(t *testing.T) {
 	}
 
 	for _, input := range inputs {
-		for i, expectedMatch := range input.matches {
-			require.Equal(t, expectedMatch, filters[i].Matches(input.val),
-				fmt.Sprintf("input: %s, pattern: %s", input.val, filters[i].String()))
+		for i, expected := range input.matches {
+			actual := filters[i].Matches(input.val)
+			require.Equal(
+				t, expected, actual,
+				fmt.Sprintf("input: '%s', pattern: '%s'", input.val, filters[i].String()),
+			)
 		}
+	}
+}
+
+func TestMatchAllFilter(t *testing.T) {
+	inputs := []mockFilterData{
+		{val: "", match: true},
+		{val: "foo", match: true},
+	}
+
+	f := NewMatchAllFilter()
+	for _, input := range inputs {
+		actual := f.Matches([]byte(input.val))
+		require.Equal(
+			t, input.match, actual,
+			fmt.Sprintf("input: '%s', pattern: '%s'", input.val, f.String()),
+		)
+	}
+}
+
+func TestMatchNoneFilter(t *testing.T) {
+	inputs := []mockFilterData{
+		{val: "", match: false},
+		{val: "foo", match: false},
+	}
+
+	f := NewMatchNoneFilter()
+	for _, input := range inputs {
+		actual := f.Matches([]byte(input.val))
+		require.Equal(
+			t, input.match, actual,
+			fmt.Sprintf("input: '%s', pattern: '%s'", input.val, f.String()),
+		)
+	}
+}
+
+func TestTimestampFilter(t *testing.T) {
+	inputs := []mockFilterData{
+		{val: "", match: false},
+		{val: "foo", match: false},
+		{val: "1399999999", match: false},
+		{val: "2000000000", match: false},
+		{val: "1400000000", match: true},
+		{val: "1999999999", match: true},
+		{val: "1498768589", match: true},
+		{val: "foo.1498768589", match: true},
+		{val: "1498768589.foo", match: true},
+		{val: "foo.1498768589.bar", match: true},
+	}
+
+	f := NewTimestampFilter()
+	for _, input := range inputs {
+		actual := f.Matches([]byte(input.val))
+		require.Equal(
+			t, input.match, actual,
+			fmt.Sprintf("input: '%s', pattern: '%s'", input.val, f.String()),
+		)
+	}
+}
+
+func TestUUIDFilter(t *testing.T) {
+	inputs := []mockFilterData{
+		{val: "", match: false},
+		{val: "foo", match: false},
+		{val: "c52efb39805149b98bee15346037f727", match: true},
+		{val: "foo.c52efb39805149b98bee15346037f727", match: true},
+		{val: "c52efb39805149b98bee15346037f727.foo", match: true},
+		{val: "foo.c52efb39805149b98bee15346037f727.bar", match: true},
+		{val: "c52efb39-8051-49b9-8bee-15346037f727", match: true},
+		{val: "foo.c52efb39-8051-49b9-8bee-15346037f727", match: true},
+		{val: "c52efb39-8051-49b9-8bee-15346037f727.foo", match: true},
+		{val: "foo.c52efb39-8051-49b9-8bee-15346037f727.bar", match: true},
+	}
+
+	f := NewUUIDFilter()
+	for _, input := range inputs {
+		actual := f.Matches([]byte(input.val))
+		require.Equal(
+			t, input.match, actual,
+			fmt.Sprintf("input: '%s', pattern: '%s'", input.val, f.String()),
+		)
 	}
 }
 
@@ -218,7 +402,7 @@ func TestBadPatterns(t *testing.T) {
 
 	for _, pattern := range patterns {
 		_, err := NewFilter([]byte(pattern))
-		require.Error(t, err, fmt.Sprintf("pattern: %s", pattern))
+		require.Error(t, err, fmt.Sprintf("pattern: '%s'", pattern))
 	}
 }
 
@@ -252,7 +436,9 @@ func TestMultiCharSequenceFilter(t *testing.T) {
 	validateLookup(t, f, "123book", true, "123")
 }
 
-func validateLookup(t *testing.T, f chainFilter, val string, expectedMatch bool, expectedRemainder string) {
+func validateLookup(
+	t *testing.T, f chainFilter, val string, expectedMatch bool, expectedRemainder string,
+) {
 	remainder, match := f.matches([]byte(val))
 	require.Equal(t, expectedMatch, match)
 	require.Equal(t, expectedRemainder, string(remainder))
@@ -277,7 +463,9 @@ func genAndValidateFilters(t *testing.T, patterns []testPattern) []Filter {
 	filters := make([]Filter, len(patterns))
 	for i, pattern := range patterns {
 		filters[i], err = NewFilter([]byte(pattern.pattern))
-		require.NoError(t, err, fmt.Sprintf("No error expected, but got: %v for pattern: %s", err, pattern.pattern))
+		require.NoError(
+			t, err, fmt.Sprintf("No error expected, but got: %v for pattern: '%s'", err, pattern.pattern),
+		)
 		require.Equal(t, pattern.expectedStr, filters[i].String())
 	}
 

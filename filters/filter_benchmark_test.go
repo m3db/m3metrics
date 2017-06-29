@@ -147,6 +147,30 @@ func BenchmarkMultiRangeFilterTrieSix(b *testing.B) {
 	benchMultiRangeFilterTrie(b, []byte("test_1,test_2,staging_1,staging_2,prod_1,prod_2"), false, [][]byte{[]byte("prod_1"), []byte("staging_3")})
 }
 
+func BenchmarkMatchByteSlice5(b *testing.B) {
+	benchmarkMatchByteSlice(b, 5)
+}
+
+func BenchmarkMatchByteSet5(b *testing.B) {
+	benchmarkMatchByteSet(b, 5)
+}
+
+func BenchmarkMatchByteSlice35(b *testing.B) {
+	benchmarkMatchByteSlice(b, 35)
+}
+
+func BenchmarkMatchByteSet35(b *testing.B) {
+	benchmarkMatchByteSet(b, 35)
+}
+
+func BenchmarkMatchByteSlice100(b *testing.B) {
+	benchmarkMatchByteSlice(b, 100)
+}
+
+func BenchmarkMatchByteSet100(b *testing.B) {
+	benchmarkMatchByteSet(b, 100)
+}
+
 func benchMultiRangeFilter(b *testing.B, patterns []byte, backwards bool, vals [][]byte) {
 	f, _ := newMultiCharSequenceFilter(patterns, backwards)
 	for n := 0; n < b.N; n++ {
@@ -482,5 +506,39 @@ func (t *byteTrie) listTraverse(val []byte, results *traverseResults, backwards 
 		}
 
 		c.listTraverse(newVal, results, backwards)
+	}
+}
+
+func benchmarkMatchByteSlice(b *testing.B, max byte) {
+	var (
+		i     byte
+		bytes = make([]byte, 0, max)
+	)
+	for ; i < max; i++ {
+		bytes = append(bytes, i)
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		for _, b := range bytes {
+			if b == byte(max) {
+				break
+			}
+		}
+	}
+}
+
+func benchmarkMatchByteSet(b *testing.B, max byte) {
+	var (
+		i     byte
+		bytes = make(map[byte]struct{}, max)
+	)
+	for ; i < max; i++ {
+		bytes[i] = struct{}{}
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_ = bytes[max]
 	}
 }

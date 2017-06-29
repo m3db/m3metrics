@@ -27,10 +27,14 @@ import (
 )
 
 var (
-	errInvalidFilterPattern                  = errors.New("invalid filter pattern defined")
-	allowAllFilter               Filter      = allowFilter{}
-	singleAnyCharFilterForwards  chainFilter = &singleAnyCharFilter{backwards: false}
-	singleAnyCharFilterBackwards chainFilter = &singleAnyCharFilter{backwards: true}
+	errInvalidFilterPattern = errors.New("invalid filter pattern defined")
+
+	_matchAllFilter               Filter      = matchAllFilter{}
+	_matchNoneFilter              Filter      = matchNoneFilter{}
+	_timestampFilter              Filter      = timestampFilter{}
+	_uuidFilter                   Filter      = uuidFilter{}
+	_singleAnyCharFilterForwards  chainFilter = &singleAnyCharFilter{backwards: false}
+	_singleAnyCharFilterBackwards chainFilter = &singleAnyCharFilter{backwards: true}
 )
 
 // LogicalOp is a logical operator.
@@ -65,7 +69,8 @@ var (
 	multiRangeSplit = []byte(",")
 )
 
-// Filter matches a string against certain conditions.
+// Filter matches a string against certain conditions. All Filters must be
+// goroutine safe.
 type Filter interface {
 	fmt.Stringer
 
@@ -112,7 +117,7 @@ func newWildcardFilter(pattern []byte) (Filter, error) {
 
 	if len(pattern) == 1 {
 		// Whole thing is wildcard.
-		return newAllowFilter(), nil
+		return NewMatchAllFilter(), nil
 	}
 
 	if wIdx == len(pattern)-1 {
@@ -217,13 +222,6 @@ func newRangeFilter(pattern []byte, backwards bool, seg chainSegment) (Filter, e
 	return newMultiChainFilter(filters, seg, backwards), nil
 }
 
-// allowFilter is a filter that allows all.
-type allowFilter struct{}
-
-func newAllowFilter() Filter                  { return allowAllFilter }
-func (f allowFilter) String() string          { return "All" }
-func (f allowFilter) Matches(val []byte) bool { return true }
-
 // equalityFilter is a filter that matches exact values.
 type equalityFilter struct {
 	pattern []byte
@@ -277,6 +275,95 @@ func (f *negationFilter) String() string {
 
 func (f *negationFilter) Matches(val []byte) bool {
 	return !f.filter.Matches(val)
+}
+
+// matchAllFilter is a filter that matches all input.
+type matchAllFilter struct{}
+
+// NewMatchAllFilter returns a filter that matches all input.
+func NewMatchAllFilter() Filter                  { return _matchAllFilter }
+func (f matchAllFilter) String() string          { return "All" }
+func (f matchAllFilter) Matches(val []byte) bool { return true }
+
+// matchNoneFilter is a filter that does not match any input.
+type matchNoneFilter struct{}
+
+// NewMatchNoneFilter returns a filter that does not match any input.
+func NewMatchNoneFilter() Filter                  { return _matchNoneFilter }
+func (f matchNoneFilter) String() string          { return "None" }
+func (f matchNoneFilter) Matches(val []byte) bool { return false }
+
+// timestampFilter is a filter that matches timestamps.
+type timestampFilter struct{}
+
+// NewTimestampFilter returns a filter that matches any input that
+// contains timestamps.
+func NewTimestampFilter() Filter         { return _timestampFilter }
+func (f timestampFilter) String() string { return "Timestamp" }
+func (f timestampFilter) Matches(val []byte) bool {
+	if len(val) < 10 {
+		return false
+	}
+
+	var count int
+	for i := 1; i-count <= len(val)-9; i++ {
+		// Only look for timestamps between 1400000000 (2014-05-12) and
+		// 2000000000 (2033-05-18).
+		if count == 0 {
+			if val[i-1] == '1' && '4' <= val[i] && val[i] <= '9' {
+				count = 2
+			}
+			continue
+		}
+
+		if '0' <= val[i] && val[i] <= '9' {
+			count++
+		} else {
+			count = 0
+		}
+
+		if count == 10 {
+			return true
+		}
+	}
+
+	return false
+}
+
+// uuidFilter is a filter that matches UUID's.
+type uuidFilter struct{}
+
+// NewUUIDFilter returns a filter that matches any input that contains UUID's,
+// which are defined as 32 consecutive hexidecimal characters, ignoring hyphens.
+func NewUUIDFilter() Filter         { return _uuidFilter }
+func (f uuidFilter) String() string { return "UUID" }
+func (f uuidFilter) Matches(val []byte) bool {
+	var (
+		count int
+		end   = len(val)
+	)
+
+	for i := 0; i-count <= end-32; i++ {
+		// Ignore hyphens.
+		if val[i] == '-' {
+			continue
+		}
+
+		if !isHex(val[i]) {
+			count = 0
+			continue
+		}
+
+		if count++; count >= 32 {
+			return true
+		}
+	}
+	return false
+}
+
+// isHex returns a bool indicating whether a byte is a hexidecimal character.
+func isHex(b byte) bool {
+	return ('a' <= b && b <= 'f') || ('0' <= b && b <= '9') || ('A' <= b && b <= 'F')
 }
 
 // multiFilter chains multiple filters together with a logicalOp.
@@ -365,10 +452,10 @@ type singleAnyCharFilter struct {
 
 func newSingleAnyCharFilter(backwards bool) chainFilter {
 	if backwards {
-		return singleAnyCharFilterBackwards
+		return _singleAnyCharFilterBackwards
 	}
 
-	return singleAnyCharFilterForwards
+	return _singleAnyCharFilterForwards
 }
 
 func (f *singleAnyCharFilter) String() string { return "AnyChar" }
