@@ -21,16 +21,51 @@
 package handlers
 
 import (
-	"errors"
 	"fmt"
+	"time"
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/generated/proto/schema"
+	"github.com/pborman/uuid"
 )
 
-var (
-	errMultipleMatches = errors.New("more than one match found")
-)
+// RuleByID ...
+func RuleByID(ruleSet *schema.RuleSet, uuid string) (*schema.MappingRule, *schema.RollupRule, error) {
+	var (
+		mappingRule *schema.MappingRule
+		rollupRule  *schema.RollupRule
+	)
+	for _, mr := range ruleSet.MappingRules {
+		if mr.Uuid != uuid {
+			continue
+		}
+		if mappingRule == nil {
+			mappingRule = mr
+		} else {
+			return nil, nil, errMultipleMatches
+		}
+	}
+
+	for _, rr := range ruleSet.RollupRules {
+		if rr.Uuid != uuid {
+			continue
+		}
+		if rollupRule == nil {
+			rollupRule = rr
+		} else {
+			return nil, nil, errMultipleMatches
+		}
+	}
+
+	if mappingRule != nil && rollupRule != nil {
+		return nil, nil, errMultipleMatches
+	}
+
+	if mappingRule == nil && rollupRule == nil {
+		return nil, nil, kv.ErrNotFound
+	}
+	return mappingRule, rollupRule, nil
+}
 
 // Rule returns the rule with a given name, or an error if there are mutliple matches
 func Rule(ruleSet *schema.RuleSet, ruleName string) (*schema.MappingRule, *schema.RollupRule, error) {
@@ -109,4 +144,117 @@ func ValidateRuleSet(store kv.Store, ruleSetKey string) (int, *schema.RuleSet, e
 		return 0, nil, fmt.Errorf("ruleset %s is tombstoned", ruleSetKey)
 	}
 	return ruleSetVersion, ruleSet, nil
+}
+
+// UpdateRules updates an existing RuleSet by appending a diffRuleSet to it.
+func UpdateRules(store kv.TxnStore,
+	ruleSet, diffRuleSet *schema.RuleSet,
+	ruleSetKey string, ruleSetVersion int,
+	namespacesKey string, namespacesVersion int,
+	propDelay time.Duration,
+) error {
+	if ruleSet == nil {
+		return fmt.Errorf("Original ruleset is none")
+	}
+	if diffRuleSet == nil {
+		return fmt.Errorf("Diff ruleset is none")
+	}
+
+	err := appendToRuleSet(ruleSet, diffRuleSet)
+	if err != nil {
+		return err
+	}
+
+	nowNs := time.Now().UnixNano()
+	ruleSet.LastUpdatedAt = nowNs
+	ruleSet.CutoverTime = NewCutoverNs(nowNs, ruleSet.CutoverTime, propDelay)
+
+	// Perform a transaction and only update if the namespaces version
+	// and ruleSet version were unchanged.
+	namespacesCond := kv.NewCondition().
+		SetKey(namespacesKey).
+		SetCompareType(kv.CompareEqual).
+		SetTargetType(kv.TargetVersion).
+		SetValue(namespacesVersion)
+	ruleSetCond := kv.NewCondition().
+		SetKey(ruleSetKey).
+		SetCompareType(kv.CompareEqual).
+		SetTargetType(kv.TargetVersion).
+		SetValue(ruleSetVersion)
+	conditions := []kv.Condition{
+		namespacesCond,
+		ruleSetCond,
+	}
+	ops := []kv.Op{
+		kv.NewSetOp(ruleSetKey, ruleSet),
+	}
+
+	if _, err := store.Commit(conditions, ops); err != nil {
+		return fmt.Errorf("unable to update kv store: %v", err)
+	}
+
+	return nil
+}
+
+// AppendToRuleSet appends a ruleset diff onto the end of a ruleset
+func appendToRuleSet(orig, diff *schema.RuleSet) error {
+	for _, m := range diff.MappingRules {
+		mr, rr, err := RuleByID(orig, m.Uuid)
+		if err != nil && err != kv.ErrNotFound {
+			return err
+		}
+
+		if rr != nil {
+			return fmt.Errorf("Rule with ID: %s is a rollup rule. Cannot make a mapping rule.", rr.Uuid)
+		}
+
+		var ruleSnapshots []*schema.MappingRuleSnapshot
+		ls := len(m.Snapshots)
+		snap := m.Snapshots[ls-1]
+		if ls > 0 {
+			ruleSnapshots = append(ruleSnapshots, snap)
+		}
+
+		if err == kv.ErrNotFound {
+			newMappingRule := &schema.MappingRule{
+				Uuid:      uuid.New(),
+				Snapshots: ruleSnapshots,
+			}
+			orig.MappingRules = append(orig.MappingRules, newMappingRule)
+			continue
+		}
+		mr.Snapshots = append(mr.Snapshots, snap)
+	}
+
+	for _, r := range diff.RollupRules {
+		mr, rr, err := RuleByID(orig, r.Uuid)
+		if err != nil && err != kv.ErrNotFound {
+			return err
+		}
+
+		if mr != nil {
+			return fmt.Errorf("Rule with ID: %s is a mapping rule. Cannot make a rollup rule.", rr.Uuid)
+		}
+
+		var ruleSnapshots []*schema.RollupRuleSnapshot
+		ls := len(r.Snapshots)
+		snap := r.Snapshots[ls-1]
+
+		if ls > 0 {
+			ruleSnapshots = append(ruleSnapshots, snap)
+		}
+
+		if err == kv.ErrNotFound {
+			newRollupRule := &schema.RollupRule{
+				Uuid:      uuid.New(),
+				Snapshots: ruleSnapshots,
+			}
+			orig.RollupRules = append(orig.RollupRules, newRollupRule)
+			continue
+		}
+
+		rr.Snapshots = append(rr.Snapshots, snap)
+	}
+
+	return nil
 }

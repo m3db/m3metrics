@@ -23,6 +23,8 @@ package handlers
 import (
 	"testing"
 
+	"time"
+
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/generated/proto/schema"
@@ -31,6 +33,7 @@ import (
 
 const (
 	testNamespaceKey = "testKey"
+	testRuleSetKey   = "testRuleSetKey"
 )
 
 var (
@@ -131,4 +134,77 @@ func TestValidateNamespaceTombstoned(t *testing.T) {
 	_, _, _, err := ValidateNamespace(store, testNamespaceKey, "barNs")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "tombstoned")
+}
+
+func TestCreateNamespace(t *testing.T) {
+	store := mem.NewStore()
+	store.Set(testNamespaceKey, testNamespaces)
+
+	err := CreateNamespace(store,
+		testNamespaceKey, "newNs", testRuleSetKey,
+		1*time.Millisecond,
+	)
+	require.NoError(t, err)
+
+	_, _, ns, err := ValidateNamespace(store, testNamespaceKey, "newNs")
+	require.NoError(t, err)
+	require.Equal(t, ns.Name, "newNs")
+	require.Equal(t, ns.Snapshots, []*schema.NamespaceSnapshot{
+		&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: false},
+	})
+
+	_, rs, err := ValidateRuleSet(store, testRuleSetKey)
+	require.NoError(t, err)
+	require.Equal(t, rs.Namespace, "newNs")
+	require.Empty(t, rs.MappingRules)
+	require.Empty(t, rs.RollupRules)
+}
+
+func TestCreateNamespaceNewKv(t *testing.T) {
+	store := mem.NewStore()
+
+	err := CreateNamespace(store,
+		testNamespaceKey, "newNs", testRuleSetKey,
+		1*time.Millisecond,
+	)
+	require.Error(t, err)
+}
+
+func TestCreateNamespaceResurect(t *testing.T) {
+	store := mem.NewStore()
+	store.Set(testNamespaceKey, testNamespaces)
+	_, _, _, err := ValidateNamespace(store, testNamespaceKey, "barNs")
+	require.Error(t, err)
+
+	ns, err := Namespace(testNamespaces, "barNs")
+	require.NoError(t, err)
+	require.NotNil(t, ns)
+	require.True(t, ns.Snapshots[len(ns.Snapshots)-1].Tombstoned)
+
+	err = CreateNamespace(store,
+		testNamespaceKey, "barNs", testRuleSetKey,
+		1*time.Millisecond,
+	)
+
+	require.NoError(t, err)
+	v2, _, ns, err := ValidateNamespace(store, testNamespaceKey, "barNs")
+	require.NoError(t, err)
+	require.Equal(t, 2, v2)
+}
+
+func TestCreateNamespaceError(t *testing.T) {
+	store := mem.NewStore()
+
+	store.Set(testNamespaceKey, testNamespaces)
+	err := CreateNamespace(store,
+		testNamespaceKey, "newNs", testRuleSetKey,
+		1*time.Millisecond,
+	)
+	require.NoError(t, err)
+
+	err = CreateNamespace(store,
+		testNamespaceKey, "newNs", testRuleSetKey,
+		1*time.Millisecond,
+	)
+	require.Error(t, err)
 }

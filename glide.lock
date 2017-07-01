@@ -1,5 +1,5 @@
-hash: fe75ee1e2dd467685ad7c171a57b6ee56f8bddecde1a080746ed32768919a992
-updated: 2017-06-17T22:08:05.488840645-04:00
+hash: 9f3ccfc86eb916d14114fa071b1cdfa1e903c43ce2dc01361a74a6766a7ba100
+updated: 2017-07-01T15:12:25.341865141-04:00
 imports:
 - name: github.com/apache/thrift
   version: 9549b25c77587b29be4e0b5c258221a4ed85d37a
@@ -23,9 +23,14 @@ imports:
 - name: github.com/m3db/m3cluster
   version: b596a86b06f37c9150ea352d6ec1549ed19f304b
   subpackages:
+  - client
+  - generated/proto/metadata
+  - generated/proto/placement
   - kv
   - kv/mem
   - kv/util/runtime
+  - services
+  - shard
 - name: github.com/m3db/m3x
   version: bd6be18ffb184691512eb442561b16a59c15d797
   subpackages:
@@ -39,6 +44,8 @@ imports:
   - process
   - time
   - watch
+- name: github.com/pborman/uuid
+  version: e790cca94e6cc75c7064b1332e63811d4aae1a53
 - name: github.com/pmezard/go-difflib
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
   subpackages:
