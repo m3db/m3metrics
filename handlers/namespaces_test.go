@@ -22,12 +22,12 @@ package handlers
 
 import (
 	"testing"
-
 	"time"
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/generated/proto/schema"
+
 	"github.com/stretchr/testify/require"
 )
 

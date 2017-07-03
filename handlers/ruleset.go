@@ -26,7 +26,6 @@ import (
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/generated/proto/schema"
-	"github.com/pborman/uuid"
 )
 
 // RuleByID ...
@@ -153,11 +152,13 @@ func UpdateRules(store kv.TxnStore,
 	namespacesKey string, namespacesVersion int,
 	propDelay time.Duration,
 ) error {
-	if ruleSet == nil {
-		return fmt.Errorf("Original ruleset is none")
-	}
+	// There is nothing to do if the diff is nil
 	if diffRuleSet == nil {
-		return fmt.Errorf("Diff ruleset is none")
+		return nil
+	}
+
+	if ruleSet == nil {
+		ruleSet = diffRuleSet
 	}
 
 	err := appendToRuleSet(ruleSet, diffRuleSet)
@@ -208,22 +209,27 @@ func appendToRuleSet(orig, diff *schema.RuleSet) error {
 			return fmt.Errorf("Rule with ID: %s is a rollup rule. Cannot make a mapping rule.", rr.Uuid)
 		}
 
-		var ruleSnapshots []*schema.MappingRuleSnapshot
-		ls := len(m.Snapshots)
-		snap := m.Snapshots[ls-1]
-		if ls > 0 {
-			ruleSnapshots = append(ruleSnapshots, snap)
+		// A rule with no snapshots should not be added.
+		if m.Snapshots == nil {
+			continue
 		}
+
+		ls := len(m.Snapshots)
+		if ls == 0 {
+			continue
+		}
+
+		lastSnap := m.Snapshots[ls-1]
 
 		if err == kv.ErrNotFound {
 			newMappingRule := &schema.MappingRule{
-				Uuid:      uuid.New(),
-				Snapshots: ruleSnapshots,
+				Uuid:      m.Uuid,
+				Snapshots: []*schema.MappingRuleSnapshot{m.Snapshots[ls-1]},
 			}
 			orig.MappingRules = append(orig.MappingRules, newMappingRule)
-			continue
+		} else {
+			mr.Snapshots = append(mr.Snapshots, lastSnap)
 		}
-		mr.Snapshots = append(mr.Snapshots, snap)
 	}
 
 	for _, r := range diff.RollupRules {
@@ -233,28 +239,30 @@ func appendToRuleSet(orig, diff *schema.RuleSet) error {
 		}
 
 		if mr != nil {
-			return fmt.Errorf("Rule with ID: %s is a mapping rule. Cannot make a rollup rule.", rr.Uuid)
+			return fmt.Errorf("Rule with ID: %s is a mapping rule. Cannot make a rollup rule.", mr.Uuid)
 		}
 
-		var ruleSnapshots []*schema.RollupRuleSnapshot
+		// A rule with no snapshots should not be added.
+		if r.Snapshots == nil {
+			continue
+		}
+
 		ls := len(r.Snapshots)
-		snap := r.Snapshots[ls-1]
-
-		if ls > 0 {
-			ruleSnapshots = append(ruleSnapshots, snap)
+		if ls == 0 {
+			continue
 		}
+		lastSnap := r.Snapshots[ls-1]
 
 		if err == kv.ErrNotFound {
 			newRollupRule := &schema.RollupRule{
-				Uuid:      uuid.New(),
-				Snapshots: ruleSnapshots,
+				Uuid:      r.Uuid,
+				Snapshots: []*schema.RollupRuleSnapshot{r.Snapshots[ls-1]},
 			}
 			orig.RollupRules = append(orig.RollupRules, newRollupRule)
 			continue
 		}
 
-		rr.Snapshots = append(rr.Snapshots, snap)
+		rr.Snapshots = append(rr.Snapshots, lastSnap)
 	}
-
 	return nil
 }

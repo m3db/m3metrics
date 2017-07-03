@@ -26,6 +26,7 @@ import (
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/generated/proto/schema"
+
 	"github.com/pborman/uuid"
 )
 
