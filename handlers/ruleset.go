@@ -28,7 +28,7 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/schema"
 )
 
-// RuleByID ...
+// RuleByID fetches a rule by uuid from a given ruleset
 func RuleByID(ruleSet *schema.RuleSet, uuid string) (*schema.MappingRule, *schema.RollupRule, error) {
 	var (
 		mappingRule *schema.MappingRule
@@ -206,7 +206,7 @@ func appendToRuleSet(orig, diff *schema.RuleSet) error {
 		}
 
 		if rr != nil {
-			return fmt.Errorf("Rule with ID: %s is a rollup rule. Cannot make a mapping rule.", rr.Uuid)
+			return fmt.Errorf("rule with ID: %s is a rollup rule. Cannot make a mapping rule", rr.Uuid)
 		}
 
 		// A rule with no snapshots should not be added.
@@ -239,7 +239,7 @@ func appendToRuleSet(orig, diff *schema.RuleSet) error {
 		}
 
 		if mr != nil {
-			return fmt.Errorf("Rule with ID: %s is a mapping rule. Cannot make a rollup rule.", mr.Uuid)
+			return fmt.Errorf("rule with ID: %s is a mapping rule. Cannot make a rollup rule", mr.Uuid)
 		}
 
 		// A rule with no snapshots should not be added.
