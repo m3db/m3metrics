@@ -193,14 +193,9 @@ func TestMappingRuleSnapshotSchema(t *testing.T) {
 }
 
 func TestMappingRuleSchema(t *testing.T) {
-	expected := &schema.MappingRule{
-		Uuid:      testMappingRuleSchema.Uuid,
-		Snapshots: testMappingRuleSchema.Snapshots[:1],
-	}
-
-	mr, err := newMappingRule(expected, testTagsFilterOptions())
+	mr, err := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
 	require.NoError(t, err)
 	schema, err := mr.Schema()
 	require.NoError(t, err)
-	require.Equal(t, expected, schema)
+	require.Equal(t, testMappingRuleSchema, schema)
 }
