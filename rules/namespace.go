@@ -34,6 +34,9 @@ var (
 	errNilNamespaceSnapshotSchema = errors.New("nil namespace snapshot schema")
 	errNilNamespaceSchema         = errors.New("nil namespace schema")
 	errNilNamespacesSchema        = errors.New("nil namespaces schema")
+
+	errNilNamespace         = errors.New("nil namespace")
+	errNilNamespaceSnapshot = errors.New("nil namespace snapshot")
 )
 
 // NamespaceSnapshot defines a namespace snapshot for which rules are defined.
@@ -119,3 +122,49 @@ func (nss Namespaces) Version() int { return nss.version }
 
 // Namespaces returns the list of namespaces.
 func (nss Namespaces) Namespaces() []Namespace { return nss.namespaces }
+
+// Schema returns the given Namespace in protobuf form
+func (s NamespaceSnapshot) Schema() *schema.NamespaceSnapshot {
+	res := &schema.NamespaceSnapshot{
+		ForRulesetVersion: int32(s.forRuleSetVersion),
+		Tombstoned:        s.tombstoned,
+	}
+
+	return res
+}
+
+// Schema returns the given Namespace in protobuf form
+func (n Namespace) Schema() (*schema.Namespace, error) {
+	if n.snapshots == nil {
+		return nil, errNilNamespaceSnapshot
+	}
+
+	res := &schema.Namespace{
+		Name: string(n.name),
+	}
+
+	snapshots := make([]*schema.NamespaceSnapshot, len(n.snapshots))
+	for i, s := range n.snapshots {
+		snapshots[i] = s.Schema()
+	}
+	res.Snapshots = snapshots
+
+	return res, nil
+}
+
+// Schema returns the given Namespaces slice in protobuf form.
+func (nss Namespaces) Schema() (*schema.Namespaces, error) {
+	res := &schema.Namespaces{}
+
+	namespaces := make([]*schema.Namespace, len(nss.namespaces))
+	for i, n := range nss.namespaces {
+		namespace, err := n.Schema()
+		if err != nil {
+			return nil, err
+		}
+		namespaces[i] = namespace
+	}
+	res.Namespaces = namespaces
+
+	return res, nil
+}
