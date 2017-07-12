@@ -69,6 +69,28 @@ func newMappingRuleSnapshot(
 	}, nil
 }
 
+// Schema returns the given MappingRuleSnapshot in protobuf form.
+func (mrs mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
+	res := &schema.MappingRuleSnapshot{
+		Name:        mrs.name,
+		Tombstoned:  mrs.tombstoned,
+		CutoverTime: mrs.cutoverNanos,
+		TagFilters:  mrs.rawFilters,
+	}
+
+	policies := make([]*schema.Policy, len(mrs.policies))
+	for i, p := range mrs.policies {
+		policy, err := p.Schema()
+		if err != nil {
+			return nil, err
+		}
+		policies[i] = policy
+	}
+	res.Policies = policies
+
+	return res, nil
+}
+
 // mappingRule stores mapping rule snapshots.
 type mappingRule struct {
 	uuid      string
@@ -124,28 +146,6 @@ func (mc *mappingRule) activeIndex(timeNanos int64) int {
 		idx--
 	}
 	return idx
-}
-
-// Schema returns the given MappingRuleSnapshot in protobuf form.
-func (mrs mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
-	res := &schema.MappingRuleSnapshot{
-		Name:        mrs.name,
-		Tombstoned:  mrs.tombstoned,
-		CutoverTime: mrs.cutoverNanos,
-		TagFilters:  mrs.rawFilters,
-	}
-
-	policies := make([]*schema.Policy, len(mrs.policies))
-	for i, p := range mrs.policies {
-		policy, err := p.Schema()
-		if err != nil {
-			return nil, err
-		}
-		policies[i] = policy
-	}
-	res.Policies = policies
-
-	return res, nil
 }
 
 // Schema returns the given MappingRule in protobuf form.
