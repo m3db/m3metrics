@@ -22,12 +22,15 @@ package handlers
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/generated/proto/schema"
+
+	"github.com/pborman/uuid"
 )
 
-// Namespaces returns the version and the persisted namespaces in kv store.
+// Namespaces returns the version ad the persisted namespaces in kv store.
 func Namespaces(store kv.Store, namespacesKey string) (int, *schema.Namespaces, error) {
 	value, err := store.Get(namespacesKey)
 	if err != nil {
@@ -85,4 +88,98 @@ func Namespace(namespaces *schema.Namespaces, namespaceName string) (*schema.Nam
 	}
 
 	return namespace, nil
+}
+
+// CreateNamespace creates a blank namespace with a given name.
+func CreateNamespace(store kv.TxnStore,
+	namespaceKey, namespaceName, ruleSetKey string,
+	propDelay time.Duration) error {
+	// Validate namespace doesn't exist.
+	namespacesVersion, namespaces, err := Namespaces(store, namespaceKey)
+	if err != nil {
+		return fmt.Errorf("could not read namespaces data: %v", err)
+	}
+
+	namespace, err := Namespace(namespaces, namespaceName)
+	if err != nil {
+		if err == errMultipleMatches {
+			return kv.ErrAlreadyExists
+		} else if err != kv.ErrNotFound {
+			return err
+		}
+	}
+
+	if namespace != nil {
+		numSnapshots := len(namespace.Snapshots)
+		if numSnapshots > 0 && !namespace.Snapshots[numSnapshots-1].Tombstoned {
+			return kv.ErrAlreadyExists
+		}
+	}
+
+	// Read the existing rules for the target service in case this is
+	// a resurrected service.
+	ruleSetVersion, ruleSet, err := RuleSet(store, ruleSetKey)
+	if err != nil && err != kv.ErrNotFound {
+		return fmt.Errorf("could not read ruleSet data for namespace %s: %v", namespaceName, err)
+	}
+
+	// Mark the ruleset alive.
+	nowNs := time.Now().UnixNano()
+	if err == kv.ErrNotFound {
+		ruleSet = &schema.RuleSet{
+			Uuid:          uuid.New(),
+			Namespace:     namespaceName,
+			CreatedAt:     nowNs,
+			LastUpdatedAt: nowNs,
+			Tombstoned:    false,
+			CutoverTime:   NewCutoverNs(nowNs, 0, propDelay),
+		}
+	} else {
+		if !ruleSet.Tombstoned {
+			return fmt.Errorf("namespace %s does not exist or has been tombstoned but its ruleset is alive", namespaceName)
+		}
+		ruleSet.LastUpdatedAt = nowNs
+		ruleSet.Tombstoned = false
+		ruleSet.CutoverTime = NewCutoverNs(nowNs, ruleSet.CutoverTime, propDelay)
+	}
+
+	// Add the namespace to the list of registered namespaces.
+	snapshot := &schema.NamespaceSnapshot{
+		ForRulesetVersion: int32(ruleSetVersion + 1),
+		Tombstoned:        false,
+	}
+	if namespace == nil {
+		namespace = &schema.Namespace{
+			Name:      namespaceName,
+			Snapshots: []*schema.NamespaceSnapshot{snapshot},
+		}
+		namespaces.Namespaces = append(namespaces.Namespaces, namespace)
+	} else {
+		namespace.Snapshots = append(namespace.Snapshots, snapshot)
+	}
+
+	// Perform a transaction and only update if the services version and ruleSet
+	// version were unchanged.
+	servicesCond := kv.NewCondition().
+		SetKey(namespaceKey).
+		SetCompareType(kv.CompareEqual).
+		SetTargetType(kv.TargetVersion).
+		SetValue(namespacesVersion)
+	ruleSetCond := kv.NewCondition().
+		SetKey(ruleSetKey).
+		SetCompareType(kv.CompareEqual).
+		SetTargetType(kv.TargetVersion).
+		SetValue(ruleSetVersion)
+	conditions := []kv.Condition{
+		servicesCond,
+		ruleSetCond,
+	}
+	ops := []kv.Op{
+		kv.NewSetOp(namespaceKey, namespaces),
+		kv.NewSetOp(ruleSetKey, ruleSet),
+	}
+	if _, err := store.Commit(conditions, ops); err != nil {
+		return fmt.Errorf("unable to update kv store: %v", err)
+	}
+	return nil
 }
