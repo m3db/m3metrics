@@ -441,11 +441,12 @@ type RuleSet interface {
 	CutoverNanos() int64
 
 	// TombStoned returns whether the ruleset is tombstoned.
-	TombStoned() bool
+	Tombstoned() bool
 
 	// ActiveSet returns the active ruleset at a given time.
 	ActiveSet(timeNanos int64) Matcher
 
+	// Schema returns the schema.Ruleset representation of this ruleset
 	Schema() (*schema.RuleSet, error)
 }
 
@@ -463,6 +464,10 @@ type ruleSet struct {
 	newRollupIDFn      metricID.NewIDFn
 	isRollupIDFn       metricID.MatchIDFn
 }
+
+// MarshalJSON
+
+// unmarshalJson
 
 // NewRuleSet creates a new ruleset.
 func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {
@@ -505,7 +510,7 @@ func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) 
 func (rs *ruleSet) Namespace() []byte   { return rs.namespace }
 func (rs *ruleSet) Version() int        { return rs.version }
 func (rs *ruleSet) CutoverNanos() int64 { return rs.cutoverNanos }
-func (rs *ruleSet) TombStoned() bool    { return rs.tombstoned }
+func (rs *ruleSet) Tombstoned() bool    { return rs.tombstoned }
 
 func (rs *ruleSet) ActiveSet(timeNanos int64) Matcher {
 	mappingRules := make([]*mappingRule, 0, len(rs.mappingRules))

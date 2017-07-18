@@ -23,6 +23,7 @@ package rules
 import (
 	"errors"
 
+	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 )
 
@@ -35,6 +36,7 @@ var (
 	errNilNamespaceSchema         = errors.New("nil namespace schema")
 	errNilNamespacesSchema        = errors.New("nil namespaces schema")
 	errNilNamespaceSnapshot       = errors.New("nil namespace snapshot")
+	errMultipleNamespaceMatches   = errors.New("more than one namespace match found")
 )
 
 // NamespaceSnapshot defines a namespace snapshot for which rules are defined.
@@ -117,6 +119,18 @@ func (n Namespace) Schema() (*schema.Namespace, error) {
 	return res, nil
 }
 
+// Update ...
+func (n *Namespace) Update(ruleSetVersion int) {
+	snapshot := NamespaceSnapshot{tombstoned: false, forRuleSetVersion: ruleSetVersion}
+	n.snapshots = append(n.snapshots, snapshot)
+}
+
+// Delete ...
+func (n *Namespace) Delete(ruleSetVersion int) {
+	snapshot := NamespaceSnapshot{tombstoned: true, forRuleSetVersion: ruleSetVersion}
+	n.snapshots = append(n.snapshots, snapshot)
+}
+
 // Namespaces store the list of namespaces for which rules are defined.
 type Namespaces struct {
 	version    int
@@ -162,5 +176,25 @@ func (nss Namespaces) Schema() (*schema.Namespaces, error) {
 	}
 	res.Namespaces = namespaces
 
+	return res, nil
+}
+
+func (nss Namespaces) Namespace(name string) (*Namespace, error) {
+	var res *Namespace
+	for _, ns := range nss.namespaces {
+		if string(ns.name) != name {
+			continue
+		}
+		tmp := &ns
+		if res == nil {
+			res = tmp
+		} else {
+			return nil, errMultipleNamespaceMatches
+		}
+	}
+
+	if res == nil {
+		return nil, kv.ErrNotFound
+	}
 	return res, nil
 }

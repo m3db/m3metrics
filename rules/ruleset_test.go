@@ -510,7 +510,7 @@ func TestRuleSetProperties(t *testing.T) {
 	require.Equal(t, []byte("namespace"), ruleSet.Namespace())
 	require.Equal(t, 1, ruleSet.Version())
 	require.Equal(t, int64(34923), ruleSet.CutoverNanos())
-	require.Equal(t, false, ruleSet.TombStoned())
+	require.Equal(t, false, ruleSet.Tombstoned())
 }
 
 func TestRuleSetSchema(t *testing.T) {
