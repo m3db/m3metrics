@@ -179,6 +179,7 @@ func (nss Namespaces) Schema() (*schema.Namespaces, error) {
 	return res, nil
 }
 
+// Namespace ...
 func (nss Namespaces) Namespace(name string) (*Namespace, error) {
 	var res *Namespace
 	for _, ns := range nss.namespaces {

@@ -48,7 +48,11 @@ func (h *Handler) AddMappingRule(
 	if err := rs.AppendMappingRule(ruleName, filters, policies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
-
+	ns, err := nss.Namespace(string(rs.Namespace()))
+	if err != nil {
+		return err
+	}
+	ns.Update(rs.Version() + 1)
 	if err := h.persistRuleSet(rs, ruleSetKey, nss, namespacesKey); err != nil {
 		return err
 	}
@@ -69,6 +73,12 @@ func (h *Handler) UpdateMappingRule(
 	if err := rs.UpdateMappingRule(ruleID, ruleName, filters, policies, h.opts.PropagationDelay); err != nil {
 		return nil
 	}
+
+	ns, err := nss.Namespace(string(rs.Namespace()))
+	if err != nil {
+		return err
+	}
+	ns.Update(rs.Version() + 1)
 
 	if err := h.persistRuleSet(rs, ruleSetKey, nss, namespacesKey); err != nil {
 		return err

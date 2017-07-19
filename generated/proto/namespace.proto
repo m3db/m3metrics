@@ -21,6 +21,7 @@
 syntax = "proto3";
 package schema;
 
+<<<<<<< HEAD:generated/proto/namespace.proto
 message NamespaceSnapshot {
   int32 for_ruleset_version = 1;
   bool tombstoned = 2;
@@ -33,4 +34,26 @@ message Namespace {
 
 message Namespaces {
   repeated Namespace namespaces = 1;
+=======
+import (
+	"time"
+
+	"github.com/m3db/m3cluster/kv"
+)
+
+// HandlerOptions ...
+type HandlerOptions struct {
+	PropagationDelay time.Duration
+}
+
+// Handler ...
+type Handler struct {
+	store kv.TxnStore
+	opts  HandlerOptions
+}
+
+// NewHandler ...
+func NewHandler(store kv.TxnStore, opts HandlerOptions) Handler {
+	return Handler{store: store, opts: opts}
+>>>>>>> Bump glide yaml:handlers/handler.go
 }
