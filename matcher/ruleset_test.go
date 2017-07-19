@@ -28,6 +28,7 @@ import (
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/generated/proto/schema"
+	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules"
 
 	"github.com/stretchr/testify/require"
@@ -171,6 +172,13 @@ func (r mockRuleSet) CutoverNanos() int64                     { return r.cutover
 func (r mockRuleSet) Tombstoned() bool                        { return r.tombstoned }
 func (r mockRuleSet) ActiveSet(timeNanos int64) rules.Matcher { return r.matcher }
 func (r mockRuleSet) Schema() (*schema.RuleSet, error)        { return nil, nil }
+func (r mockRuleSet) AppendMappingRule(string, map[string]string, []policy.Policy, time.Duration) error {
+	return nil
+}
+func (r mockRuleSet) UpdateMappingRule(string, string, map[string]string, []policy.Policy, time.Duration) error {
+	return nil
+}
+func (r mockRuleSet) DeleteMappingRule(string, time.Duration) error { return nil }
 
 func testRuleSet() (kv.Store, Cache, *ruleSet, Options) {
 	store := mem.NewStore()

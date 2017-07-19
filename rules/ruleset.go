@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"time"
 
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
@@ -39,6 +40,8 @@ const (
 
 var (
 	errNilRuleSetSchema = errors.New("nil rule set schema")
+	errRuleAlreadyExist = errors.New("rule already exists")
+	errNoSuchRule       = errors.New("no such rule exists")
 )
 
 // MatchMode determines how match is performed.
@@ -446,8 +449,17 @@ type RuleSet interface {
 	// ActiveSet returns the active ruleset at a given time.
 	ActiveSet(timeNanos int64) Matcher
 
-	// Schema returns the schema.Ruleset representation of this ruleset
+	// Schema returns the schema.Ruleset representation of this ruleset.
 	Schema() (*schema.RuleSet, error)
+
+	// AppendMappingRule creates a new mapping rule and adds it to this ruleset.
+	AppendMappingRule(string, map[string]string, []policy.Policy, time.Duration) error
+
+	// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
+	UpdateMappingRule(string, string, map[string]string, []policy.Policy, time.Duration) error
+
+	// DeleteMappingRule
+	DeleteMappingRule(string, time.Duration) error
 }
 
 type ruleSet struct {
@@ -565,6 +577,98 @@ func (rs ruleSet) Schema() (*schema.RuleSet, error) {
 	res.RollupRules = rollupRules
 
 	return res, nil
+}
+
+func (rs *ruleSet) updateTimeStamps(nowNs int64, newCutoverNanos int64) {
+	rs.cutoverNanos = newCutoverNanos
+	rs.lastUpdatedAtNanos = nowNs
+}
+
+func (rs *ruleSet) AppendMappingRule(
+	name string,
+	filters map[string]string,
+	policies []policy.Policy,
+	propDelay time.Duration,
+) error {
+	m := rs.getMappingRuleByName(name)
+	if m != nil {
+		return errRuleAlreadyExist
+	}
+	updateTime := time.Now().UnixNano()
+	m, err := newMappingRuleFromFields(name, filters, policies, updateTime, rs.tagsFilterOpts)
+	if err != nil {
+		return err
+	}
+
+	rs.updateTimeStamps(updateTime, updateTime+int64(propDelay))
+	rs.mappingRules = append(rs.mappingRules, m)
+	return nil
+}
+
+// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
+func (rs *ruleSet) UpdateMappingRule(
+	uuid string,
+	name string,
+	filters map[string]string,
+	policies []policy.Policy,
+	propDelay time.Duration,
+) error {
+	m, err := rs.getMappingRuleByID(uuid)
+	if err != nil {
+		return nil
+	}
+
+	updateTime := time.Now().UnixNano()
+	err = m.AddSnapshot(name, filters, policies, updateTime, rs.tagsFilterOpts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteMappingRule ...
+func (rs *ruleSet) DeleteMappingRule(
+	uuid string,
+	propDelay time.Duration,
+) error {
+	m, err := rs.getMappingRuleByID(uuid)
+	if err != nil {
+		return nil
+	}
+
+	updateTime := time.Now().UnixNano()
+	m.Tombstone(updateTime)
+	return nil
+}
+
+func (rs ruleSet) getMappingRuleByName(name string) *mappingRule {
+	for _, m := range rs.mappingRules {
+		t, err := m.Tombstoned()
+		if err != nil || t {
+			continue
+		}
+		n, err := m.Name()
+		if err != nil {
+			continue
+		}
+
+		if n == name {
+			return m
+		}
+	}
+
+	return nil
+}
+
+func (rs ruleSet) getMappingRuleByID(uuid string) (*mappingRule, error) {
+	for _, m := range rs.mappingRules {
+		if m.uuid == uuid {
+			return m, nil
+		}
+	}
+
+	return nil, errNoSuchRule
 }
 
 // resolvePolicies resolves the conflicts among policies if any, following the rules below:

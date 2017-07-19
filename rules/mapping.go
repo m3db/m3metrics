@@ -26,11 +26,13 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/pborman/uuid"
 )
 
 var (
 	errNilMappingRuleSnapshotSchema = errors.New("nil mapping rule snapshot schema")
 	errNilMappingRuleSchema         = errors.New("nil mapping rule schema")
+	errNoSnapshots                  = errors.New("rule has no snapshots")
 )
 
 // mappingRuleSnapshot defines a rule snapshot such that if a metric matches the
@@ -116,6 +118,69 @@ func newMappingRule(
 		uuid:      mc.Uuid,
 		snapshots: snapshots,
 	}, nil
+}
+
+func newMappingRuleFromFields(
+	name string,
+	rawFilters map[string]string,
+	policies []policy.Policy,
+	cutoverTime int64,
+	opts filters.TagsFilterOptions,
+) (*mappingRule, error) {
+	mr := mappingRule{uuid: uuid.New()}
+	mr.AddSnapshot(name, rawFilters, policies, cutoverTime, opts)
+	return &mr, nil
+}
+
+func (mc *mappingRule) AddSnapshot(
+	name string,
+	rawFilters map[string]string,
+	policies []policy.Policy,
+	cutoverTime int64,
+	opts filters.TagsFilterOptions,
+) error {
+	filter, err := filters.NewTagsFilter(rawFilters, filters.Conjunction, opts)
+	if err != nil {
+		return err
+	}
+
+	snapshot := &mappingRuleSnapshot{
+		name:         name,
+		tombstoned:   false,
+		cutoverNanos: cutoverTime,
+		filter:       filter,
+		policies:     policies,
+		rawFilters:   rawFilters,
+	}
+
+	mc.snapshots = append(mc.snapshots, snapshot)
+	return nil
+}
+
+func (mc *mappingRule) Tombstone(cutoverTime int64) {
+	var snapshot mappingRuleSnapshot
+	if len(mc.snapshots) > 0 {
+		snapshot = *mc.snapshots[len(mc.snapshots)-1]
+	}
+	snapshot.tombstoned = true
+	snapshot.cutoverNanos = cutoverTime
+	mc.snapshots = append(mc.snapshots, &snapshot)
+}
+
+func (mc *mappingRule) Name() (string, error) {
+	if len(mc.snapshots) == 0 {
+		return "", errNoSnapshots
+	}
+	latest := mc.snapshots[len(mc.snapshots)-1]
+	return latest.name, nil
+}
+
+func (mc *mappingRule) Tombstoned() (bool, error) {
+	if len(mc.snapshots) == 0 {
+		return false, errNoSnapshots
+	}
+	latest := mc.snapshots[len(mc.snapshots)-1]
+	return latest.tombstoned, nil
 }
 
 // ActiveSnapshot returns the latest snapshot whose cutover time is earlier than or
