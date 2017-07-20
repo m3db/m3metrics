@@ -300,7 +300,7 @@ func (as *activeRuleSet) rollupResultsFor(id []byte, timeNanos int64) []RollupRe
 	// TODO(xichen): pool the rollup targets.
 	var (
 		cutoverNanos int64
-		rollups      []rollupTarget
+		rollups      []RollupTarget
 	)
 	for _, rollupRule := range as.rollupRules {
 		snapshot := rollupRule.ActiveSnapshot(timeNanos)
@@ -343,7 +343,7 @@ func (as *activeRuleSet) rollupResultsFor(id []byte, timeNanos int64) []RollupRe
 }
 
 // toRollupResults encodes rollup target name and values into ids for each rollup target.
-func (as *activeRuleSet) toRollupResults(id []byte, cutoverNanos int64, targets []rollupTarget) []RollupResult {
+func (as *activeRuleSet) toRollupResults(id []byte, cutoverNanos int64, targets []RollupTarget) []RollupResult {
 	// NB(r): This is n^2 however this should be quite fast still as
 	// long as there is not an absurdly high number of rollup
 	// targets for any given ID and that iterfn is alloc free.
@@ -460,6 +460,15 @@ type RuleSet interface {
 
 	// DeleteMappingRule
 	DeleteMappingRule(string, time.Duration) error
+
+	// AppendMappingRule creates a new mapping rule and adds it to this ruleset.
+	// AppendRollupRule(string, map[string]string, []policy.Policy, time.Duration) error
+
+	// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
+	// UpdateRollupRule(string, string, map[string]string, []policy.Policy, time.Duration) error
+
+	// // DeleteMappingRule
+	// DeleteRollupRule(string, time.Duration) error
 }
 
 type ruleSet struct {
@@ -479,7 +488,7 @@ type ruleSet struct {
 
 // MarshalJSON
 
-// unmarshalJson
+// UnmarshalJson
 
 // NewRuleSet creates a new ruleset.
 func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {

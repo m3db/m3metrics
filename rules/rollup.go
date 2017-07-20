@@ -31,23 +31,23 @@ import (
 )
 
 var (
-	emptyRollupTarget rollupTarget
+	emptyRollupTarget RollupTarget
 
 	errNilRollupTargetSchema       = errors.New("nil rollup target schema")
 	errNilRollupRuleSnapshotSchema = errors.New("nil rollup rule snapshot schema")
 	errNilRollupRuleSchema         = errors.New("nil rollup rule schema")
 )
 
-// rollupTarget dictates how to roll up metrics. Metrics associated with a rollup
+// RollupTarget dictates how to roll up metrics. Metrics associated with a rollup
 // target will be grouped and rolled up across the provided set of tags, named
 // with the provided name, and aggregated and retained under the provided policies.
-type rollupTarget struct {
+type RollupTarget struct {
 	Name     []byte
 	Tags     [][]byte
 	Policies []policy.Policy
 }
 
-func newRollupTarget(target *schema.RollupTarget) (rollupTarget, error) {
+func newRollupTarget(target *schema.RollupTarget) (RollupTarget, error) {
 	if target == nil {
 		return emptyRollupTarget, errNilRollupTargetSchema
 	}
@@ -58,7 +58,7 @@ func newRollupTarget(target *schema.RollupTarget) (rollupTarget, error) {
 	tags := make([]string, len(target.Tags))
 	copy(tags, target.Tags)
 	sort.Strings(tags)
-	return rollupTarget{
+	return RollupTarget{
 		Name:     []byte(target.Name),
 		Tags:     bytesArrayFromStringArray(tags),
 		Policies: policies,
@@ -66,7 +66,7 @@ func newRollupTarget(target *schema.RollupTarget) (rollupTarget, error) {
 }
 
 // sameTransform determines whether two targets have the same transformation.
-func (t *rollupTarget) sameTransform(other rollupTarget) bool {
+func (t *RollupTarget) sameTransform(other RollupTarget) bool {
 	if !bytes.Equal(t.Name, other.Name) {
 		return false
 	}
@@ -82,19 +82,20 @@ func (t *rollupTarget) sameTransform(other rollupTarget) bool {
 }
 
 // clone clones a rollup target.
-func (t *rollupTarget) clone() rollupTarget {
+func (t *RollupTarget) clone() RollupTarget {
 	name := make([]byte, len(t.Name))
 	copy(name, t.Name)
 	policies := make([]policy.Policy, len(t.Policies))
 	copy(policies, t.Policies)
-	return rollupTarget{
+	return RollupTarget{
 		Name:     name,
 		Tags:     bytesArrayCopy(t.Tags),
 		Policies: policies,
 	}
 }
 
-func (t rollupTarget) Schema() (*schema.RollupTarget, error) {
+// Schema returns the schema representation of a rollup target
+func (t RollupTarget) Schema() (*schema.RollupTarget, error) {
 	res := &schema.RollupTarget{
 		Name: string(t.Name),
 	}
@@ -120,7 +121,7 @@ type rollupRuleSnapshot struct {
 	tombstoned   bool
 	cutoverNanos int64
 	filter       filters.Filter
-	targets      []rollupTarget
+	targets      []RollupTarget
 	rawFilters   map[string]string
 }
 
@@ -131,7 +132,7 @@ func newRollupRuleSnapshot(
 	if r == nil {
 		return nil, errNilRollupRuleSnapshotSchema
 	}
-	targets := make([]rollupTarget, 0, len(r.Targets))
+	targets := make([]RollupTarget, 0, len(r.Targets))
 	for _, t := range r.Targets {
 		target, err := newRollupTarget(t)
 		if err != nil {

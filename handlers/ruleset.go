@@ -35,25 +35,67 @@ var (
 	errInvalidCutoverTime = errors.New("cutover time is in the past")
 )
 
+//RollupTarget is a representation of rules.RollupTarget where the policies are
+//still in strings format.
+type RollupTarget struct {
+	Name     string
+	Tags     []string
+	Policies []string
+}
+
+// NewRollupTarget ...
+func NewRollupTarget(name string, tags []string, policies []string) RollupTarget {
+	return RollupTarget{Name: name, Tags: tags, Policies: policies}
+}
+
+// TODO(dgromov): Return aggregate errors instead of the first one.
+func parsePolicies(policies []string) ([]policy.Policy, error) {
+	result := make([]policy.Policy, len(policies))
+	for i, p := range policies {
+		parsed, err := policy.ParsePolicy(p)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = parsed
+	}
+	return result, nil
+}
+
+func parseRollupTargets(rts []RollupTarget) ([]rules.RollupTarget, error) {
+	result := make([]rules.RollupTarget, len(rts))
+	for i, rt := range rts {
+		parsedPolicies, err := parsePolicies(rt.Policies)
+		if err != nil {
+			return nil, err
+		}
+
+		result[i] = rules.RollupTarget{
+			Name:     rt.Name,
+			Tags:     rt.Tags,
+			Policies: parsedPolicies,
+		}
+	}
+	return result, nil
+}
+
 // AddMappingRule ...
 func (h *Handler) AddMappingRule(
 	rs rules.RuleSet,
-	ruleSetKey string,
 	nss *rules.Namespaces,
-	namespacesKey string,
 	ruleName string,
 	filters map[string]string,
-	policies []policy.Policy,
+	policies []string,
 ) error {
-	if err := rs.AppendMappingRule(ruleName, filters, policies, h.opts.PropagationDelay); err != nil {
-		return err
-	}
-	ns, err := nss.Namespace(string(rs.Namespace()))
+	parsedPolicies, err := parsePolicies(policies)
 	if err != nil {
 		return err
 	}
-	ns.Update(rs.Version() + 1)
-	if err := h.persistRuleSet(rs, ruleSetKey, nss, namespacesKey); err != nil {
+
+	if err := rs.AppendMappingRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
+		return err
+	}
+
+	if err := h.persistRuleSet(rs, nss); err != nil {
 		return err
 	}
 	return nil
@@ -62,56 +104,128 @@ func (h *Handler) AddMappingRule(
 // UpdateMappingRule ...
 func (h *Handler) UpdateMappingRule(
 	rs rules.RuleSet,
-	ruleSetKey string,
 	nss *rules.Namespaces,
-	namespacesKey string,
 	ruleID string,
 	ruleName string,
 	filters map[string]string,
-	policies []policy.Policy) error {
-
-	if err := rs.UpdateMappingRule(ruleID, ruleName, filters, policies, h.opts.PropagationDelay); err != nil {
-		return nil
-	}
-
-	ns, err := nss.Namespace(string(rs.Namespace()))
+	policies []string,
+) error {
+	parsedPolicies, err := parsePolicies(policies)
 	if err != nil {
 		return err
 	}
-	ns.Update(rs.Version() + 1)
+	if err := rs.UpdateMappingRule(ruleID, ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
+		return err
+	}
+	if err := h.persistRuleSet(rs, nss); err != nil {
+		return err
+	}
+	return nil
+}
 
-	if err := h.persistRuleSet(rs, ruleSetKey, nss, namespacesKey); err != nil {
+// DeleteMappingRule ...
+func (h *Handler) DeleteMappingRule(
+	rs rules.RuleSet,
+	nss *rules.Namespaces,
+	ruleID string,
+) error {
+	if err := rs.DeleteMappingRule(ruleID, h.opts.PropagationDelay); err != nil {
+		return err
+	}
+	if err := h.persistRuleSet(rs, nss); err != nil {
+		return err
+	}
+	return nil
+}
+
+// AddRollupRule ...
+func (h *Handler) AddRollupRule(
+	rs rules.RuleSet,
+	nss *rules.Namespaces,
+	ruleName string,
+	filters map[string]string,
+	rollupTargets []RollupTarget,
+) error {
+	parsedPolicies, err := parseRollupTargets(rollupTargets)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	if err := rs.AppendRollupRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
+		return err
+	}
 
+	if err := h.persistRuleSet(rs, nss); err != nil {
+		return err
+	}
+	return nil
 }
 
-// func (r *RuleSetHandler) DeleteMappingRule(n newMappingRule) {
-// 	v, err := r.rs.Tombstone(n.UUID)
-// 	// -> Returns error if rs
-// }
+// UpdateRollupRule ...
+func (h *Handler) UpdateRollupRule(
+	rs rules.RuleSet,
+	nss *rules.Namespaces,
+	ruleID string,
+	ruleName string,
+	filters map[string]string,
+	rollupTargets []RollupTarget,
+) error {
+	parsedPolicies, err := parseRollupTargets(rollupTargets)
+	if err != nil {
+		return err
+	}
+	if err := rs.UpdateRollupRule(ruleID, ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
+		return err
+	}
+	if err := h.persistRuleSet(rs, nss); err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteRollupRule ...
+func (h *Handler) DeleteRollupRule(
+	rs rules.RuleSet,
+	nss *rules.Namespaces,
+	ruleID string,
+) error {
+	if err := rs.DeleteRollupRule(ruleID, h.opts.PropagationDelay); err != nil {
+		return err
+	}
+	if err := h.persistRuleSet(rs, nss); err != nil {
+		return err
+	}
+	return nil
+}
 
 func (h *Handler) persistRuleSet(
 	rs rules.RuleSet,
-	ruleSetKey string,
 	nss *rules.Namespaces,
-	namespacesKey string,
 ) error {
 	ruleSetVersion := rs.Version()
-	// Not sure about this plus 1 here
+	ruleSetKey := h.RuleSetKey(string(rs.Namespace()))
+	namespacesKey := h.opts.NamespacesKey
+
 	ns, err := nss.Namespace(string(rs.Namespace()))
 	if err != nil {
 		return err
 	}
 	ns.Update(ruleSetVersion + 1)
 
+	rsSchema, err := rs.Schema()
+	if err != nil {
+		return err
+	}
+	nssSchema, err := nss.Schema()
+	if err != nil {
+		return err
+	}
+
 	namespacesCond := kv.NewCondition().
 		SetKey(ruleSetKey).
 		SetCompareType(kv.CompareEqual).
 		SetTargetType(kv.TargetVersion).
-		SetValue(nss)
+		SetValue(nss.Version)
 
 	ruleSetCond := kv.NewCondition().
 		SetKey(namespacesKey).
@@ -122,15 +236,6 @@ func (h *Handler) persistRuleSet(
 	conditions := []kv.Condition{
 		namespacesCond,
 		ruleSetCond,
-	}
-
-	rsSchema, err := rs.Schema()
-	if err != nil {
-		return err
-	}
-	nssSchema, err := nss.Schema()
-	if err != nil {
-		return err
 	}
 
 	ops := []kv.Op{
@@ -146,7 +251,8 @@ func (h *Handler) persistRuleSet(
 }
 
 // RuleSet returns the version and the persisted ruleset data in kv store.
-func (h Handler) RuleSet(ruleSetKey string) (rules.RuleSet, error) {
+func (h Handler) RuleSet(nsName string) (rules.RuleSet, error) {
+	ruleSetKey := h.RuleSetKey(nsName)
 	value, err := h.store.Get(ruleSetKey)
 	if err != nil {
 		return nil, err
@@ -163,7 +269,7 @@ func (h Handler) RuleSet(ruleSetKey string) (rules.RuleSet, error) {
 	return rs, err
 }
 
-// ValidateRuleSet validates that a valid RuleSet exists in that keyspace.
+// ValidateRuleSet validates that a Ruleset is active.
 func (h Handler) ValidateRuleSet(rs rules.RuleSet, ruleSetKey string) error {
 	if rs.Tombstoned() {
 		return fmt.Errorf("ruleset %s is tombstoned", ruleSetKey)

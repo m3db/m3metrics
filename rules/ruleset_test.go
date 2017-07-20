@@ -1090,7 +1090,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 10000,
 				filter:       filter1,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName1"),
 						Tags: [][]byte{b("rtagName1"), b("rtagName2")},
@@ -1105,7 +1105,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 20000,
 				filter:       filter1,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName1"),
 						Tags: [][]byte{b("rtagName1"), b("rtagName2")},
@@ -1122,7 +1122,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 30000,
 				filter:       filter1,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName1"),
 						Tags: [][]byte{b("rtagName1"), b("rtagName2")},
@@ -1143,7 +1143,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 15000,
 				filter:       filter1,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName1"),
 						Tags: [][]byte{b("rtagName1"), b("rtagName2")},
@@ -1158,7 +1158,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 22000,
 				filter:       filter1,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName1"),
 						Tags: [][]byte{b("rtagName1"), b("rtagName2")},
@@ -1174,7 +1174,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 35000,
 				filter:       filter1,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName1"),
 						Tags: [][]byte{b("rtagName1"), b("rtagName2")},
@@ -1195,7 +1195,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 22000,
 				filter:       filter1,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName1"),
 						Tags: [][]byte{b("rtagName1"), b("rtagName2")},
@@ -1219,7 +1219,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 34000,
 				filter:       filter1,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName1"),
 						Tags: [][]byte{b("rtagName1"), b("rtagName2")},
@@ -1235,7 +1235,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   true,
 				cutoverNanos: 38000,
 				filter:       filter1,
-				targets:      []rollupTarget{},
+				targets:      []RollupTarget{},
 			},
 		},
 	}
@@ -1248,7 +1248,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 24000,
 				filter:       filter2,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName3"),
 						Tags: [][]byte{b("rtagName1"), b("rtagName2")},
@@ -1269,7 +1269,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 24000,
 				filter:       filter2,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName4"),
 						Tags: [][]byte{b("rtagName1")},
@@ -1290,7 +1290,7 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				tombstoned:   false,
 				cutoverNanos: 100000,
 				filter:       filter1,
-				targets: []rollupTarget{
+				targets: []RollupTarget{
 					{
 						Name: b("rName3"),
 						Tags: [][]byte{b("rtagName1"), b("rtagName2")},

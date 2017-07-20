@@ -38,12 +38,16 @@ message Namespaces {
 import (
 	"time"
 
+	"fmt"
+
 	"github.com/m3db/m3cluster/kv"
 )
 
 // HandlerOptions ...
 type HandlerOptions struct {
 	PropagationDelay time.Duration
+	NamespacesKey    string
+	RuleSetKeyFmt    string
 }
 
 // Handler ...
@@ -52,8 +56,18 @@ type Handler struct {
 	opts  HandlerOptions
 }
 
+// NewHandlerOpts ...
+func NewHandlerOpts(propDelay time.Duration, namespacesKey string, rulesetKeyFmt string) HandlerOptions {
+	return HandlerOptions{propDelay, namespacesKey, rulesetKeyFmt}
+}
+
 // NewHandler ...
 func NewHandler(store kv.TxnStore, opts HandlerOptions) Handler {
 	return Handler{store: store, opts: opts}
 >>>>>>> Bump glide yaml:handlers/handler.go
+}
+
+// RuleSetKey generates a ruleset key for a given namespace
+func (h Handler) RuleSetKey(ns string) string {
+	return fmt.Sprintf(h.opts.RuleSetKeyFmt, ns)
 }
