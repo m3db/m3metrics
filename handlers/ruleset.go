@@ -69,11 +69,7 @@ func parseRollupTargets(rts []RollupTarget) ([]rules.RollupTarget, error) {
 			return nil, err
 		}
 
-		result[i] = rules.RollupTarget{
-			Name:     rt.Name,
-			Tags:     rt.Tags,
-			Policies: parsedPolicies,
-		}
+		result[i] = rules.NewRollupTargetFromFields(rt.Name, rt.Tags, parsedPolicies)
 	}
 	return result, nil
 }
@@ -90,11 +86,9 @@ func (h *Handler) AddMappingRule(
 	if err != nil {
 		return err
 	}
-
-	if err := rs.AppendMappingRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
+	if err := rs.AddMappingRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
-
 	if err := h.persistRuleSet(rs, nss); err != nil {
 		return err
 	}
@@ -151,7 +145,7 @@ func (h *Handler) AddRollupRule(
 		return err
 	}
 
-	if err := rs.AppendRollupRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
+	if err := rs.AddRollupRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
 

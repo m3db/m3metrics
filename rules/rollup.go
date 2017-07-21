@@ -28,6 +28,7 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/pborman/uuid"
 )
 
 var (
@@ -63,6 +64,11 @@ func newRollupTarget(target *schema.RollupTarget) (RollupTarget, error) {
 		Tags:     bytesArrayFromStringArray(tags),
 		Policies: policies,
 	}, nil
+}
+
+// NewRollupTargetFromFields ...
+func NewRollupTargetFromFields(name string, tags []string, policies []policy.Policy) RollupTarget {
+	return RollupTarget{Name: []byte(name), Tags: bytesArrayFromStringArray(tags), Policies: policies}
 }
 
 // sameTransform determines whether two targets have the same transformation.
@@ -203,6 +209,18 @@ func newRollupRule(
 	}, nil
 }
 
+func newRollupRuleFromFields(
+	name string,
+	rawFilters map[string]string,
+	targets []RollupTarget,
+	cutoverTime int64,
+	opts filters.TagsFilterOptions,
+) (*rollupRule, error) {
+	rr := rollupRule{uuid: uuid.New()}
+	rr.AddSnapshot(name, rawFilters, targets, cutoverTime, opts)
+	return &rr, nil
+}
+
 // ActiveSnapshot returns the latest rule snapshot whose cutover time is earlier
 // than or equal to timeNanos, or nil if not found.
 func (rc *rollupRule) ActiveSnapshot(timeNanos int64) *rollupRuleSnapshot {
@@ -229,6 +247,57 @@ func (rc *rollupRule) activeIndex(timeNanos int64) int {
 		idx--
 	}
 	return idx
+}
+
+func (rc *rollupRule) AddSnapshot(
+	name string,
+	rawFilters map[string]string,
+	rollupTargets []RollupTarget,
+	cutoverTime int64,
+	opts filters.TagsFilterOptions,
+) error {
+	filter, err := filters.NewTagsFilter(rawFilters, filters.Conjunction, opts)
+	if err != nil {
+		return err
+	}
+
+	snapshot := &rollupRuleSnapshot{
+		name:         name,
+		tombstoned:   false,
+		cutoverNanos: cutoverTime,
+		filter:       filter,
+		targets:      rollupTargets,
+		rawFilters:   rawFilters,
+	}
+
+	rc.snapshots = append(rc.snapshots, snapshot)
+	return nil
+}
+
+func (rc *rollupRule) Tombstone(cutoverTime int64) {
+	var snapshot rollupRuleSnapshot
+	if len(rc.snapshots) > 0 {
+		snapshot = *rc.snapshots[len(rc.snapshots)-1]
+	}
+	snapshot.tombstoned = true
+	snapshot.cutoverNanos = cutoverTime
+	rc.snapshots = append(rc.snapshots, &snapshot)
+}
+
+func (rc *rollupRule) Name() (string, error) {
+	if len(rc.snapshots) == 0 {
+		return "", errNoSnapshots
+	}
+	latest := rc.snapshots[len(rc.snapshots)-1]
+	return latest.name, nil
+}
+
+func (rc *rollupRule) Tombstoned() (bool, error) {
+	if len(rc.snapshots) == 0 {
+		return false, errNoSnapshots
+	}
+	latest := rc.snapshots[len(rc.snapshots)-1]
+	return latest.tombstoned, nil
 }
 
 // Schema returns the given RollupRule in protobuf form.

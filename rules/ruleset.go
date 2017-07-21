@@ -28,6 +28,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	metricID "github.com/m3db/m3metrics/metric/id"
@@ -453,7 +454,7 @@ type RuleSet interface {
 	Schema() (*schema.RuleSet, error)
 
 	// AppendMappingRule creates a new mapping rule and adds it to this ruleset.
-	AppendMappingRule(string, map[string]string, []policy.Policy, time.Duration) error
+	AddMappingRule(string, map[string]string, []policy.Policy, time.Duration) error
 
 	// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
 	UpdateMappingRule(string, string, map[string]string, []policy.Policy, time.Duration) error
@@ -461,14 +462,14 @@ type RuleSet interface {
 	// DeleteMappingRule
 	DeleteMappingRule(string, time.Duration) error
 
-	// AppendMappingRule creates a new mapping rule and adds it to this ruleset.
-	// AppendRollupRule(string, map[string]string, []policy.Policy, time.Duration) error
+	// AppendRollupRule creates a new mapping rule and adds it to this ruleset.
+	AddRollupRule(string, map[string]string, []RollupTarget, time.Duration) error
 
-	// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
-	// UpdateRollupRule(string, string, map[string]string, []policy.Policy, time.Duration) error
+	// UpdateRollupRule creates a new mapping rule and adds it to this ruleset.
+	UpdateRollupRule(string, string, map[string]string, []RollupTarget, time.Duration) error
 
 	// // DeleteMappingRule
-	// DeleteRollupRule(string, time.Duration) error
+	DeleteRollupRule(string, time.Duration) error
 }
 
 type ruleSet struct {
@@ -485,10 +486,6 @@ type ruleSet struct {
 	newRollupIDFn      metricID.NewIDFn
 	isRollupIDFn       metricID.MatchIDFn
 }
-
-// MarshalJSON
-
-// UnmarshalJson
 
 // NewRuleSet creates a new ruleset.
 func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {
@@ -593,18 +590,22 @@ func (rs *ruleSet) updateTimeStamps(nowNs int64, newCutoverNanos int64) {
 	rs.lastUpdatedAtNanos = nowNs
 }
 
-func (rs *ruleSet) AppendMappingRule(
+func (rs *ruleSet) AddMappingRule(
 	name string,
 	filters map[string]string,
 	policies []policy.Policy,
 	propDelay time.Duration,
 ) error {
-	m := rs.getMappingRuleByName(name)
+	m, err := rs.getMappingRuleByName(name)
+	if err != nil {
+		return err
+	}
+
 	if m != nil {
 		return errRuleAlreadyExist
 	}
 	updateTime := time.Now().UnixNano()
-	m, err := newMappingRuleFromFields(name, filters, policies, updateTime, rs.tagsFilterOpts)
+	m, err = newMappingRuleFromFields(name, filters, policies, updateTime, rs.tagsFilterOpts)
 	if err != nil {
 		return err
 	}
@@ -643,7 +644,7 @@ func (rs *ruleSet) DeleteMappingRule(
 ) error {
 	m, err := rs.getMappingRuleByID(uuid)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	updateTime := time.Now().UnixNano()
@@ -651,7 +652,70 @@ func (rs *ruleSet) DeleteMappingRule(
 	return nil
 }
 
-func (rs ruleSet) getMappingRuleByName(name string) *mappingRule {
+func (rs *ruleSet) AddRollupRule(
+	name string,
+	filters map[string]string,
+	targets []RollupTarget,
+	propDelay time.Duration,
+) error {
+	r, err := rs.getRollupRuleByName(name)
+	if err != nil {
+		return err
+	}
+
+	if r != nil {
+		return errRuleAlreadyExist
+	}
+
+	updateTime := time.Now().UnixNano()
+	r, err = newRollupRuleFromFields(name, filters, targets, updateTime, rs.tagsFilterOpts)
+	if err != nil {
+		return err
+	}
+
+	rs.updateTimeStamps(updateTime, updateTime+int64(propDelay))
+	rs.rollupRules = append(rs.rollupRules, r)
+	return nil
+}
+
+// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
+func (rs *ruleSet) UpdateRollupRule(
+	uuid string,
+	name string,
+	filters map[string]string,
+	targets []RollupTarget,
+	propDelay time.Duration,
+) error {
+	r, err := rs.getRollupRuleByID(uuid)
+	if err != nil {
+		return nil
+	}
+
+	updateTime := time.Now().UnixNano()
+	err = r.AddSnapshot(name, filters, targets, updateTime, rs.tagsFilterOpts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteMappingRule ...
+func (rs *ruleSet) DeleteRollupRule(
+	uuid string,
+	propDelay time.Duration,
+) error {
+	r, err := rs.getRollupRuleByID(uuid)
+	if err != nil {
+		return err
+	}
+
+	updateTime := time.Now().UnixNano()
+	r.Tombstone(updateTime)
+	return nil
+}
+
+func (rs ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
 	for _, m := range rs.mappingRules {
 		t, err := m.Tombstoned()
 		if err != nil || t {
@@ -659,21 +723,50 @@ func (rs ruleSet) getMappingRuleByName(name string) *mappingRule {
 		}
 		n, err := m.Name()
 		if err != nil {
-			continue
+			return nil, err
 		}
 
 		if n == name {
-			return m
+			return m, nil
 		}
 	}
 
-	return nil
+	return nil, kv.ErrNotFound
 }
 
 func (rs ruleSet) getMappingRuleByID(uuid string) (*mappingRule, error) {
 	for _, m := range rs.mappingRules {
 		if m.uuid == uuid {
 			return m, nil
+		}
+	}
+
+	return nil, errNoSuchRule
+}
+
+func (rs ruleSet) getRollupRuleByName(name string) (*rollupRule, error) {
+	for _, r := range rs.rollupRules {
+		t, err := r.Tombstoned()
+		if err != nil || t {
+			continue
+		}
+		n, err := r.Name()
+		if err != nil {
+			return nil, err
+		}
+
+		if n == name {
+			return r, nil
+		}
+	}
+
+	return nil, kv.ErrNotFound
+}
+
+func (rs ruleSet) getRollupRuleByID(uuid string) (*rollupRule, error) {
+	for _, r := range rs.rollupRules {
+		if r.uuid == uuid {
+			return r, nil
 		}
 	}
 
