@@ -25,14 +25,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/stretchr/testify/require"
-)
-
-const (
-	testNamespace     = "ns"
-	testRuleSetKeyFmt = "rules/%s"
 )
 
 var (
@@ -327,13 +321,6 @@ var (
 	}
 )
 
-func testHandler() *Handler {
-	opts := NewHandlerOpts(0, testNamespaceKey, testRuleSetKeyFmt)
-	store := mem.NewStore()
-	h := NewHandler(store, opts)
-	return &h
-}
-
 func TestRuleSet(t *testing.T) {
 	h := testHandler()
 	h.store.Set(testRuleSetKey, testRuleSet)
@@ -355,7 +342,7 @@ func TestValidateRuleSetTombstoned(t *testing.T) {
 	h.store.Set(testRuleSetKey, testRuleSet)
 	s, err := h.RuleSet(testNamespace)
 	require.NoError(t, err)
-	err = h.ValidateRuleSet(s, testRuleSetKey)
+	err = h.ValidateRuleSet(s)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "tombstoned")
 }

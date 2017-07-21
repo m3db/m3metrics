@@ -125,10 +125,23 @@ func (n *Namespace) Update(ruleSetVersion int) {
 	n.snapshots = append(n.snapshots, snapshot)
 }
 
-// Delete ...
-func (n *Namespace) Delete(ruleSetVersion int) {
+// Tombstone ...
+func (n *Namespace) Tombstone() {
+	ruleSetVersion := 0
+	if len(n.snapshots) > 0 {
+		ruleSetVersion = n.snapshots[len(n.snapshots)-1].forRuleSetVersion
+	}
+
 	snapshot := NamespaceSnapshot{tombstoned: true, forRuleSetVersion: ruleSetVersion}
 	n.snapshots = append(n.snapshots, snapshot)
+}
+
+// Tombstoned returns the tombstoned state for a given namespace.
+func (n Namespace) Tombstoned() bool {
+	if len(n.snapshots) == 0 {
+		return false
+	}
+	return n.snapshots[len(n.snapshots)-1].tombstoned
 }
 
 // Namespaces store the list of namespaces for which rules are defined.
@@ -186,9 +199,9 @@ func (nss Namespaces) Namespace(name string) (*Namespace, error) {
 		if string(ns.name) != name {
 			continue
 		}
-		tmp := &ns
+		tmp := ns
 		if res == nil {
-			res = tmp
+			res = &tmp
 		} else {
 			return nil, errMultipleNamespaceMatches
 		}
@@ -198,4 +211,36 @@ func (nss Namespaces) Namespace(name string) (*Namespace, error) {
 		return nil, kv.ErrNotFound
 	}
 	return res, nil
+}
+
+// AddNamespace adds a blank namespace to the namespaces object
+func (nss *Namespaces) AddNamespace(name string) error {
+	_, err := nss.Namespace(name)
+	if err != nil && err != kv.ErrNotFound {
+		return err
+	}
+
+	ns := Namespace{
+		name: []byte(name),
+		snapshots: []NamespaceSnapshot{
+			NamespaceSnapshot{
+				forRuleSetVersion: 1,
+				tombstoned:        false,
+			},
+		},
+	}
+
+	nss.namespaces = append(nss.namespaces, ns)
+	return nil
+}
+
+// DeleteNamespace ...
+func (nss *Namespaces) DeleteNamespace(namespaceName string) error {
+	ns, err := nss.Namespace(namespaceName)
+	if err != nil {
+		return err
+	}
+
+	ns.Tombstone()
+	return nil
 }

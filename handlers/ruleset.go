@@ -38,14 +38,9 @@ var (
 //RollupTarget is a representation of rules.RollupTarget where the policies are
 //still in strings format.
 type RollupTarget struct {
-	Name     string
-	Tags     []string
-	Policies []string
-}
-
-// NewRollupTarget ...
-func NewRollupTarget(name string, tags []string, policies []string) RollupTarget {
-	return RollupTarget{Name: name, Tags: tags, Policies: policies}
+	Name     string   `json:"name"`
+	Tags     []string `json:"tags"`
+	Policies []string `json:"policies"`
 }
 
 // TODO(dgromov): Return aggregate errors instead of the first one.
@@ -86,9 +81,12 @@ func (h *Handler) AddMappingRule(
 	if err != nil {
 		return err
 	}
+
+	// TODO(dgromov): Handle resurected rule
 	if err := rs.AddMappingRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
+
 	if err := h.persistRuleSet(rs, nss); err != nil {
 		return err
 	}
@@ -145,6 +143,7 @@ func (h *Handler) AddRollupRule(
 		return err
 	}
 
+	// TODO(dgromov): Handle resurected rule
 	if err := rs.AddRollupRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
@@ -183,6 +182,7 @@ func (h *Handler) DeleteRollupRule(
 	nss *rules.Namespaces,
 	ruleID string,
 ) error {
+	// TODO(dgromov): Validate rule here?
 	if err := rs.DeleteRollupRule(ruleID, h.opts.PropagationDelay); err != nil {
 		return err
 	}
@@ -216,13 +216,13 @@ func (h *Handler) persistRuleSet(
 	}
 
 	namespacesCond := kv.NewCondition().
-		SetKey(ruleSetKey).
+		SetKey(namespacesKey).
 		SetCompareType(kv.CompareEqual).
 		SetTargetType(kv.TargetVersion).
 		SetValue(nss.Version)
 
 	ruleSetCond := kv.NewCondition().
-		SetKey(namespacesKey).
+		SetKey(ruleSetKey).
 		SetCompareType(kv.CompareEqual).
 		SetTargetType(kv.TargetVersion).
 		SetValue(ruleSetVersion)
@@ -264,9 +264,9 @@ func (h Handler) RuleSet(nsName string) (rules.RuleSet, error) {
 }
 
 // ValidateRuleSet validates that a Ruleset is active.
-func (h Handler) ValidateRuleSet(rs rules.RuleSet, ruleSetKey string) error {
+func (h Handler) ValidateRuleSet(rs rules.RuleSet) error {
 	if rs.Tombstoned() {
-		return fmt.Errorf("ruleset %s is tombstoned", ruleSetKey)
+		return fmt.Errorf("ruleset %s is tombstoned", h.RuleSetKey(string(rs.Namespace())))
 	}
 	return nil
 }
