@@ -21,6 +21,7 @@
 package rules
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/m3db/m3metrics/filters"
@@ -69,6 +70,50 @@ func newMappingRuleSnapshot(
 		policies:     policies,
 		rawFilters:   r.TagFilters,
 	}, nil
+}
+
+type mappingRuleSnapshotJSON struct {
+	Name         string            `json:"name"`
+	Tombstoned   bool              `json:"tombstoned"`
+	CutoverNanos int64             `json:"cutoverTime"`
+	TagFilters   map[string]string `json:"filters"`
+	Policies     []policy.Policy   `json:"policies"`
+}
+
+func newMappingRuleSnapshotJSON(mrs mappingRuleSnapshot) mappingRuleSnapshotJSON {
+	return mappingRuleSnapshotJSON{
+		Name:         mrs.name,
+		Tombstoned:   mrs.tombstoned,
+		CutoverNanos: mrs.cutoverNanos,
+		TagFilters:   mrs.rawFilters,
+		Policies:     mrs.policies,
+	}
+}
+
+// MarshalJSON returns the JSON encoding of mappingRuleSnapshots
+func (mrs mappingRuleSnapshot) MarshalJSON() ([]byte, error) {
+	return json.Marshal(newMappingRuleSnapshotJSON(mrs))
+}
+
+// UnmarshalJSON unmarshals JSON-encoded data into mappingRuleSnapshots
+func (mrs *mappingRuleSnapshot) UnmarshalJSON(data []byte) error {
+	var mrsj mappingRuleSnapshotJSON
+	err := json.Unmarshal(data, &mrsj)
+	if err != nil {
+		return err
+	}
+	*mrs = mrsj.mappingRuleSnapshot()
+	return nil
+}
+
+func (mrsj mappingRuleSnapshotJSON) mappingRuleSnapshot() mappingRuleSnapshot {
+	return mappingRuleSnapshot{
+		name:         mrsj.Name,
+		tombstoned:   mrsj.Tombstoned,
+		cutoverNanos: mrsj.CutoverNanos,
+		policies:     mrsj.Policies,
+		rawFilters:   mrsj.TagFilters,
+	}
 }
 
 // Schema returns the given MappingRuleSnapshot in protobuf form.
@@ -211,6 +256,50 @@ func (mc *mappingRule) activeIndex(timeNanos int64) int {
 		idx--
 	}
 	return idx
+}
+
+type mappingRuleJSON struct {
+	UUID      string                    `json:"uuid"`
+	Snapshots []mappingRuleSnapshotJSON `json:"snapshots"`
+}
+
+func newMappingRuleJSON(mc mappingRule) mappingRuleJSON {
+	snapshots := make([]mappingRuleSnapshotJSON, len(mc.snapshots))
+	for i, s := range mc.snapshots {
+		snapshots[i] = newMappingRuleSnapshotJSON(*s)
+	}
+	return mappingRuleJSON{
+		UUID:      mc.uuid,
+		Snapshots: snapshots,
+	}
+}
+
+// MarshalJSON returns the JSON encoding of mappingRuleSnapshots
+func (mc mappingRule) MarshalJSON() ([]byte, error) {
+	return json.Marshal(newMappingRuleJSON(mc))
+}
+
+// UnmarshalJSON unmarshals JSON-encoded data into mappingRuleSnapshots
+func (mc *mappingRule) UnmarshalJSON(data []byte) error {
+	var mrj mappingRuleJSON
+	err := json.Unmarshal(data, &mrj)
+	if err != nil {
+		return err
+	}
+	*mc = mrj.mappingRule()
+	return nil
+}
+
+func (mrj mappingRuleJSON) mappingRule() mappingRule {
+	snapshots := make([]*mappingRuleSnapshot, len(mrj.Snapshots))
+	for i, s := range mrj.Snapshots {
+		newSnapshot := s.mappingRuleSnapshot()
+		snapshots[i] = &newSnapshot
+	}
+	return mappingRule{
+		uuid:      mrj.UUID,
+		snapshots: snapshots,
+	}
 }
 
 // Schema returns the given MappingRule in protobuf form.

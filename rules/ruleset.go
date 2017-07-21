@@ -22,6 +22,7 @@ package rules
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -468,7 +469,7 @@ type RuleSet interface {
 	// UpdateRollupRule creates a new mapping rule and adds it to this ruleset.
 	UpdateRollupRule(string, string, map[string]string, []RollupTarget, time.Duration) error
 
-	// // DeleteMappingRule
+	// DeleteRollupRule ...
 	DeleteRollupRule(string, time.Duration) error
 }
 
@@ -771,6 +772,73 @@ func (rs ruleSet) getRollupRuleByID(uuid string) (*rollupRule, error) {
 	}
 
 	return nil, errNoSuchRule
+}
+
+type ruleSetJSON struct {
+	UUID               string         `json:"uuid"`
+	Version            int            `json:"version"`
+	Namespace          string         `json:"namespace"`
+	CreatedAtNanos     int64          `json:"createdAt"`
+	LastUpdatedAtNanos int64          `json:"lastUpdatedAt"`
+	Tombstoned         bool           `json:"tombstoned"`
+	CutoverNanos       int64          `json:"cutoverNanos"`
+	MappingRules       []*mappingRule `json:"mappingRules"`
+	RollupRules        []*rollupRule  `json:"rollupRules"`
+}
+
+func newRuleSetJSON(rs ruleSet) ruleSetJSON {
+	return ruleSetJSON{
+		UUID:               rs.uuid,
+		Version:            rs.version,
+		Namespace:          string(rs.namespace),
+		CreatedAtNanos:     rs.createdAtNanos,
+		LastUpdatedAtNanos: rs.lastUpdatedAtNanos,
+		Tombstoned:         rs.tombstoned,
+		CutoverNanos:       rs.cutoverNanos,
+		MappingRules:       rs.mappingRules,
+		RollupRules:        rs.rollupRules,
+	}
+}
+
+// MarshalJSON returns the JSON encoding of staged policies.
+func (rs ruleSet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(newRuleSetJSON(rs))
+}
+
+// UnmarshalJSON unmarshals JSON-encoded data into staged policies.
+func (rs *ruleSet) UnmarshalJSON(data []byte) error {
+	var rsj ruleSetJSON
+	err := json.Unmarshal(data, &rsj)
+	if err != nil {
+		return err
+	}
+	*rs = *rsj.RuleSet()
+	return nil
+}
+
+// FromJSON makes a RuleSet from its JSON representation
+func FromJSON(data []byte) (RuleSet, error) {
+	var rsj ruleSetJSON
+	err := json.Unmarshal(data, &rsj)
+	if err != nil {
+		return nil, err
+	}
+
+	return rsj.RuleSet(), nil
+}
+
+func (rsj ruleSetJSON) RuleSet() *ruleSet {
+	return &ruleSet{
+		uuid:               rsj.UUID,
+		version:            rsj.Version,
+		namespace:          []byte(rsj.Namespace),
+		createdAtNanos:     rsj.CreatedAtNanos,
+		lastUpdatedAtNanos: rsj.LastUpdatedAtNanos,
+		tombstoned:         rsj.Tombstoned,
+		cutoverNanos:       rsj.CutoverNanos,
+		mappingRules:       rsj.MappingRules,
+		rollupRules:        rsj.RollupRules,
+	}
 }
 
 // resolvePolicies resolves the conflicts among policies if any, following the rules below:
