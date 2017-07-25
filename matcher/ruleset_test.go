@@ -172,6 +172,8 @@ func (r mockRuleSet) CutoverNanos() int64                     { return r.cutover
 func (r mockRuleSet) Tombstoned() bool                        { return r.tombstoned }
 func (r mockRuleSet) ActiveSet(timeNanos int64) rules.Matcher { return r.matcher }
 func (r mockRuleSet) Schema() (*schema.RuleSet, error)        { return nil, nil }
+func (r mockRuleSet) Tombstone(time.Duration) error           { return nil }
+func (r mockRuleSet) Revive(time.Duration) error              { return nil }
 func (r mockRuleSet) AddMappingRule(string, map[string]string, []policy.Policy, time.Duration) error {
 	return nil
 }

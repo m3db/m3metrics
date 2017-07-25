@@ -203,3 +203,10 @@ func TestNamespacesSchema(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testNss, res)
 }
+
+// github.com/m3db/m3metrics/rules/namespace.go Namespace.Tombstone
+// github.com/m3db/m3metrics/rules/namespace.go Namespace.Tombstoned
+// github.com/m3db/m3metrics/rules/namespace.go Namespace.Update
+// github.com/m3db/m3metrics/rules/namespace.go Namespaces.AddNamespace
+// github.com/m3db/m3metrics/rules/namespace.go Namespaces.DeleteNamespace
+// github.com/m3db/m3metrics/rules/namespace.go Namespaces.Namespace

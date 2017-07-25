@@ -22,12 +22,16 @@ package handlers
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/rules"
-	"github.com/pborman/uuid"
+)
+
+var (
+	errNoNameGiven         = fmt.Errorf("no name provided")
+	errNoSuchNamespace     = fmt.Errorf("no such namespace")
+	errNoSnapshots         = fmt.Errorf("namespace has no snapshots")
+	errNamespaceTombstoned = fmt.Errorf("namespace is tombstoned")
 )
 
 // Namespaces returns the version and the persisted namespaces in kv store.
@@ -42,92 +46,58 @@ func (h Handler) Namespaces() (*rules.Namespaces, error) {
 	if err := value.Unmarshal(&namespaces); err != nil {
 		return nil, err
 	}
-	ns, err := rules.NewNamespaces(version, &namespaces)
+
+	nss, err := rules.NewNamespaces(version, &namespaces)
 	if err != nil {
 		return nil, err
 	}
-	return &ns, err
+	return &nss, err
 }
 
 // ValidateNamespace validates whether a given namespace exists.
-func (h Handler) ValidateNamespace(namespaces *rules.Namespaces, namespaceName string) error {
-	ns, err := namespaces.Namespace(namespaceName)
-	if err != nil {
-		return fmt.Errorf("error finding namespace with name %s: %v", namespaceName, err)
-	}
-	if ns == nil {
-		return fmt.Errorf("namespace %s doesn't exist", namespaceName)
-	}
+func (h Handler) ValidateNamespace(ns *rules.Namespace) error {
 	if len(ns.Snapshots()) == 0 {
-		return fmt.Errorf("namespace %s has no snapshots", namespaceName)
+		return errNoSnapshots
 	}
 	if ns.Tombstoned() {
-		return fmt.Errorf("namespace %s is tombstoned", namespaceName)
+		return errNamespaceTombstoned
 	}
 	return nil
 }
 
 // AddNamespace adds a new namespace to the namespaces structure and persists it
-func (h Handler) AddNamespace(namespaces *rules.Namespaces, namespaceName string) error {
-	if err := namespaces.AddNamespace(namespaceName); err != nil {
-		return err
+func (h Handler) AddNamespace(nss *rules.Namespaces, nsName string) (rules.RuleSet, error) {
+	if len(nsName) == 0 {
+		return nil, errNoNameGiven
 	}
 
-	now := time.Now().UnixNano()
-	rs, err := rules.NewRuleSet(1, &schema.RuleSet{
-		Uuid:          uuid.New(),
-		Namespace:     namespaceName,
-		CreatedAt:     now,
-		LastUpdatedAt: now,
-		Tombstoned:    false,
-		CutoverTime:   now,
-	}, rules.NewOptions())
+	err := nss.AddNamespace(nsName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := h.persistRuleSet(rs, namespaces); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (h Handler) persistNamespaces(nss *rules.Namespaces) error {
-	nssSchema, err := nss.Schema()
+	rs, err := h.initRuleSet(nsName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	namespacesCond := kv.NewCondition().
-		SetKey(h.opts.NamespacesKey).
-		SetCompareType(kv.CompareEqual).
-		SetTargetType(kv.TargetVersion).
-		SetValue(nss.Version)
-
-	conditions := []kv.Condition{
-		namespacesCond,
-	}
-
-	ops := []kv.Op{
-		kv.NewSetOp(h.opts.NamespacesKey, nssSchema),
-	}
-
-	if _, err := h.store.Commit(conditions, ops); err != nil {
-		return err
-	}
-
-	return nil
+	return rs, nil
 }
 
 // DeleteNamespace adds a new namespace to the namespaces structure and persists it
-func (h Handler) DeleteNamespace(nss *rules.Namespaces, namespaceName string) error {
-	if err := nss.DeleteNamespace(namespaceName); err != nil {
-		return err
+func (h Handler) DeleteNamespace(nss *rules.Namespaces, nsName string) (rules.RuleSet, error) {
+	rs, err := h.RuleSet(nsName)
+	if err != nil {
+		return nil, err
 	}
 
-	if err := h.persistNamespaces(nss); err != nil {
-		return err
+	if err := rs.Tombstone(h.opts.PropagationDelay); err != nil {
+		return nil, fmt.Errorf("Could not tombstone Ruleset: %s. %v", nsName, err)
 	}
 
-	return nil
+	if err := nss.DeleteNamespace(nsName, rs.Version()); err != nil {
+		return nil, err
+	}
+
+	return rs, nil
 }

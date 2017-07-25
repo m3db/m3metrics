@@ -199,3 +199,11 @@ func TestMappingRuleSchema(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testMappingRuleSchema, schema)
 }
+
+// github.com/m3db/m3metrics/rules/mapping.go mappingRule.AddSnapshot
+// github.com/m3db/m3metrics/rules/mapping.go mappingRule.Name
+// github.com/m3db/m3metrics/rules/mapping.go mappingRule.Tombstone
+// github.com/m3db/m3metrics/rules/mapping.go mappingRule.Tombstoned
+// github.com/m3db/m3metrics/rules/mapping.go mappingRuleSnapshot.MarshalJSON
+// github.com/m3db/m3metrics/rules/mapping.go mappingRuleSnapshot.UnmarshalJSON
+// github.com/m3db/m3metrics/rules/mapping.go newMappingRuleFromFields

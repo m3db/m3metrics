@@ -36,11 +36,15 @@ message Namespaces {
   repeated Namespace namespaces = 1;
 =======
 import (
+	"fmt"
 	"time"
 
-	"fmt"
-
 	"github.com/m3db/m3cluster/kv"
+	"github.com/m3db/m3metrics/rules"
+)
+
+var (
+	errEmptyNamespace = fmt.Errorf("cannot generate ruleset key with empty namespace")
 )
 
 // HandlerOptions ...
@@ -70,4 +74,58 @@ func NewHandler(store kv.TxnStore, opts HandlerOptions) Handler {
 // RuleSetKey generates a ruleset key for a given namespace
 func (h Handler) RuleSetKey(ns string) string {
 	return fmt.Sprintf(h.opts.RuleSetKeyFmt, ns)
+}
+
+// Persist saves the given ruleset and optional namespace to the backing store.
+// If saveNamespace is false, will only use the namesapces state to ensure that
+// the RuleSet is still valid.
+func (h *Handler) Persist(
+	rs rules.RuleSet,
+	nss *rules.Namespaces,
+	saveNamespace bool,
+) error {
+	ruleSetVersion := rs.Version()
+	nssVersion := nss.Version()
+
+	ruleSetKey := h.RuleSetKey(string(rs.Namespace()))
+
+	namespacesKey := h.opts.NamespacesKey
+	rsSchema, err := rs.Schema()
+	if err != nil {
+		return err
+	}
+
+	namespacesCond := kv.NewCondition().
+		SetKey(namespacesKey).
+		SetCompareType(kv.CompareEqual).
+		SetTargetType(kv.TargetVersion).
+		SetValue(nssVersion)
+
+	ruleSetCond := kv.NewCondition().
+		SetKey(ruleSetKey).
+		SetCompareType(kv.CompareEqual).
+		SetTargetType(kv.TargetVersion).
+		SetValue(ruleSetVersion)
+
+	conditions := []kv.Condition{
+		namespacesCond,
+		ruleSetCond,
+	}
+
+	ops := []kv.Op{
+		kv.NewSetOp(ruleSetKey, rsSchema),
+	}
+	if saveNamespace {
+		nssSchema, err := nss.Schema()
+		if err != nil {
+			return err
+		}
+		ops = append(ops, kv.NewSetOp(namespacesKey, nssSchema))
+	}
+
+	if _, err := h.store.Commit(conditions, ops); err != nil {
+		return err
+	}
+
+	return nil
 }

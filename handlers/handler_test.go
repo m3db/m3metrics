@@ -20,11 +20,17 @@
 
 package handlers
 
-import "github.com/m3db/m3cluster/kv/mem"
+import (
+	"testing"
+
+	"github.com/m3db/m3cluster/kv/mem"
+
+	"github.com/stretchr/testify/require"
+)
 
 const (
 	testNamespaceKey  = "testKey"
-	testNamespace     = "ns"
+	testNamespace     = "fooNs"
 	testRuleSetKeyFmt = "rules/%s"
 )
 
@@ -33,4 +39,19 @@ func testHandler() *Handler {
 	store := mem.NewStore()
 	h := NewHandler(store, opts)
 	return &h
+}
+
+func TestRuleSetKey(t *testing.T) {
+	h := testHandler()
+	key := h.RuleSetKey(testNamespace)
+	require.Equal(t, "rules/fooNs", key)
+}
+
+func TestNewHandler(t *testing.T) {
+	opts := NewHandlerOpts(0, testNamespaceKey, testRuleSetKeyFmt)
+	store := mem.NewStore()
+	h := NewHandler(store, opts)
+
+	require.Equal(t, h.store, store)
+	require.Equal(t, h.opts, opts)
 }

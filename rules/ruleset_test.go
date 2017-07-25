@@ -2145,6 +2145,19 @@ func testRollupRulesConfig() []*schema.RollupRule {
 	}
 }
 
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.AddMappingRule
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.AddRollupRule
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.DeleteMappingRule
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.DeleteRollupRule
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.UnmarshalJSON
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.UpdateMappingRule
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.UpdateRollupRule
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.getMappingRuleByID
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.getMappingRuleByName
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.getRollupRuleByID
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.getRollupRuleByName
+// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.updateTimeStamps
+
 func testRuleSetOptions() Options {
 	return NewOptions().
 		SetTagsFilterOptions(testTagsFilterOptions()).

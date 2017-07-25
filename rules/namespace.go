@@ -22,6 +22,7 @@ package rules
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/generated/proto/schema"
@@ -37,6 +38,7 @@ var (
 	errNilNamespacesSchema        = errors.New("nil namespaces schema")
 	errNilNamespaceSnapshot       = errors.New("nil namespace snapshot")
 	errMultipleNamespaceMatches   = errors.New("more than one namespace match found")
+	errNamespaceExists            = errors.New("namespace already exists")
 )
 
 // NamespaceSnapshot defines a namespace snapshot for which rules are defined.
@@ -119,21 +121,24 @@ func (n Namespace) Schema() (*schema.Namespace, error) {
 	return res, nil
 }
 
-// Update ...
-func (n *Namespace) Update(ruleSetVersion int) {
-	snapshot := NamespaceSnapshot{tombstoned: false, forRuleSetVersion: ruleSetVersion}
+// Tombstone ...
+func (n *Namespace) tombstone(tombstonedRSVersion int) error {
+	if n.Tombstoned() {
+		return fmt.Errorf("%s is already tombstoned", string(n.name))
+	}
+	snapshot := NamespaceSnapshot{tombstoned: true, forRuleSetVersion: tombstonedRSVersion}
 	n.snapshots = append(n.snapshots, snapshot)
+	return nil
 }
 
-// Tombstone ...
-func (n *Namespace) Tombstone() {
-	ruleSetVersion := 0
-	if len(n.snapshots) > 0 {
-		ruleSetVersion = n.snapshots[len(n.snapshots)-1].forRuleSetVersion
+func (n *Namespace) revive() error {
+	if !n.Tombstoned() {
+		return fmt.Errorf("%s is not tombstoned", string(n.name))
 	}
-
-	snapshot := NamespaceSnapshot{tombstoned: true, forRuleSetVersion: ruleSetVersion}
+	v := n.snapshots[len(n.snapshots)-1].forRuleSetVersion
+	snapshot := NamespaceSnapshot{tombstoned: false, forRuleSetVersion: v}
 	n.snapshots = append(n.snapshots, snapshot)
+	return nil
 }
 
 // Tombstoned returns the tombstoned state for a given namespace.
@@ -193,15 +198,19 @@ func (nss Namespaces) Schema() (*schema.Namespaces, error) {
 }
 
 // Namespace ...
-func (nss Namespaces) Namespace(name string) (*Namespace, error) {
+func (nss *Namespaces) Namespace(name string) (*Namespace, error) {
 	var res *Namespace
-	for _, ns := range nss.namespaces {
+	if len(nss.namespaces) == 0 {
+		return nil, kv.ErrNotFound
+	}
+
+	for i, ns := range nss.namespaces {
 		if string(ns.name) != name {
 			continue
 		}
-		tmp := ns
+
 		if res == nil {
-			res = &tmp
+			res = &nss.namespaces[i]
 		} else {
 			return nil, errMultipleNamespaceMatches
 		}
@@ -210,37 +219,54 @@ func (nss Namespaces) Namespace(name string) (*Namespace, error) {
 	if res == nil {
 		return nil, kv.ErrNotFound
 	}
+
 	return res, nil
 }
 
 // AddNamespace adds a blank namespace to the namespaces object
 func (nss *Namespaces) AddNamespace(name string) error {
-	_, err := nss.Namespace(name)
-	if err != nil && err != kv.ErrNotFound {
-		return err
+	existing, err := nss.Namespace(name)
+
+	if err != nil {
+		if err != kv.ErrNotFound {
+			return err
+		}
 	}
 
-	ns := Namespace{
-		name: []byte(name),
-		snapshots: []NamespaceSnapshot{
-			NamespaceSnapshot{
-				forRuleSetVersion: 1,
-				tombstoned:        false,
+	// Brand new namespace
+	if err == kv.ErrNotFound {
+		ns := Namespace{
+			name: []byte(name),
+			snapshots: []NamespaceSnapshot{
+				NamespaceSnapshot{
+					forRuleSetVersion: 1,
+					tombstoned:        false,
+				},
 			},
-		},
+		}
+
+		nss.namespaces = append(nss.namespaces, ns)
+		return nil
 	}
 
-	nss.namespaces = append(nss.namespaces, ns)
-	return nil
-}
-
-// DeleteNamespace ...
-func (nss *Namespaces) DeleteNamespace(namespaceName string) error {
-	ns, err := nss.Namespace(namespaceName)
+	// Revive the namespace
+	err = existing.revive()
 	if err != nil {
 		return err
 	}
 
-	ns.Tombstone()
+	return nil
+}
+
+// DeleteNamespace tombstones a Namesapce as well as its cooresponding ruleset
+func (nss *Namespaces) DeleteNamespace(nsName string, rsVersion int) error {
+	ns, err := nss.Namespace(nsName)
+	if err != nil {
+		return err
+	}
+
+	if err := ns.tombstone(rsVersion + 1); err != nil {
+		return err
+	}
 	return nil
 }

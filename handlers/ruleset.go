@@ -23,16 +23,21 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules"
+	"github.com/pborman/uuid"
 )
 
 var (
-	errMultipleMatches    = errors.New("more than one match found")
-	errInvalidCutoverTime = errors.New("cutover time is in the past")
+	errMultipleMatches = errors.New("more than one match found")
+	errRuleSetExists   = errors.New("ruleset already exists")
+	errNoPolicies      = errors.New("no policies provided")
+	errNoTargets       = errors.New("no targets provided")
+	errNoFilters       = errors.New("no filters provided")
 )
 
 //RollupTarget is a representation of rules.RollupTarget where the policies are
@@ -45,11 +50,15 @@ type RollupTarget struct {
 
 // TODO(dgromov): Return aggregate errors instead of the first one.
 func parsePolicies(policies []string) ([]policy.Policy, error) {
+	if len(policies) == 0 {
+		return nil, errNoPolicies
+	}
+
 	result := make([]policy.Policy, len(policies))
 	for i, p := range policies {
 		parsed, err := policy.ParsePolicy(p)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Cannot parse: %s. %v", p, err)
 		}
 		result[i] = parsed
 	}
@@ -57,8 +66,20 @@ func parsePolicies(policies []string) ([]policy.Policy, error) {
 }
 
 func parseRollupTargets(rts []RollupTarget) ([]rules.RollupTarget, error) {
+	if len(rts) == 0 {
+		return nil, errNoTargets
+	}
+
 	result := make([]rules.RollupTarget, len(rts))
 	for i, rt := range rts {
+		if len(rt.Name) == 0 {
+			return nil, fmt.Errorf("Cannot parse targets. %v", errNoNameGiven)
+		}
+
+		if len(rt.Tags) == 0 {
+			return nil, fmt.Errorf("Cannot parse target %s. Must provide tags", rt.Name)
+		}
+
 		parsedPolicies, err := parsePolicies(rt.Policies)
 		if err != nil {
 			return nil, err
@@ -77,6 +98,14 @@ func (h *Handler) AddMappingRule(
 	filters map[string]string,
 	policies []string,
 ) error {
+	if len(ruleName) == 0 {
+		return errNoNameGiven
+	}
+
+	if len(filters) == 0 {
+		return errNoFilters
+	}
+
 	parsedPolicies, err := parsePolicies(policies)
 	if err != nil {
 		return err
@@ -84,12 +113,9 @@ func (h *Handler) AddMappingRule(
 
 	// TODO(dgromov): Handle resurected rule
 	if err := rs.AddMappingRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
-		return err
+		return fmt.Errorf("Failed to add Mapping Rule. %v", err)
 	}
 
-	if err := h.persistRuleSet(rs, nss); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -109,9 +135,7 @@ func (h *Handler) UpdateMappingRule(
 	if err := rs.UpdateMappingRule(ruleID, ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
-	if err := h.persistRuleSet(rs, nss); err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -124,9 +148,7 @@ func (h *Handler) DeleteMappingRule(
 	if err := rs.DeleteMappingRule(ruleID, h.opts.PropagationDelay); err != nil {
 		return err
 	}
-	if err := h.persistRuleSet(rs, nss); err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -138,6 +160,13 @@ func (h *Handler) AddRollupRule(
 	filters map[string]string,
 	rollupTargets []RollupTarget,
 ) error {
+	if len(ruleName) == 0 {
+		return errNoNameGiven
+	}
+	if len(filters) == 0 {
+		return errNoFilters
+	}
+
 	parsedPolicies, err := parseRollupTargets(rollupTargets)
 	if err != nil {
 		return err
@@ -145,12 +174,9 @@ func (h *Handler) AddRollupRule(
 
 	// TODO(dgromov): Handle resurected rule
 	if err := rs.AddRollupRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
-		return err
+		return fmt.Errorf("Failed to add Rollup Rule. %v", err)
 	}
 
-	if err := h.persistRuleSet(rs, nss); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -170,9 +196,6 @@ func (h *Handler) UpdateRollupRule(
 	if err := rs.UpdateRollupRule(ruleID, ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
-	if err := h.persistRuleSet(rs, nss); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -186,61 +209,6 @@ func (h *Handler) DeleteRollupRule(
 	if err := rs.DeleteRollupRule(ruleID, h.opts.PropagationDelay); err != nil {
 		return err
 	}
-	if err := h.persistRuleSet(rs, nss); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (h *Handler) persistRuleSet(
-	rs rules.RuleSet,
-	nss *rules.Namespaces,
-) error {
-	ruleSetVersion := rs.Version()
-	ruleSetKey := h.RuleSetKey(string(rs.Namespace()))
-	namespacesKey := h.opts.NamespacesKey
-
-	ns, err := nss.Namespace(string(rs.Namespace()))
-	if err != nil {
-		return err
-	}
-	ns.Update(ruleSetVersion + 1)
-
-	rsSchema, err := rs.Schema()
-	if err != nil {
-		return err
-	}
-	nssSchema, err := nss.Schema()
-	if err != nil {
-		return err
-	}
-
-	namespacesCond := kv.NewCondition().
-		SetKey(namespacesKey).
-		SetCompareType(kv.CompareEqual).
-		SetTargetType(kv.TargetVersion).
-		SetValue(nss.Version)
-
-	ruleSetCond := kv.NewCondition().
-		SetKey(ruleSetKey).
-		SetCompareType(kv.CompareEqual).
-		SetTargetType(kv.TargetVersion).
-		SetValue(ruleSetVersion)
-
-	conditions := []kv.Condition{
-		namespacesCond,
-		ruleSetCond,
-	}
-
-	ops := []kv.Op{
-		kv.NewSetOp(ruleSetKey, rsSchema),
-		kv.NewSetOp(namespacesKey, nssSchema),
-	}
-
-	if _, err := h.store.Commit(conditions, ops); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -248,17 +216,18 @@ func (h *Handler) persistRuleSet(
 func (h Handler) RuleSet(nsName string) (rules.RuleSet, error) {
 	ruleSetKey := h.RuleSetKey(nsName)
 	value, err := h.store.Get(ruleSetKey)
+
 	if err != nil {
 		return nil, err
 	}
 	version := value.Version()
 	var ruleSet schema.RuleSet
 	if err := value.Unmarshal(&ruleSet); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
 	rs, err := rules.NewRuleSet(version, &ruleSet, rules.NewOptions())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
 	return rs, err
 }
@@ -266,7 +235,43 @@ func (h Handler) RuleSet(nsName string) (rules.RuleSet, error) {
 // ValidateRuleSet validates that a Ruleset is active.
 func (h Handler) ValidateRuleSet(rs rules.RuleSet) error {
 	if rs.Tombstoned() {
-		return fmt.Errorf("ruleset %s is tombstoned", h.RuleSetKey(string(rs.Namespace())))
+		rsKey := h.RuleSetKey(string(rs.Namespace()))
+
+		return fmt.Errorf("ruleset %s is tombstoned", rsKey)
 	}
 	return nil
+}
+
+// Add a blank ruleset
+func (h Handler) initRuleSet(nsName string) (rules.RuleSet, error) {
+	existing, err := h.RuleSet(nsName)
+	if err != nil {
+		if err != kv.ErrNotFound {
+			return nil, err
+		}
+	}
+	now := time.Now().UnixNano()
+
+	if err == kv.ErrNotFound {
+		rs, err := rules.NewRuleSet(0, &schema.RuleSet{
+			Uuid:          uuid.New(),
+			Namespace:     nsName,
+			CreatedAt:     now,
+			LastUpdatedAt: now,
+			Tombstoned:    false,
+			CutoverTime:   now,
+		}, rules.NewOptions())
+
+		return rs, err
+	}
+	if err := h.ValidateRuleSet(existing); err == nil {
+		return nil, errRuleSetExists
+	}
+
+	err = existing.Revive(h.opts.PropagationDelay)
+	if err != nil {
+		return nil, err
+	}
+
+	return existing, nil
 }
