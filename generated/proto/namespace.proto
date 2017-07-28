@@ -36,6 +36,7 @@ message Namespaces {
   repeated Namespace namespaces = 1;
 =======
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -74,6 +75,36 @@ func NewHandler(store kv.TxnStore, opts HandlerOptions) Handler {
 // RuleSetKey generates a ruleset key for a given namespace
 func (h Handler) RuleSetKey(ns string) string {
 	return fmt.Sprintf(h.opts.RuleSetKeyFmt, ns)
+}
+
+// R2State represents the state of the world accroding to the handler.
+// Every request should include this.
+type R2State struct {
+	RuleSet    rules.RuleSet
+	Namespaces rules.Namespace
+}
+
+// This is a necessary step because RuleSet is an interface
+type r2StateJSON struct {
+	RuleSet    []byte          `json:"ruleset"`
+	Namespaces rules.Namespace `json:"namespaces"`
+}
+
+//UnmarshalJSON unmarshals JSON-encoded data into staged policies.
+func (s *R2State) UnmarshalJSON(data []byte) error {
+	var r2j r2StateJSON
+	err := json.Unmarshal(data, &r2j)
+	if err != nil {
+		return err
+	}
+
+	newRs := rules.NewRuleSet()
+	err = json.Unmarshal(r2j.RuleSet, newRs)
+	if err != nil {
+		return err
+	}
+	*s = R2State{RuleSet: newRs, Namespaces: r2j.Namespaces}
+	return nil
 }
 
 // Persist saves the given ruleset and optional namespace to the backing store.

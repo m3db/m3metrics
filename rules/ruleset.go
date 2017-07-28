@@ -476,6 +476,12 @@ type RuleSet interface {
 
 	// Revive removes the tombstone from this ruleset. It does not revive any rules.
 	Revive(time.Duration) error
+
+	// MarshalJSON serializes this RuleSet into JSON
+	MarshalJSON() ([]byte, error)
+
+	// UnmarshalJSON deserializes this RuleSet from JSON
+	UnmarshalJSON(data []byte) error
 }
 
 type ruleSet struct {
@@ -494,7 +500,7 @@ type ruleSet struct {
 }
 
 // NewRuleSet creates a new ruleset.
-func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {
+func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {
 	if rs == nil {
 		return nil, errNilRuleSetSchema
 	}
@@ -529,6 +535,11 @@ func NewRuleSet(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) 
 		newRollupIDFn:      opts.NewRollupIDFn(),
 		isRollupIDFn:       opts.IsRollupIDFn(),
 	}, nil
+}
+
+// NewRuleSet creates a blank concrete ruleSet
+func NewRuleSet() RuleSet {
+	return &ruleSet{}
 }
 
 func (rs *ruleSet) Namespace() []byte   { return rs.namespace }
@@ -856,17 +867,6 @@ func (rs *ruleSet) UnmarshalJSON(data []byte) error {
 	}
 	*rs = *rsj.RuleSet()
 	return nil
-}
-
-// FromJSON makes a RuleSet from its JSON representation
-func FromJSON(data []byte) (RuleSet, error) {
-	var rsj ruleSetJSON
-	err := json.Unmarshal(data, &rsj)
-	if err != nil {
-		return nil, err
-	}
-
-	return rsj.RuleSet(), nil
 }
 
 func (rsj ruleSetJSON) RuleSet() *ruleSet {

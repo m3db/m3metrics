@@ -616,7 +616,7 @@ func TestRuleSetProperties(t *testing.T) {
 		Tombstoned:    false,
 		CutoverTime:   34923,
 	}
-	newRuleSet, err := NewRuleSet(version, rs, opts)
+	newRuleSet, err := NewRuleSetFromSchema(version, rs, opts)
 	require.NoError(t, err)
 	ruleSet := newRuleSet.(*ruleSet)
 
@@ -631,7 +631,7 @@ func TestRuleSetMarshal(t *testing.T) {
 	opts := testRuleSetOptions()
 	version := 1
 
-	newRuleSet, err := NewRuleSet(version, marshalTestSchema, opts)
+	newRuleSet, err := NewRuleSetFromSchema(version, marshalTestSchema, opts)
 	require.NoError(t, err)
 
 	res, err := json.Marshal(newRuleSet)
@@ -647,11 +647,12 @@ func TestRuleSetMarshal(t *testing.T) {
 func TestRuleSetUnmarshal(t *testing.T) {
 	opts := testRuleSetOptions()
 	version := 1
-	newRuleSet, err := NewRuleSet(version, marshalTestSchema, opts)
+	newRuleSet, err := NewRuleSetFromSchema(version, marshalTestSchema, opts)
 	require.NoError(t, err)
 
 	data, err := json.Marshal(newRuleSet)
-	rs, err := FromJSON(data)
+	var rs ruleSet
+	err = json.Unmarshal(data, &rs)
 	require.NoError(t, err)
 
 	expected, err := newRuleSet.Schema()
@@ -678,7 +679,7 @@ func TestRuleSetSchema(t *testing.T) {
 		RollupRules:   testRollupRulesConfig(),
 	}
 
-	rs, err := NewRuleSet(version, expectedRs, opts)
+	rs, err := NewRuleSetFromSchema(version, expectedRs, opts)
 	require.NoError(t, err)
 	res, err := rs.Schema()
 	require.NoError(t, err)
@@ -692,7 +693,7 @@ func TestRuleSetActiveSet(t *testing.T) {
 		MappingRules: testMappingRulesConfig(),
 		RollupRules:  testRollupRulesConfig(),
 	}
-	newRuleSet, err := NewRuleSet(version, rs, opts)
+	newRuleSet, err := NewRuleSetFromSchema(version, rs, opts)
 	require.NoError(t, err)
 
 	allInputs := []struct {

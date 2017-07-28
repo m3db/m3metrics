@@ -225,7 +225,7 @@ func (h Handler) RuleSet(nsName string) (rules.RuleSet, error) {
 	if err := value.Unmarshal(&ruleSet); err != nil {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
-	rs, err := rules.NewRuleSet(version, &ruleSet, rules.NewOptions())
+	rs, err := rules.NewRuleSetFromSchema(version, &ruleSet, rules.NewOptions())
 	if err != nil {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
@@ -253,7 +253,7 @@ func (h Handler) initRuleSet(nsName string) (rules.RuleSet, error) {
 	now := time.Now().UnixNano()
 
 	if err == kv.ErrNotFound {
-		rs, err := rules.NewRuleSet(0, &schema.RuleSet{
+		rs, err := rules.NewRuleSetFromSchema(0, &schema.RuleSet{
 			Uuid:          uuid.New(),
 			Namespace:     nsName,
 			CreatedAt:     now,

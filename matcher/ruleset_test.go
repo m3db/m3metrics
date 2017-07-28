@@ -189,6 +189,8 @@ func (r mockRuleSet) UpdateRollupRule(string, string, map[string]string, []rules
 	return nil
 }
 func (r mockRuleSet) DeleteRollupRule(string, time.Duration) error { return nil }
+func (r mockRuleSet) MarshalJSON() ([]byte, error)                 { return nil, nil }
+func (r mockRuleSet) UnmarshalJSON([]byte) error                   { return nil }
 
 func testRuleSet() (kv.Store, Cache, *ruleSet, Options) {
 	store := mem.NewStore()
