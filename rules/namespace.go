@@ -40,6 +40,7 @@ var (
 	errNilNamespaceSnapshot       = errors.New("nil namespace snapshot")
 	errMultipleNamespaceMatches   = errors.New("more than one namespace match found")
 	errNamespaceExists            = errors.New("namespace already exists")
+	errNoNamespaceSnapshots       = errors.New("namespace has no snapshots")
 )
 
 // NamespaceSnapshot defines a namespace snapshot for which rules are defined.
@@ -192,7 +193,7 @@ func (n *Namespace) tombstone(tombstonedRSVersion int) error {
 
 func (n *Namespace) revive() error {
 	if !n.Tombstoned() {
-		return fmt.Errorf("%s is not tombstoned", string(n.name))
+		return fmt.Errorf("Cannot revive %s. It is not tombstoned", string(n.name))
 	}
 	v := n.snapshots[len(n.snapshots)-1].forRuleSetVersion
 	snapshot := NamespaceSnapshot{tombstoned: false, forRuleSetVersion: v}
