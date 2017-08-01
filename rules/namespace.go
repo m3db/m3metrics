@@ -193,7 +193,7 @@ func (n *Namespace) tombstone(tombstonedRSVersion int) error {
 
 func (n *Namespace) revive() error {
 	if !n.Tombstoned() {
-		return fmt.Errorf("Cannot revive %s. It is not tombstoned", string(n.name))
+		return fmt.Errorf("cannot revive %s. It is not tombstoned", string(n.name))
 	}
 	v := n.snapshots[len(n.snapshots)-1].forRuleSetVersion
 	snapshot := NamespaceSnapshot{tombstoned: false, forRuleSetVersion: v}
@@ -204,7 +204,7 @@ func (n *Namespace) revive() error {
 // Tombstoned returns the tombstoned state for a given namespace.
 func (n Namespace) Tombstoned() bool {
 	if len(n.snapshots) == 0 {
-		return false
+		return true
 	}
 	return n.snapshots[len(n.snapshots)-1].tombstoned
 }
@@ -319,7 +319,7 @@ func (nss *Namespaces) AddNamespace(name string) error {
 
 	if err != nil {
 		if err != kv.ErrNotFound {
-			return err
+			return fmt.Errorf("cannot add namespace %s. %v", name, err)
 		}
 	}
 
@@ -338,7 +338,6 @@ func (nss *Namespaces) AddNamespace(name string) error {
 		nss.namespaces = append(nss.namespaces, ns)
 		return nil
 	}
-
 	// Revive the namespace
 	err = existing.revive()
 	if err != nil {
@@ -352,9 +351,12 @@ func (nss *Namespaces) AddNamespace(name string) error {
 func (nss *Namespaces) DeleteNamespace(nsName string, rsVersion int) error {
 	ns, err := nss.Namespace(nsName)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot delete %s. %v", nsName, err)
 	}
 
+	// The expected rule set version is the one before the ruleset gets tombstoned.
+	// There is an expectation that the RuleSet associated with this namespace will get
+	// deleted as well.
 	if err := ns.tombstone(rsVersion + 1); err != nil {
 		return err
 	}

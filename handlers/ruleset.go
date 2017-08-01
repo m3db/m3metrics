@@ -123,7 +123,6 @@ func (h *Handler) AddMappingRule(
 func (h *Handler) UpdateMappingRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
-	ruleID string,
 	ruleName string,
 	filters map[string]string,
 	policies []string,
@@ -132,7 +131,7 @@ func (h *Handler) UpdateMappingRule(
 	if err != nil {
 		return err
 	}
-	if err := rs.UpdateMappingRule(ruleID, ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
+	if err := rs.UpdateMappingRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
 
@@ -143,9 +142,9 @@ func (h *Handler) UpdateMappingRule(
 func (h *Handler) DeleteMappingRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
-	ruleID string,
+	ruleName string,
 ) error {
-	if err := rs.DeleteMappingRule(ruleID, h.opts.PropagationDelay); err != nil {
+	if err := rs.DeleteMappingRule(ruleName, h.opts.PropagationDelay); err != nil {
 		return err
 	}
 
@@ -172,7 +171,6 @@ func (h *Handler) AddRollupRule(
 		return err
 	}
 
-	// TODO(dgromov): Handle resurected rule
 	if err := rs.AddRollupRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return fmt.Errorf("Failed to add Rollup Rule. %v", err)
 	}
@@ -184,7 +182,6 @@ func (h *Handler) AddRollupRule(
 func (h *Handler) UpdateRollupRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
-	ruleID string,
 	ruleName string,
 	filters map[string]string,
 	rollupTargets []RollupTarget,
@@ -193,7 +190,7 @@ func (h *Handler) UpdateRollupRule(
 	if err != nil {
 		return err
 	}
-	if err := rs.UpdateRollupRule(ruleID, ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
+	if err := rs.UpdateRollupRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
 	return nil
@@ -203,10 +200,9 @@ func (h *Handler) UpdateRollupRule(
 func (h *Handler) DeleteRollupRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
-	ruleID string,
+	ruleName string,
 ) error {
-	// TODO(dgromov): Validate rule here?
-	if err := rs.DeleteRollupRule(ruleID, h.opts.PropagationDelay); err != nil {
+	if err := rs.DeleteRollupRule(ruleName, h.opts.PropagationDelay); err != nil {
 		return err
 	}
 	return nil
@@ -236,7 +232,6 @@ func (h Handler) RuleSet(nsName string) (rules.RuleSet, error) {
 func (h Handler) ValidateRuleSet(rs rules.RuleSet) error {
 	if rs.Tombstoned() {
 		rsKey := h.RuleSetKey(string(rs.Namespace()))
-
 		return fmt.Errorf("ruleset %s is tombstoned", rsKey)
 	}
 	return nil

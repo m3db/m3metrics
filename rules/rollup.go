@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/m3db/m3metrics/filters"
@@ -302,7 +303,7 @@ func newRollupRuleFromFields(
 	opts filters.TagsFilterOptions,
 ) (*rollupRule, error) {
 	rr := rollupRule{uuid: uuid.New()}
-	rr.AddSnapshot(name, rawFilters, targets, cutoverTime, opts)
+	rr.addSnapshot(name, rawFilters, targets, cutoverTime, opts)
 	return &rr, nil
 }
 
@@ -334,7 +335,23 @@ func (rc *rollupRule) activeIndex(timeNanos int64) int {
 	return idx
 }
 
-func (rc *rollupRule) AddSnapshot(
+func (rc *rollupRule) Name() (string, error) {
+	if len(rc.snapshots) == 0 {
+		return "", errNoSnapshots
+	}
+	latest := rc.snapshots[len(rc.snapshots)-1]
+	return latest.name, nil
+}
+
+func (rc *rollupRule) Tombstoned() bool {
+	if len(rc.snapshots) == 0 {
+		return true
+	}
+	latest := rc.snapshots[len(rc.snapshots)-1]
+	return latest.tombstoned
+}
+
+func (rc *rollupRule) addSnapshot(
 	name string,
 	rawFilters map[string]string,
 	rollupTargets []RollupTarget,
@@ -359,30 +376,37 @@ func (rc *rollupRule) AddSnapshot(
 	return nil
 }
 
-func (rc *rollupRule) Tombstone(cutoverTime int64) {
-	var snapshot rollupRuleSnapshot
-	if len(rc.snapshots) > 0 {
-		snapshot = *rc.snapshots[len(rc.snapshots)-1]
+func (rc *rollupRule) tombstone(cutoverTime int64) error {
+	n, err := rc.Name()
+	if err != nil {
+		return err
 	}
+
+	if rc.Tombstoned() {
+		return fmt.Errorf("%s is already tombstoned", n)
+	}
+
+	snapshot := *rc.snapshots[len(rc.snapshots)-1]
 	snapshot.tombstoned = true
 	snapshot.cutoverNanos = cutoverTime
 	rc.snapshots = append(rc.snapshots, &snapshot)
+	return nil
 }
 
-func (rc *rollupRule) Name() (string, error) {
-	if len(rc.snapshots) == 0 {
-		return "", errNoSnapshots
+func (rc *rollupRule) revive(cutoverTime int64) error {
+	n, err := rc.Name()
+	if err != nil {
+		return err
 	}
-	latest := rc.snapshots[len(rc.snapshots)-1]
-	return latest.name, nil
-}
+	if !rc.Tombstoned() {
+		return fmt.Errorf("%s is not tombstoned", n)
+	}
 
-func (rc *rollupRule) Tombstoned() (bool, error) {
-	if len(rc.snapshots) == 0 {
-		return false, errNoSnapshots
-	}
-	latest := rc.snapshots[len(rc.snapshots)-1]
-	return latest.tombstoned, nil
+	snapshot := *rc.snapshots[len(rc.snapshots)-1]
+	snapshot.tombstoned = false
+	snapshot.cutoverNanos = cutoverTime
+	rc.snapshots = append(rc.snapshots, &snapshot)
+	return nil
 }
 
 type rollupRuleJSON struct {

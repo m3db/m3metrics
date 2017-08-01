@@ -92,7 +92,7 @@ func (h Handler) DeleteNamespace(nss *rules.Namespaces, nsName string) (rules.Ru
 	}
 
 	if err := rs.Tombstone(h.opts.PropagationDelay); err != nil {
-		return nil, fmt.Errorf("Could not tombstone Ruleset: %s. %v", nsName, err)
+		return nil, fmt.Errorf("could not tombstone Ruleset: %s. %v", nsName, err)
 	}
 
 	if err := nss.DeleteNamespace(nsName, rs.Version()); err != nil {

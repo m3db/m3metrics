@@ -23,6 +23,7 @@ package rules
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
@@ -173,11 +174,27 @@ func newMappingRuleFromFields(
 	opts filters.TagsFilterOptions,
 ) (*mappingRule, error) {
 	mr := mappingRule{uuid: uuid.New()}
-	mr.AddSnapshot(name, rawFilters, policies, cutoverTime, opts)
+	mr.addSnapshot(name, rawFilters, policies, cutoverTime, opts)
 	return &mr, nil
 }
 
-func (mc *mappingRule) AddSnapshot(
+func (mc *mappingRule) Name() (string, error) {
+	if len(mc.snapshots) == 0 {
+		return "", errNoSnapshots
+	}
+	latest := mc.snapshots[len(mc.snapshots)-1]
+	return latest.name, nil
+}
+
+func (mc *mappingRule) Tombstoned() bool {
+	if len(mc.snapshots) == 0 {
+		return true
+	}
+	latest := mc.snapshots[len(mc.snapshots)-1]
+	return latest.tombstoned
+}
+
+func (mc *mappingRule) addSnapshot(
 	name string,
 	rawFilters map[string]string,
 	policies []policy.Policy,
@@ -188,7 +205,6 @@ func (mc *mappingRule) AddSnapshot(
 	if err != nil {
 		return err
 	}
-
 	snapshot := &mappingRuleSnapshot{
 		name:         name,
 		tombstoned:   false,
@@ -202,33 +218,40 @@ func (mc *mappingRule) AddSnapshot(
 	return nil
 }
 
-func (mc *mappingRule) Tombstone(cutoverTime int64) {
-	var snapshot mappingRuleSnapshot
-	if len(mc.snapshots) > 0 {
-		snapshot = *mc.snapshots[len(mc.snapshots)-1]
+func (mc *mappingRule) tombstone(cutoverTime int64) error {
+	n, err := mc.Name()
+	if err != nil {
+		return err
 	}
+
+	if mc.Tombstoned() {
+		return fmt.Errorf("%s is already tombstoned", n)
+	}
+
+	snapshot := *mc.snapshots[len(mc.snapshots)-1]
 	snapshot.tombstoned = true
 	snapshot.cutoverNanos = cutoverTime
 	mc.snapshots = append(mc.snapshots, &snapshot)
+
+	return nil
 }
 
-func (mc *mappingRule) Name() (string, error) {
-	if len(mc.snapshots) == 0 {
-		return "", errNoSnapshots
+func (mc *mappingRule) revive(cutoverTime int64) error {
+	n, err := mc.Name()
+	if err != nil {
+		return err
 	}
-	latest := mc.snapshots[len(mc.snapshots)-1]
-	return latest.name, nil
-}
-
-func (mc *mappingRule) Tombstoned() (bool, error) {
-	if len(mc.snapshots) == 0 {
-		return false, errNoSnapshots
+	if !mc.Tombstoned() {
+		return fmt.Errorf("%s is not tombstoned", n)
 	}
-	latest := mc.snapshots[len(mc.snapshots)-1]
-	return latest.tombstoned, nil
+
+	snapshot := *mc.snapshots[len(mc.snapshots)-1]
+	snapshot.tombstoned = false
+	snapshot.cutoverNanos = cutoverTime
+	mc.snapshots = append(mc.snapshots, &snapshot)
+	return nil
 }
 
-// ActiveSnapshot returns the latest snapshot whose cutover time is earlier than or
 // equal to timeNanos, or nil if not found.
 func (mc *mappingRule) ActiveSnapshot(timeNanos int64) *mappingRuleSnapshot {
 	idx := mc.activeIndex(timeNanos)

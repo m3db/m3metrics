@@ -177,7 +177,7 @@ func (r mockRuleSet) Revive(time.Duration) error              { return nil }
 func (r mockRuleSet) AddMappingRule(string, map[string]string, []policy.Policy, time.Duration) error {
 	return nil
 }
-func (r mockRuleSet) UpdateMappingRule(string, string, map[string]string, []policy.Policy, time.Duration) error {
+func (r mockRuleSet) UpdateMappingRule(string, map[string]string, []policy.Policy, time.Duration) error {
 	return nil
 }
 func (r mockRuleSet) DeleteMappingRule(string, time.Duration) error { return nil }
@@ -185,7 +185,7 @@ func (r mockRuleSet) DeleteMappingRule(string, time.Duration) error { return nil
 func (r mockRuleSet) AddRollupRule(string, map[string]string, []rules.RollupTarget, time.Duration) error {
 	return nil
 }
-func (r mockRuleSet) UpdateRollupRule(string, string, map[string]string, []rules.RollupTarget, time.Duration) error {
+func (r mockRuleSet) UpdateRollupRule(string, map[string]string, []rules.RollupTarget, time.Duration) error {
 	return nil
 }
 func (r mockRuleSet) DeleteRollupRule(string, time.Duration) error { return nil }
