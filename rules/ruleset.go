@@ -460,7 +460,7 @@ type RuleSet interface {
 	AddMappingRule(string, map[string]string, []policy.Policy, time.Duration) error
 
 	// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
-	UpdateMappingRule(string, map[string]string, []policy.Policy, time.Duration) error
+	UpdateMappingRule(string, string, map[string]string, []policy.Policy, time.Duration) error
 
 	// DeleteMappingRule
 	DeleteMappingRule(string, time.Duration) error
@@ -469,7 +469,7 @@ type RuleSet interface {
 	AddRollupRule(string, map[string]string, []RollupTarget, time.Duration) error
 
 	// UpdateRollupRule creates a new mapping rule and adds it to this ruleset.
-	UpdateRollupRule(string, map[string]string, []RollupTarget, time.Duration) error
+	UpdateRollupRule(string, string, map[string]string, []RollupTarget, time.Duration) error
 
 	// DeleteRollupRule ...
 	DeleteRollupRule(string, time.Duration) error
@@ -634,18 +634,19 @@ func (rs *ruleSet) AddMappingRule(
 
 // UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
 func (rs *ruleSet) UpdateMappingRule(
-	name string,
+	originalName string,
+	newName string,
 	filters map[string]string,
 	policies []policy.Policy,
 	propDelay time.Duration,
 ) error {
-	m, err := rs.getMappingRuleByName(name)
+	m, err := rs.getMappingRuleByName(originalName)
 	if err != nil {
 		return nil
 	}
 
 	updateTime := time.Now().UnixNano()
-	err = m.addSnapshot(name, filters, policies, updateTime, rs.tagsFilterOpts)
+	err = m.addSnapshot(newName, filters, policies, updateTime, rs.tagsFilterOpts)
 	if err != nil {
 		return err
 	}
@@ -696,18 +697,19 @@ func (rs *ruleSet) AddRollupRule(
 
 // UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
 func (rs *ruleSet) UpdateRollupRule(
-	name string,
+	originalName string,
+	newName string,
 	filters map[string]string,
 	targets []RollupTarget,
 	propDelay time.Duration,
 ) error {
-	r, err := rs.getRollupRuleByName(name)
+	r, err := rs.getRollupRuleByName(originalName)
 	if err != nil {
 		return nil
 	}
 
 	updateTime := time.Now().UnixNano()
-	err = r.addSnapshot(name, filters, targets, updateTime, rs.tagsFilterOpts)
+	err = r.addSnapshot(newName, filters, targets, updateTime, rs.tagsFilterOpts)
 	if err != nil {
 		return err
 	}

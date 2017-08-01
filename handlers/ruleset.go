@@ -123,7 +123,8 @@ func (h *Handler) AddMappingRule(
 func (h *Handler) UpdateMappingRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
-	ruleName string,
+	originalRuleName string,
+	newRuleName string,
 	filters map[string]string,
 	policies []string,
 ) error {
@@ -131,7 +132,7 @@ func (h *Handler) UpdateMappingRule(
 	if err != nil {
 		return err
 	}
-	if err := rs.UpdateMappingRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
+	if err := rs.UpdateMappingRule(originalRuleName, newRuleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
 
@@ -182,7 +183,8 @@ func (h *Handler) AddRollupRule(
 func (h *Handler) UpdateRollupRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
-	ruleName string,
+	originalRuleName string,
+	newRuleName string,
 	filters map[string]string,
 	rollupTargets []RollupTarget,
 ) error {
@@ -190,7 +192,7 @@ func (h *Handler) UpdateRollupRule(
 	if err != nil {
 		return err
 	}
-	if err := rs.UpdateRollupRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
+	if err := rs.UpdateRollupRule(originalRuleName, newRuleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return err
 	}
 	return nil

@@ -627,7 +627,7 @@ func TestRuleSetProperties(t *testing.T) {
 	require.Equal(t, false, ruleSet.Tombstoned())
 }
 
-func TestRuleSetMarshal(t *testing.T) {
+func TestRuleSetMarshalJSON(t *testing.T) {
 	opts := testRuleSetOptions()
 	version := 1
 
@@ -644,7 +644,7 @@ func TestRuleSetMarshal(t *testing.T) {
 	require.Equal(t, bb.String(), string(res))
 }
 
-func TestRuleSetUnmarshal(t *testing.T) {
+func TestRuleSetUnmarshalJSON(t *testing.T) {
 	opts := testRuleSetOptions()
 	version := 1
 	newRuleSet, err := NewRuleSetFromSchema(version, marshalTestSchema, opts)
@@ -2146,18 +2146,195 @@ func testRollupRulesConfig() []*schema.RollupRule {
 	}
 }
 
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.AddMappingRule
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.AddRollupRule
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.DeleteMappingRule
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.DeleteRollupRule
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.UnmarshalJSON
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.UpdateMappingRule
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.UpdateRollupRule
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.getMappingRuleByID
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.getMappingRuleByName
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.getRollupRuleByID
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.getRollupRuleByName
-// github.com/m3db/m3metrics/rules/ruleset.go ruleSet.updateTimeStamps
+func TestAddMappingRule(t *testing.T) {
+	opts := testRuleSetOptions()
+	version := 1
+
+	expectedRs := &schema.RuleSet{
+		Uuid:          "ruleset",
+		Namespace:     "namespace",
+		CreatedAt:     1234,
+		LastUpdatedAt: 5678,
+		Tombstoned:    false,
+		CutoverTime:   34923,
+		MappingRules:  testMappingRulesConfig(),
+		RollupRules:   testRollupRulesConfig(),
+	}
+
+	rs, err := NewRuleSetFromSchema(version, expectedRs, opts)
+	require.NoError(t, err)
+	_, err = rs.(*ruleSet).getMappingRuleByName("foo")
+	require.Error(t, err)
+
+	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+	err = rs.AddMappingRule("foo", newFilters, p, 2345)
+	require.NoError(t, err)
+
+	_, err = rs.(*ruleSet).getMappingRuleByName("foo")
+	require.NoError(t, err)
+}
+
+func TestUpdateMappingRule(t *testing.T) {
+	opts := testRuleSetOptions()
+	version := 1
+
+	expectedRs := &schema.RuleSet{
+		Uuid:          "ruleset",
+		Namespace:     "namespace",
+		CreatedAt:     1234,
+		LastUpdatedAt: 5678,
+		Tombstoned:    false,
+		CutoverTime:   34923,
+		MappingRules:  testMappingRulesConfig(),
+		RollupRules:   testRollupRulesConfig(),
+	}
+
+	rs, err := NewRuleSetFromSchema(version, expectedRs, opts)
+	require.NoError(t, err)
+	_, err = rs.(*ruleSet).getMappingRuleByName("mappingRule5.snapshot1")
+	require.NoError(t, err)
+
+	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+	err = rs.UpdateMappingRule("mappingRule5.snapshot1", "foo", newFilters, p, 2345)
+	require.NoError(t, err)
+
+	_, err = rs.(*ruleSet).getMappingRuleByName("foo")
+	require.NoError(t, err)
+}
+
+func TestDeleteMappingRule(t *testing.T) {
+	opts := testRuleSetOptions()
+	version := 1
+
+	expectedRs := &schema.RuleSet{
+		Uuid:          "ruleset",
+		Namespace:     "namespace",
+		CreatedAt:     1234,
+		LastUpdatedAt: 5678,
+		Tombstoned:    false,
+		CutoverTime:   34923,
+		MappingRules:  testMappingRulesConfig(),
+		RollupRules:   testRollupRulesConfig(),
+	}
+
+	rs, err := NewRuleSetFromSchema(version, expectedRs, opts)
+	require.NoError(t, err)
+
+	m, err := rs.(*ruleSet).getMappingRuleByName("mappingRule5.snapshot1")
+	require.NoError(t, err)
+	require.NotNil(t, m)
+
+	err = rs.DeleteMappingRule("mappingRule5.snapshot1", 12345)
+	require.NoError(t, err)
+
+	m, err = rs.(*ruleSet).getMappingRuleByName("mappingRule5.snapshot1")
+	require.Error(t, err)
+	require.Nil(t, m)
+}
+
+func TestAddRollupRule(t *testing.T) {
+	opts := testRuleSetOptions()
+	version := 1
+
+	expectedRs := &schema.RuleSet{
+		Uuid:          "ruleset",
+		Namespace:     "namespace",
+		CreatedAt:     1234,
+		LastUpdatedAt: 5678,
+		Tombstoned:    false,
+		CutoverTime:   34923,
+		MappingRules:  testMappingRulesConfig(),
+		RollupRules:   testRollupRulesConfig(),
+	}
+
+	rs, err := NewRuleSetFromSchema(version, expectedRs, opts)
+	require.NoError(t, err)
+	_, err = rs.(*ruleSet).getRollupRuleByName("foo")
+	require.Error(t, err)
+
+	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+
+	newTargets := []RollupTarget{
+		RollupTarget{
+			Name:     []byte("blah"),
+			Tags:     [][]byte{[]byte("a")},
+			Policies: p,
+		},
+	}
+	err = rs.AddRollupRule("foo", newFilters, newTargets, 2345)
+	require.NoError(t, err)
+
+	_, err = rs.(*ruleSet).getRollupRuleByName("foo")
+	require.NoError(t, err)
+}
+
+func TestUpdateRollupRule(t *testing.T) {
+	opts := testRuleSetOptions()
+	version := 1
+
+	expectedRs := &schema.RuleSet{
+		Uuid:          "ruleset",
+		Namespace:     "namespace",
+		CreatedAt:     1234,
+		LastUpdatedAt: 5678,
+		Tombstoned:    false,
+		CutoverTime:   34923,
+		MappingRules:  testMappingRulesConfig(),
+		RollupRules:   testRollupRulesConfig(),
+	}
+
+	rs, err := NewRuleSetFromSchema(version, expectedRs, opts)
+	require.NoError(t, err)
+	_, err = rs.(*ruleSet).getRollupRuleByName("rollupRule5.snapshot1")
+	require.NoError(t, err)
+
+	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+	newTargets := []RollupTarget{
+		RollupTarget{
+			Name:     []byte("blah"),
+			Tags:     [][]byte{[]byte("a")},
+			Policies: p,
+		},
+	}
+	err = rs.UpdateRollupRule("rollupRule5.snapshot1", "foo", newFilters, newTargets, 2345)
+	require.NoError(t, err)
+
+	_, err = rs.(*ruleSet).getRollupRuleByName("foo")
+	require.NoError(t, err)
+}
+
+func TestDeleteRollupRule(t *testing.T) {
+	opts := testRuleSetOptions()
+	version := 1
+
+	expectedRs := &schema.RuleSet{
+		Uuid:          "ruleset",
+		Namespace:     "namespace",
+		CreatedAt:     1234,
+		LastUpdatedAt: 5678,
+		Tombstoned:    false,
+		CutoverTime:   34923,
+		MappingRules:  testMappingRulesConfig(),
+		RollupRules:   testRollupRulesConfig(),
+	}
+
+	rs, err := NewRuleSetFromSchema(version, expectedRs, opts)
+	require.NoError(t, err)
+
+	r, err := rs.(*ruleSet).getRollupRuleByName("rollupRule5.snapshot1")
+	require.NoError(t, err)
+	require.NotNil(t, r)
+
+	err = rs.DeleteRollupRule("rollupRule5.snapshot1", 12345)
+	require.NoError(t, err)
+
+	_, err = rs.(*ruleSet).getRollupRuleByName("rollupRule5.snapshot1")
+	require.Error(t, err)
+}
 
 func testRuleSetOptions() Options {
 	return NewOptions().
