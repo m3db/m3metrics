@@ -338,9 +338,9 @@ func (nss *Namespaces) AddNamespace(name string) error {
 		nss.namespaces = append(nss.namespaces, ns)
 		return nil
 	}
+
 	// Revive the namespace
-	err = existing.revive()
-	if err != nil {
+	if err = existing.revive(); err != nil {
 		return err
 	}
 

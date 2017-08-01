@@ -90,7 +90,7 @@ func parseRollupTargets(rts []RollupTarget) ([]rules.RollupTarget, error) {
 	return result, nil
 }
 
-// AddMappingRule ...
+// AddMappingRule creates or revives a mapping rule with the given name and settings.
 func (h *Handler) AddMappingRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
@@ -111,7 +111,6 @@ func (h *Handler) AddMappingRule(
 		return err
 	}
 
-	// TODO(dgromov): Handle resurected rule
 	if err := rs.AddMappingRule(ruleName, filters, parsedPolicies, h.opts.PropagationDelay); err != nil {
 		return fmt.Errorf("Failed to add Mapping Rule. %v", err)
 	}
@@ -119,7 +118,7 @@ func (h *Handler) AddMappingRule(
 	return nil
 }
 
-// UpdateMappingRule ...
+// UpdateMappingRule updates a mapping rule with a given name to the new settings.
 func (h *Handler) UpdateMappingRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
@@ -139,7 +138,7 @@ func (h *Handler) UpdateMappingRule(
 	return nil
 }
 
-// DeleteMappingRule ...
+// DeleteMappingRule deletes a mapping rule with the given name.
 func (h *Handler) DeleteMappingRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
@@ -152,7 +151,7 @@ func (h *Handler) DeleteMappingRule(
 	return nil
 }
 
-// AddRollupRule ...
+// AddRollupRule creates or revives a rollup rule and set
 func (h *Handler) AddRollupRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
@@ -179,7 +178,7 @@ func (h *Handler) AddRollupRule(
 	return nil
 }
 
-// UpdateRollupRule ...
+// UpdateRollupRule updates a rollup rule with a given name to the new settings.
 func (h *Handler) UpdateRollupRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,
@@ -198,7 +197,7 @@ func (h *Handler) UpdateRollupRule(
 	return nil
 }
 
-// DeleteRollupRule ...
+// DeleteRollupRule deletes a rollup rule with the given name.
 func (h *Handler) DeleteRollupRule(
 	rs rules.RuleSet,
 	nss *rules.Namespaces,

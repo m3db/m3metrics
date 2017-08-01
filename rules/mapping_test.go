@@ -282,7 +282,7 @@ func TestNewMappingRuleFromFields(t *testing.T) {
 	require.Equal(t, mr.snapshots[0].filter.String(), expectedSnapshot.filter.String())
 }
 
-func TestNameNoSnapshot(t *testing.T) {
+func TestMappingNameNoSnapshot(t *testing.T) {
 	mr := mappingRule{
 		uuid:      "blah",
 		snapshots: []*mappingRuleSnapshot{},
@@ -291,7 +291,7 @@ func TestNameNoSnapshot(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestTombstonedNoSnapshot(t *testing.T) {
+func TestMappingTombstonedNoSnapshot(t *testing.T) {
 	mr := mappingRule{
 		uuid:      "blah",
 		snapshots: []*mappingRuleSnapshot{},
@@ -299,10 +299,7 @@ func TestTombstonedNoSnapshot(t *testing.T) {
 	require.True(t, mr.Tombstoned())
 }
 
-func TestTombstoned(t *testing.T) {
+func TestMappingTombstoned(t *testing.T) {
 	mr, _ := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
 	require.True(t, mr.Tombstoned())
 }
-
-// github.com/m3db/m3metrics/rules/mapping.go mappingRule.AddSnapshot
-// github.com/m3db/m3metrics/rules/mapping.go mappingRule.Tombstone

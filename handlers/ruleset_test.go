@@ -414,6 +414,49 @@ func TestAddMappingRuleInvalid(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestUpdateMappingRule(t *testing.T) {
+	h, nss, _ := bootstrap()
+	h.store.Set(testRuleSetKey, testRuleSet)
+	rs, err := h.RuleSet(testNamespace)
+
+	newName := "newRule"
+	newFilters := map[string]string{
+		"tag1": "value",
+		"tag2": "value",
+	}
+	newPolicies := []string{"10s@1s:1h0m0s"}
+
+	err = h.UpdateMappingRule(rs, nss, "foo", newName, newFilters, newPolicies)
+	require.NoError(t, err)
+
+	err = h.Persist(rs, nss, false)
+	require.NoError(t, err)
+
+	rs, err = h.RuleSet(testNamespace)
+	require.NoError(t, err)
+
+	err = h.UpdateMappingRule(rs, nss, "foo", newName, newFilters, newPolicies)
+	require.Error(t, err)
+}
+
+func TestDeleteMappingRule(t *testing.T) {
+	h, nss, _ := bootstrap()
+	h.store.Set(testRuleSetKey, testRuleSet)
+	rs, err := h.RuleSet(testNamespace)
+
+	err = h.DeleteMappingRule(rs, nss, "foo")
+	require.NoError(t, err)
+
+	err = h.Persist(rs, nss, false)
+	require.NoError(t, err)
+
+	rs, err = h.RuleSet(testNamespace)
+	require.NoError(t, err)
+
+	err = h.DeleteMappingRule(rs, nss, "foo")
+	require.Error(t, err)
+}
+
 func TestAddRollupRule(t *testing.T) {
 	h, nss, _ := bootstrap()
 	h.store.Set(testRuleSetKey, testRuleSet)
@@ -470,6 +513,56 @@ func TestAddRollupRuleInvalid(t *testing.T) {
 	require.Error(t, err)
 
 	err = h.AddRollupRule(rs, nss, "", newFilters, []RollupTarget{})
+	require.Error(t, err)
+}
+
+func TestUpdateRollupRule(t *testing.T) {
+	h, nss, _ := bootstrap()
+	h.store.Set(testRuleSetKey, testRuleSet)
+	rs, err := h.RuleSet(testNamespace)
+
+	newName := "newRule"
+	newFilters := map[string]string{
+		"tag1": "value",
+		"tag2": "value",
+	}
+	newPolicies := []string{"10s@1s:1h0m0s"}
+	newTargets := []RollupTarget{
+		RollupTarget{
+			Name:     "blah",
+			Tags:     []string{"a", "b"},
+			Policies: newPolicies,
+		},
+	}
+
+	err = h.UpdateRollupRule(rs, nss, "baz", newName, newFilters, newTargets)
+	require.NoError(t, err)
+
+	err = h.Persist(rs, nss, false)
+	require.NoError(t, err)
+
+	rs, err = h.RuleSet(testNamespace)
+	require.NoError(t, err)
+
+	err = h.UpdateRollupRule(rs, nss, "baz", newName, newFilters, newTargets)
+	require.Error(t, err)
+}
+
+func TestDeleteRollupRule(t *testing.T) {
+	h, nss, _ := bootstrap()
+	h.store.Set(testRuleSetKey, testRuleSet)
+	rs, err := h.RuleSet(testNamespace)
+
+	err = h.DeleteRollupRule(rs, nss, "baz")
+	require.NoError(t, err)
+
+	err = h.Persist(rs, nss, false)
+	require.NoError(t, err)
+
+	rs, err = h.RuleSet(testNamespace)
+	require.NoError(t, err)
+
+	err = h.DeleteRollupRule(rs, nss, "baz")
 	require.Error(t, err)
 }
 
@@ -576,8 +669,3 @@ func TestParseTargetErrors(t *testing.T) {
 	_, err = parseRollupTargets(invalidTargetBadPolicy)
 	require.Error(t, err)
 }
-
-// github.com/m3db/m3metrics/handlers/ruleset.go Handler.DeleteMappingRule
-// github.com/m3db/m3metrics/handlers/ruleset.go Handler.DeleteRollupRule
-// github.com/m3db/m3metrics/handlers/ruleset.go Handler.UpdateMappingRule
-// github.com/m3db/m3metrics/handlers/ruleset.go Handler.UpdateRollupRule

@@ -43,6 +43,7 @@ var (
 	errNilRuleSetSchema = errors.New("nil rule set schema")
 	errRuleAlreadyExist = errors.New("rule already exists")
 	errNoSuchRule       = errors.New("no such rule exists")
+	errTombstoned       = errors.New("rule is tombstoned")
 )
 
 // MatchMode determines how match is performed.
@@ -614,21 +615,22 @@ func (rs *ruleSet) AddMappingRule(
 	propDelay time.Duration,
 ) error {
 	m, err := rs.getMappingRuleByName(name)
-	if err != nil && err != errNoSuchRule {
-		return err
-	}
-
-	if m != nil {
-		return errRuleAlreadyExist
-	}
 	updateTime := time.Now().UnixNano()
-	m, err = newMappingRuleFromFields(name, filters, policies, updateTime, rs.tagsFilterOpts)
 	if err != nil {
-		return err
+		if err != errNoSuchRule {
+			return err
+		}
+		m, err = newMappingRuleFromFields(name, filters, policies, updateTime, rs.tagsFilterOpts)
+		if err != nil {
+			return err
+		}
+		rs.mappingRules = append(rs.mappingRules, m)
+	} else {
+		if err := m.revive(name, filters, policies, updateTime+int64(propDelay), rs.tagsFilterOpts); err != nil {
+			return err
+		}
 	}
-
 	rs.updateTimeStamps(updateTime, updateTime+int64(propDelay))
-	rs.mappingRules = append(rs.mappingRules, m)
 	return nil
 }
 
@@ -642,7 +644,7 @@ func (rs *ruleSet) UpdateMappingRule(
 ) error {
 	m, err := rs.getMappingRuleByName(originalName)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	updateTime := time.Now().UnixNano()
@@ -654,7 +656,7 @@ func (rs *ruleSet) UpdateMappingRule(
 	return nil
 }
 
-// DeleteMappingRule ...
+// DeleteMappingRule tombstones a mapping rule.
 func (rs *ruleSet) DeleteMappingRule(
 	name string,
 	propDelay time.Duration,
@@ -665,7 +667,9 @@ func (rs *ruleSet) DeleteMappingRule(
 	}
 
 	updateTime := time.Now().UnixNano()
-	m.tombstone(updateTime)
+	if err := m.tombstone(updateTime + int64(propDelay)); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -676,22 +680,22 @@ func (rs *ruleSet) AddRollupRule(
 	propDelay time.Duration,
 ) error {
 	r, err := rs.getRollupRuleByName(name)
-	if err != nil && err != errNoSuchRule {
-		return err
-	}
-
-	if r != nil {
-		return errRuleAlreadyExist
-	}
-
 	updateTime := time.Now().UnixNano()
-	r, err = newRollupRuleFromFields(name, filters, targets, updateTime, rs.tagsFilterOpts)
 	if err != nil {
-		return err
+		if err != errNoSuchRule {
+			return err
+		}
+		r, err = newRollupRuleFromFields(name, filters, targets, updateTime, rs.tagsFilterOpts)
+		if err != nil {
+			return err
+		}
+		rs.rollupRules = append(rs.rollupRules, r)
+	} else {
+		if err := r.revive(name, filters, targets, updateTime, rs.tagsFilterOpts); err != nil {
+			return err
+		}
 	}
-
 	rs.updateTimeStamps(updateTime, updateTime+int64(propDelay))
-	rs.rollupRules = append(rs.rollupRules, r)
 	return nil
 }
 
@@ -705,7 +709,7 @@ func (rs *ruleSet) UpdateRollupRule(
 ) error {
 	r, err := rs.getRollupRuleByName(originalName)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	updateTime := time.Now().UnixNano()
@@ -717,7 +721,7 @@ func (rs *ruleSet) UpdateRollupRule(
 	return nil
 }
 
-// DeleteMappingRule ...
+// DeleteRollupRule tombstones a rollup rule.
 func (rs *ruleSet) DeleteRollupRule(
 	name string,
 	propDelay time.Duration,
@@ -726,20 +730,18 @@ func (rs *ruleSet) DeleteRollupRule(
 	if err != nil {
 		return err
 	}
-
 	updateTime := time.Now().UnixNano()
-	r.tombstone(updateTime)
+	if err := r.tombstone(updateTime + int64(propDelay)); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (rs ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
 	for _, m := range rs.mappingRules {
-		if t := m.Tombstoned(); t {
-			continue
-		}
 		n, err := m.Name()
 		if err != nil {
-			return nil, err
+			continue
 		}
 
 		if n == name {
@@ -752,9 +754,6 @@ func (rs ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
 
 func (rs ruleSet) getRollupRuleByName(name string) (*rollupRule, error) {
 	for _, r := range rs.rollupRules {
-		if t := r.Tombstoned(); t {
-			continue
-		}
 		n, err := r.Name()
 		if err != nil {
 			return nil, err
@@ -780,13 +779,13 @@ func (rs *ruleSet) Tombstone(propDelay time.Duration) error {
 
 	// Make sure that all of the rules in the ruleset are tombstoned as well.
 	for _, m := range rs.mappingRules {
-		if t := !m.Tombstoned(); t {
+		if t := m.Tombstoned(); !t {
 			m.tombstone(newCutover)
 		}
 	}
 
 	for _, r := range rs.rollupRules {
-		if t := r.Tombstoned(); t {
+		if t := r.Tombstoned(); !t {
 			r.tombstone(newCutover)
 		}
 	}

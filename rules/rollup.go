@@ -347,6 +347,7 @@ func (rc *rollupRule) Tombstoned() bool {
 	if len(rc.snapshots) == 0 {
 		return true
 	}
+
 	latest := rc.snapshots[len(rc.snapshots)-1]
 	return latest.tombstoned
 }
@@ -393,7 +394,13 @@ func (rc *rollupRule) tombstone(cutoverTime int64) error {
 	return nil
 }
 
-func (rc *rollupRule) revive(cutoverTime int64) error {
+func (rc *rollupRule) revive(
+	name string,
+	rawFilters map[string]string,
+	targets []RollupTarget,
+	cutoverTime int64,
+	opts filters.TagsFilterOptions,
+) error {
 	n, err := rc.Name()
 	if err != nil {
 		return err
@@ -401,11 +408,7 @@ func (rc *rollupRule) revive(cutoverTime int64) error {
 	if !rc.Tombstoned() {
 		return fmt.Errorf("%s is not tombstoned", n)
 	}
-
-	snapshot := *rc.snapshots[len(rc.snapshots)-1]
-	snapshot.tombstoned = false
-	snapshot.cutoverNanos = cutoverTime
-	rc.snapshots = append(rc.snapshots, &snapshot)
+	rc.addSnapshot(name, rawFilters, targets, cutoverTime, opts)
 	return nil
 }
 

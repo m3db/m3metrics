@@ -236,7 +236,13 @@ func (mc *mappingRule) tombstone(cutoverTime int64) error {
 	return nil
 }
 
-func (mc *mappingRule) revive(cutoverTime int64) error {
+func (mc *mappingRule) revive(
+	name string,
+	rawFilters map[string]string,
+	policies []policy.Policy,
+	cutoverTime int64,
+	opts filters.TagsFilterOptions,
+) error {
 	n, err := mc.Name()
 	if err != nil {
 		return err
@@ -244,11 +250,7 @@ func (mc *mappingRule) revive(cutoverTime int64) error {
 	if !mc.Tombstoned() {
 		return fmt.Errorf("%s is not tombstoned", n)
 	}
-
-	snapshot := *mc.snapshots[len(mc.snapshots)-1]
-	snapshot.tombstoned = false
-	snapshot.cutoverNanos = cutoverTime
-	mc.snapshots = append(mc.snapshots, &snapshot)
+	mc.addSnapshot(name, rawFilters, policies, cutoverTime, opts)
 	return nil
 }
 

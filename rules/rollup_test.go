@@ -21,9 +21,12 @@
 package rules
 
 import (
+	"bytes"
+	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3x/time"
@@ -278,4 +281,134 @@ func TestRollupRuleSchema(t *testing.T) {
 	schema, err := rr.Schema()
 	require.NoError(t, err)
 	require.Equal(t, testRollupRuleSchema, schema)
+}
+
+func TestMarshalRollupRule(t *testing.T) {
+	marshalledRule := `{
+		"uuid":"12669817-13ae-40e6-ba2f-33087b262c68",
+		"snapshots":[
+			{"name":"foo",
+			 "tombstoned":false,
+			 "cutoverTime":12345,
+			 "filters":{"tag1":"value1","tag2":"value2"},
+			 "targets":[
+				 {"name":"rName1",
+					"tags":["rtagName1","rtagName2"],
+					"policies":["10s@1s:24h0m0s"]
+				 }
+				]
+			},
+			{
+				"name":"bar",
+				"tombstoned":true,
+				"cutoverTime":67890,
+				"filters":{"tag3":"value3","tag4":"value4"},
+				"targets":[
+					{"name":"rName1",
+					 "tags":["rtagName1","rtagName2"],
+					 "policies":["1m0s@1m:24h0m0s","5m0s@1m:48h0m0s|Mean"]
+					}
+				]
+			}
+		]
+	}`
+
+	rr, err := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
+	res, err := rr.MarshalJSON()
+	require.NoError(t, err)
+
+	var bb bytes.Buffer
+	err = json.Compact(&bb, []byte(marshalledRule))
+	require.NoError(t, err)
+
+	require.Equal(t, bb.String(), string(res))
+}
+
+func TestUnmarshalRollupRule(t *testing.T) {
+	rr, err := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
+	data, err := rr.MarshalJSON()
+
+	var rr2 rollupRule
+	err = json.Unmarshal(data, &rr2)
+	require.NoError(t, err)
+
+	expected, err := rr.Schema()
+	require.NoError(t, err)
+
+	actual, err := rr2.Schema()
+	require.NoError(t, err)
+
+	require.Equal(t, expected, actual)
+}
+
+func TestNewRollupRuleFromFields(t *testing.T) {
+	filterOpts := testTagsFilterOptions()
+	rawFilters := map[string]string{"tag3": "value3"}
+	rr, err := newRollupRuleFromFields(
+		"bar",
+		rawFilters,
+		[]RollupTarget{
+			{
+				Name: b("rName1"),
+				Tags: [][]byte{b("rtagName1"), b("rtagName2")},
+				Policies: []policy.Policy{
+					policy.NewPolicy(policy.NewStoragePolicy(10*time.Second, xtime.Second, 24*time.Hour), policy.DefaultAggregationID),
+				},
+			},
+		},
+		12345,
+		filterOpts,
+	)
+	filter, err := filters.NewTagsFilter(rawFilters, filters.Conjunction, filterOpts)
+	require.NoError(t, err)
+	expectedSnapshot := rollupRuleSnapshot{
+		name:         "bar",
+		tombstoned:   false,
+		cutoverNanos: 12345,
+		filter:       filter,
+		rawFilters:   rawFilters,
+		targets: []RollupTarget{
+			{
+				Name: b("rName1"),
+				Tags: [][]byte{b("rtagName1"), b("rtagName2")},
+				Policies: []policy.Policy{
+					policy.NewPolicy(policy.NewStoragePolicy(10*time.Second, xtime.Second, 24*time.Hour), policy.DefaultAggregationID),
+				},
+			},
+		},
+	}
+
+	require.NoError(t, err)
+	n, err := rr.Name()
+	require.NoError(t, err)
+
+	require.Equal(t, n, "bar")
+	require.False(t, rr.Tombstoned())
+	require.Len(t, rr.snapshots, 1)
+	require.Equal(t, rr.snapshots[0].cutoverNanos, expectedSnapshot.cutoverNanos)
+	require.Equal(t, rr.snapshots[0].rawFilters, expectedSnapshot.rawFilters)
+	require.Equal(t, rr.snapshots[0].targets, expectedSnapshot.targets)
+	require.Equal(t, rr.snapshots[0].filter.String(), expectedSnapshot.filter.String())
+}
+
+func TestRollupNameNoSnapshot(t *testing.T) {
+	rr := rollupRule{
+		uuid:      "blah",
+		snapshots: []*rollupRuleSnapshot{},
+	}
+	_, err := rr.Name()
+	require.Error(t, err)
+}
+
+func TestRollupTombstonedNoSnapshot(t *testing.T) {
+	rr := rollupRule{
+		uuid:      "blah",
+		snapshots: []*rollupRuleSnapshot{},
+	}
+	require.True(t, rr.Tombstoned())
+}
+
+func TestRollupTombstoned(t *testing.T) {
+	rr, _ := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
+	require.True(t, rr.Tombstoned())
 }
