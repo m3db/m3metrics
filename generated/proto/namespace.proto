@@ -47,25 +47,25 @@ var (
 	errEmptyNamespace = fmt.Errorf("cannot generate ruleset key with empty namespace")
 )
 
-// HandlerOptions ...
+// HandlerOptions holds common settings to all handlers.
 type HandlerOptions struct {
 	PropagationDelay time.Duration
 	NamespacesKey    string
 	RuleSetKeyFmt    string
 }
 
-// Handler ...
+// Handler is a struct that all functionality should be defined on.
 type Handler struct {
 	store kv.TxnStore
 	opts  HandlerOptions
 }
 
-// NewHandlerOpts ...
+// NewHandlerOpts creates a new HanlderOptions struct.
 func NewHandlerOpts(propDelay time.Duration, namespacesKey string, rulesetKeyFmt string) HandlerOptions {
 	return HandlerOptions{propDelay, namespacesKey, rulesetKeyFmt}
 }
 
-// NewHandler ...
+// NewHandler creates a new Handler.
 func NewHandler(store kv.TxnStore, opts HandlerOptions) Handler {
 	return Handler{store: store, opts: opts}
 >>>>>>> Bump glide yaml:handlers/handler.go
