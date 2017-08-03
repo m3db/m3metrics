@@ -324,34 +324,6 @@ func TestNamespaceEmptySnap(t *testing.T) {
 	require.True(t, ns.Tombstoned())
 }
 
-func TestNamespaceTombstone(t *testing.T) {
-	ns, err := newNameSpace(&schema.Namespace{
-		Name: "foo",
-		Snapshots: []*schema.NamespaceSnapshot{
-			&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: false},
-		},
-	})
-
-	err = ns.tombstone(4)
-	require.NoError(t, err)
-
-	require.True(t, ns.Tombstoned())
-
-	require.Equal(t, ns.snapshots[len(ns.snapshots)-1].forRuleSetVersion, 4)
-}
-
-func TestNamespaceTombstoneAlreadyDead(t *testing.T) {
-	ns, err := newNameSpace(&schema.Namespace{
-		Name: "foo",
-		Snapshots: []*schema.NamespaceSnapshot{
-			&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: true},
-		},
-	})
-
-	err = ns.tombstone(4)
-	require.Error(t, err)
-}
-
 func TestNamespace(t *testing.T) {
 	testNss := &schema.Namespaces{
 		Namespaces: []*schema.Namespace{
@@ -405,79 +377,6 @@ func TestNamespaceDup(t *testing.T) {
 	_, err = nss.Namespace("foo")
 	require.EqualError(t, err, errMultipleNamespaceMatches.Error())
 }
-
-func TestNamespaceAdd(t *testing.T) {
-	testNss := &schema.Namespaces{
-		Namespaces: []*schema.Namespace{
-			&schema.Namespace{
-				Name: "foo",
-				Snapshots: []*schema.NamespaceSnapshot{
-					&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: true},
-				},
-			},
-		},
-	}
-
-	nss, err := NewNamespaces(1, testNss)
-	require.NoError(t, err)
-
-	err = nss.AddNamespace("bar")
-	require.NoError(t, err)
-
-	ns, err := nss.Namespace("bar")
-	require.NoError(t, err)
-	require.False(t, ns.Tombstoned())
-}
-
-func TestNamespaceAddDup(t *testing.T) {
-	testNss := &schema.Namespaces{
-		Namespaces: []*schema.Namespace{
-			&schema.Namespace{
-				Name: "foo",
-				Snapshots: []*schema.NamespaceSnapshot{
-					&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: false},
-				},
-			},
-		},
-	}
-
-	nss, err := NewNamespaces(1, testNss)
-	require.NoError(t, err)
-
-	err = nss.AddNamespace("foo")
-	require.Error(t, err)
-}
-
-func TestNamespaceRevive(t *testing.T) {
-	testNss := &schema.Namespaces{
-		Namespaces: []*schema.Namespace{
-			&schema.Namespace{
-				Name: "foo",
-				Snapshots: []*schema.NamespaceSnapshot{
-					&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: false},
-				},
-			},
-		},
-	}
-
-	nss, err := NewNamespaces(1, testNss)
-	require.NoError(t, err)
-	ns, err := nss.Namespace("foo")
-
-	require.NoError(t, err)
-
-	err = ns.tombstone(4)
-	require.NoError(t, err)
-	ns, err = nss.Namespace("foo")
-	require.True(t, ns.Tombstoned())
-
-	err = nss.AddNamespace("foo")
-	require.NoError(t, err)
-
-	require.Equal(t, ns.snapshots[len(ns.snapshots)-1].forRuleSetVersion, 4)
-	require.Equal(t, len(ns.snapshots), 3)
-}
-
 func TestNamespaceReviveLive(t *testing.T) {
 	ns, err := newNameSpace(&schema.Namespace{
 		Name: "foo",
@@ -490,62 +389,30 @@ func TestNamespaceReviveLive(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestNamespaceDelete(t *testing.T) {
-	testNss := &schema.Namespaces{
-		Namespaces: []*schema.Namespace{
-			&schema.Namespace{
-				Name: "foo",
-				Snapshots: []*schema.NamespaceSnapshot{
-					&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: false},
-				},
-			},
+func TestNamespaceMarkTombstoned(t *testing.T) {
+	ns, err := newNameSpace(&schema.Namespace{
+		Name: "foo",
+		Snapshots: []*schema.NamespaceSnapshot{
+			&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: false},
 		},
-	}
+	})
 
-	nss, err := NewNamespaces(1, testNss)
-	require.NoError(t, err)
-	err = nss.DeleteNamespace("foo", 4)
+	err = ns.markTombstoned(4)
 	require.NoError(t, err)
 
-	ns, err := nss.Namespace("foo")
-	require.NoError(t, err)
 	require.True(t, ns.Tombstoned())
-	require.Equal(t, ns.snapshots[len(ns.snapshots)-1].forRuleSetVersion, 5)
+
+	require.Equal(t, ns.snapshots[len(ns.snapshots)-1].forRuleSetVersion, 4)
 }
 
-func TestNamespaceDeleteMissing(t *testing.T) {
-	testNss := &schema.Namespaces{
-		Namespaces: []*schema.Namespace{
-			&schema.Namespace{
-				Name: "foo",
-				Snapshots: []*schema.NamespaceSnapshot{
-					&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: false},
-				},
-			},
+func TestNamespaceTombstoneAlreadyDead(t *testing.T) {
+	ns, err := newNameSpace(&schema.Namespace{
+		Name: "foo",
+		Snapshots: []*schema.NamespaceSnapshot{
+			&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: true},
 		},
-	}
+	})
 
-	nss, err := NewNamespaces(1, testNss)
-	require.NoError(t, err)
-	err = nss.DeleteNamespace("bar", 4)
-	require.Error(t, err)
-}
-
-func TestNamespaceDeleteTombstoned(t *testing.T) {
-	testNss := &schema.Namespaces{
-		Namespaces: []*schema.Namespace{
-			&schema.Namespace{
-				Name: "foo",
-				Snapshots: []*schema.NamespaceSnapshot{
-					&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: true},
-				},
-			},
-		},
-	}
-
-	nss, err := NewNamespaces(1, testNss)
-	require.NoError(t, err)
-
-	err = nss.DeleteNamespace("foo", 4)
+	err = ns.markTombstoned(4)
 	require.Error(t, err)
 }

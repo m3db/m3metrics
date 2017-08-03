@@ -34,7 +34,6 @@ import (
 var (
 	errNilMappingRuleSnapshotSchema = errors.New("nil mapping rule snapshot schema")
 	errNilMappingRuleSchema         = errors.New("nil mapping rule schema")
-	errNoSnapshots                  = errors.New("rule has no snapshots")
 )
 
 // mappingRuleSnapshot defines a rule snapshot such that if a metric matches the
@@ -218,7 +217,7 @@ func (mc *mappingRule) addSnapshot(
 	return nil
 }
 
-func (mc *mappingRule) tombstone(cutoverTime int64) error {
+func (mc *mappingRule) markTombstoned(cutoverTime int64) error {
 	n, err := mc.Name()
 	if err != nil {
 		return err

@@ -377,7 +377,7 @@ func (rc *rollupRule) addSnapshot(
 	return nil
 }
 
-func (rc *rollupRule) tombstone(cutoverTime int64) error {
+func (rc *rollupRule) markTombstoned(cutoverTime int64) error {
 	n, err := rc.Name()
 	if err != nil {
 		return err

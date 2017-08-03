@@ -27,7 +27,6 @@ import (
 	"fmt"
 	"math"
 	"sort"
-	"time"
 
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
@@ -454,35 +453,14 @@ type RuleSet interface {
 	// Schema returns the schema.Ruleset representation of this ruleset.
 	Schema() (*schema.RuleSet, error)
 
-	// Tombstone tombstones this ruleset and all of its rules.
-	Tombstone(time.Duration) error
-
-	// AppendMappingRule creates a new mapping rule and adds it to this ruleset.
-	AddMappingRule(string, map[string]string, []policy.Policy, time.Duration) error
-
-	// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
-	UpdateMappingRule(string, string, map[string]string, []policy.Policy, time.Duration) error
-
-	// DeleteMappingRule
-	DeleteMappingRule(string, time.Duration) error
-
-	// AppendRollupRule creates a new mapping rule and adds it to this ruleset.
-	AddRollupRule(string, map[string]string, []RollupTarget, time.Duration) error
-
-	// UpdateRollupRule creates a new mapping rule and adds it to this ruleset.
-	UpdateRollupRule(string, string, map[string]string, []RollupTarget, time.Duration) error
-
-	// DeleteRollupRule ...
-	DeleteRollupRule(string, time.Duration) error
-
-	// Revive removes the tombstone from this ruleset. It does not revive any rules.
-	Revive(time.Duration) error
-
 	// MarshalJSON serializes this RuleSet into JSON
 	MarshalJSON() ([]byte, error)
 
 	// UnmarshalJSON deserializes this RuleSet from JSON
 	UnmarshalJSON(data []byte) error
+
+	// Handler returns a handler that can update the given RuleSet object.
+	Handler(HandlerOptions) RuleSetHandler
 }
 
 type ruleSet struct {
@@ -541,6 +519,11 @@ func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSe
 // NewRuleSet creates a blank concrete ruleSet
 func NewRuleSet() RuleSet {
 	return &ruleSet{}
+}
+
+func (rs *ruleSet) Handler(opts HandlerOptions) RuleSetHandler {
+	//Todo(dgromov): This should create a copy.
+	return ruleSetHandler{rs: rs, opts: opts}
 }
 
 func (rs *ruleSet) Namespace() []byte   { return rs.namespace }
@@ -608,135 +591,6 @@ func (rs *ruleSet) updateTimeStamps(nowNs int64, newCutoverNanos int64) {
 	rs.lastUpdatedAtNanos = nowNs
 }
 
-func (rs *ruleSet) AddMappingRule(
-	name string,
-	filters map[string]string,
-	policies []policy.Policy,
-	propDelay time.Duration,
-) error {
-	m, err := rs.getMappingRuleByName(name)
-	updateTime := time.Now().UnixNano()
-	if err != nil {
-		if err != errNoSuchRule {
-			return err
-		}
-		m, err = newMappingRuleFromFields(name, filters, policies, updateTime, rs.tagsFilterOpts)
-		if err != nil {
-			return err
-		}
-		rs.mappingRules = append(rs.mappingRules, m)
-	} else {
-		if err := m.revive(name, filters, policies, updateTime+int64(propDelay), rs.tagsFilterOpts); err != nil {
-			return err
-		}
-	}
-	rs.updateTimeStamps(updateTime, updateTime+int64(propDelay))
-	return nil
-}
-
-// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
-func (rs *ruleSet) UpdateMappingRule(
-	originalName string,
-	newName string,
-	filters map[string]string,
-	policies []policy.Policy,
-	propDelay time.Duration,
-) error {
-	m, err := rs.getMappingRuleByName(originalName)
-	if err != nil {
-		return err
-	}
-
-	updateTime := time.Now().UnixNano()
-	err = m.addSnapshot(newName, filters, policies, updateTime, rs.tagsFilterOpts)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// DeleteMappingRule tombstones a mapping rule.
-func (rs *ruleSet) DeleteMappingRule(
-	name string,
-	propDelay time.Duration,
-) error {
-	m, err := rs.getMappingRuleByName(name)
-	if err != nil {
-		return err
-	}
-
-	updateTime := time.Now().UnixNano()
-	if err := m.tombstone(updateTime + int64(propDelay)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (rs *ruleSet) AddRollupRule(
-	name string,
-	filters map[string]string,
-	targets []RollupTarget,
-	propDelay time.Duration,
-) error {
-	r, err := rs.getRollupRuleByName(name)
-	updateTime := time.Now().UnixNano()
-	if err != nil {
-		if err != errNoSuchRule {
-			return err
-		}
-		r, err = newRollupRuleFromFields(name, filters, targets, updateTime, rs.tagsFilterOpts)
-		if err != nil {
-			return err
-		}
-		rs.rollupRules = append(rs.rollupRules, r)
-	} else {
-		if err := r.revive(name, filters, targets, updateTime, rs.tagsFilterOpts); err != nil {
-			return err
-		}
-	}
-	rs.updateTimeStamps(updateTime, updateTime+int64(propDelay))
-	return nil
-}
-
-// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
-func (rs *ruleSet) UpdateRollupRule(
-	originalName string,
-	newName string,
-	filters map[string]string,
-	targets []RollupTarget,
-	propDelay time.Duration,
-) error {
-	r, err := rs.getRollupRuleByName(originalName)
-	if err != nil {
-		return err
-	}
-
-	updateTime := time.Now().UnixNano()
-	err = r.addSnapshot(newName, filters, targets, updateTime, rs.tagsFilterOpts)
-	if err != nil {
-		return err
-	}
-	rs.updateTimeStamps(updateTime, updateTime+int64(propDelay))
-	return nil
-}
-
-// DeleteRollupRule tombstones a rollup rule.
-func (rs *ruleSet) DeleteRollupRule(
-	name string,
-	propDelay time.Duration,
-) error {
-	r, err := rs.getRollupRuleByName(name)
-	if err != nil {
-		return err
-	}
-	updateTime := time.Now().UnixNano()
-	if err := r.tombstone(updateTime + int64(propDelay)); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (rs ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
 	for _, m := range rs.mappingRules {
 		n, err := m.Name()
@@ -765,43 +619,6 @@ func (rs ruleSet) getRollupRuleByName(name string) (*rollupRule, error) {
 	}
 
 	return nil, errNoSuchRule
-}
-
-func (rs *ruleSet) Tombstone(propDelay time.Duration) error {
-	if rs.tombstoned {
-		return fmt.Errorf("%s is already tombstoned", string(rs.namespace))
-	}
-
-	rs.tombstoned = true
-	updateTime := time.Now().UnixNano()
-	newCutover := updateTime + int64(propDelay)
-	rs.updateTimeStamps(updateTime, newCutover)
-
-	// Make sure that all of the rules in the ruleset are tombstoned as well.
-	for _, m := range rs.mappingRules {
-		if t := m.Tombstoned(); !t {
-			m.tombstone(newCutover)
-		}
-	}
-
-	for _, r := range rs.rollupRules {
-		if t := r.Tombstoned(); !t {
-			r.tombstone(newCutover)
-		}
-	}
-
-	return nil
-}
-
-func (rs *ruleSet) Revive(propDelay time.Duration) error {
-	if !rs.tombstoned {
-		return fmt.Errorf("%s is not tombstoned", string(rs.namespace))
-	}
-
-	rs.tombstoned = false
-	updateTime := time.Now().UnixNano()
-	rs.updateTimeStamps(updateTime, updateTime+int64(propDelay))
-	return nil
 }
 
 type ruleSetJSON struct {

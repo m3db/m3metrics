@@ -28,7 +28,6 @@ import (
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/generated/proto/schema"
-	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules"
 
 	"github.com/stretchr/testify/require"
@@ -166,31 +165,15 @@ type mockRuleSet struct {
 	matcher      *mockMatcher
 }
 
-func (r mockRuleSet) Namespace() []byte                       { return []byte(r.namespace) }
-func (r mockRuleSet) Version() int                            { return r.version }
-func (r mockRuleSet) CutoverNanos() int64                     { return r.cutoverNanos }
-func (r mockRuleSet) Tombstoned() bool                        { return r.tombstoned }
-func (r mockRuleSet) ActiveSet(timeNanos int64) rules.Matcher { return r.matcher }
-func (r mockRuleSet) Schema() (*schema.RuleSet, error)        { return nil, nil }
-func (r mockRuleSet) Tombstone(time.Duration) error           { return nil }
-func (r mockRuleSet) Revive(time.Duration) error              { return nil }
-func (r mockRuleSet) AddMappingRule(string, map[string]string, []policy.Policy, time.Duration) error {
-	return nil
-}
-func (r mockRuleSet) UpdateMappingRule(string, string, map[string]string, []policy.Policy, time.Duration) error {
-	return nil
-}
-func (r mockRuleSet) DeleteMappingRule(string, time.Duration) error { return nil }
-
-func (r mockRuleSet) AddRollupRule(string, map[string]string, []rules.RollupTarget, time.Duration) error {
-	return nil
-}
-func (r mockRuleSet) UpdateRollupRule(string, string, map[string]string, []rules.RollupTarget, time.Duration) error {
-	return nil
-}
-func (r mockRuleSet) DeleteRollupRule(string, time.Duration) error { return nil }
-func (r mockRuleSet) MarshalJSON() ([]byte, error)                 { return nil, nil }
-func (r mockRuleSet) UnmarshalJSON([]byte) error                   { return nil }
+func (r mockRuleSet) Namespace() []byte                                 { return []byte(r.namespace) }
+func (r mockRuleSet) Version() int                                      { return r.version }
+func (r mockRuleSet) CutoverNanos() int64                               { return r.cutoverNanos }
+func (r mockRuleSet) Tombstoned() bool                                  { return r.tombstoned }
+func (r mockRuleSet) ActiveSet(timeNanos int64) rules.Matcher           { return r.matcher }
+func (r mockRuleSet) Schema() (*schema.RuleSet, error)                  { return nil, nil }
+func (r mockRuleSet) MarshalJSON() ([]byte, error)                      { return nil, nil }
+func (r mockRuleSet) UnmarshalJSON([]byte) error                        { return nil }
+func (r mockRuleSet) Handler(rules.HandlerOptions) rules.RuleSetHandler { return nil }
 
 func testRuleSet() (kv.Store, Cache, *ruleSet, Options) {
 	store := mem.NewStore()
