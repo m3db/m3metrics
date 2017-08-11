@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"time"
 
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
@@ -43,6 +44,11 @@ var (
 	errRuleAlreadyExist = errors.New("rule already exists")
 	errNoSuchRule       = errors.New("no such rule exists")
 	errTombstoned       = errors.New("rule is tombstoned")
+	errNotTombstoned    = errors.New("not tombstoned")
+	errNoSnapshots      = errors.New("a rule has no snapshots")
+
+	ruleActionErrorFmt    = "cannot %s rule %s. %v"
+	ruleSetActionErrorFmt = "cannot %s ruleset %s. %v"
 )
 
 // MatchMode determines how match is performed.
@@ -449,18 +455,6 @@ type RuleSet interface {
 
 	// ActiveSet returns the active ruleset at a given time.
 	ActiveSet(timeNanos int64) Matcher
-
-	// Schema returns the schema.Ruleset representation of this ruleset.
-	Schema() (*schema.RuleSet, error)
-
-	// MarshalJSON serializes this RuleSet into JSON
-	MarshalJSON() ([]byte, error)
-
-	// UnmarshalJSON deserializes this RuleSet from JSON
-	UnmarshalJSON(data []byte) error
-
-	// Handler returns a handler that can update the given RuleSet object.
-	Handler(HandlerOptions) RuleSetHandler
 }
 
 type ruleSet struct {
@@ -516,16 +510,6 @@ func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSe
 	}, nil
 }
 
-// NewRuleSet creates a blank concrete ruleSet
-func NewRuleSet() RuleSet {
-	return &ruleSet{}
-}
-
-func (rs *ruleSet) Handler(opts HandlerOptions) RuleSetHandler {
-	//Todo(dgromov): This should create a copy.
-	return ruleSetHandler{rs: rs, opts: opts}
-}
-
 func (rs *ruleSet) Namespace() []byte   { return rs.namespace }
 func (rs *ruleSet) Version() int        { return rs.version }
 func (rs *ruleSet) CutoverNanos() int64 { return rs.cutoverNanos }
@@ -550,131 +534,6 @@ func (rs *ruleSet) ActiveSet(timeNanos int64) Matcher {
 		rs.newRollupIDFn,
 		rs.isRollupIDFn,
 	)
-}
-
-// Schema returns the protobuf representation fo a ruleset
-func (rs ruleSet) Schema() (*schema.RuleSet, error) {
-	res := &schema.RuleSet{
-		Uuid:          rs.uuid,
-		Namespace:     string(rs.namespace),
-		CreatedAt:     rs.createdAtNanos,
-		LastUpdatedAt: rs.lastUpdatedAtNanos,
-		Tombstoned:    rs.tombstoned,
-		CutoverTime:   rs.cutoverNanos,
-	}
-
-	mappingRules := make([]*schema.MappingRule, len(rs.mappingRules))
-	for i, m := range rs.mappingRules {
-		mr, err := m.Schema()
-		if err != nil {
-			return nil, err
-		}
-		mappingRules[i] = mr
-	}
-	res.MappingRules = mappingRules
-
-	rollupRules := make([]*schema.RollupRule, len(rs.rollupRules))
-	for i, r := range rs.rollupRules {
-		rr, err := r.Schema()
-		if err != nil {
-			return nil, err
-		}
-		rollupRules[i] = rr
-	}
-	res.RollupRules = rollupRules
-
-	return res, nil
-}
-
-func (rs *ruleSet) updateTimeStamps(nowNs int64, newCutoverNanos int64) {
-	rs.cutoverNanos = newCutoverNanos
-	rs.lastUpdatedAtNanos = nowNs
-}
-
-func (rs ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
-	for _, m := range rs.mappingRules {
-		n, err := m.Name()
-		if err != nil {
-			continue
-		}
-
-		if n == name {
-			return m, nil
-		}
-	}
-
-	return nil, errNoSuchRule
-}
-
-func (rs ruleSet) getRollupRuleByName(name string) (*rollupRule, error) {
-	for _, r := range rs.rollupRules {
-		n, err := r.Name()
-		if err != nil {
-			return nil, err
-		}
-
-		if n == name {
-			return r, nil
-		}
-	}
-
-	return nil, errNoSuchRule
-}
-
-type ruleSetJSON struct {
-	UUID               string         `json:"uuid"`
-	Version            int            `json:"version"`
-	Namespace          string         `json:"namespace"`
-	CreatedAtNanos     int64          `json:"createdAt"`
-	LastUpdatedAtNanos int64          `json:"lastUpdatedAt"`
-	Tombstoned         bool           `json:"tombstoned"`
-	CutoverNanos       int64          `json:"cutoverNanos"`
-	MappingRules       []*mappingRule `json:"mappingRules"`
-	RollupRules        []*rollupRule  `json:"rollupRules"`
-}
-
-func newRuleSetJSON(rs ruleSet) ruleSetJSON {
-	return ruleSetJSON{
-		UUID:               rs.uuid,
-		Version:            rs.version,
-		Namespace:          string(rs.namespace),
-		CreatedAtNanos:     rs.createdAtNanos,
-		LastUpdatedAtNanos: rs.lastUpdatedAtNanos,
-		Tombstoned:         rs.tombstoned,
-		CutoverNanos:       rs.cutoverNanos,
-		MappingRules:       rs.mappingRules,
-		RollupRules:        rs.rollupRules,
-	}
-}
-
-// MarshalJSON returns the JSON encoding of staged policies.
-func (rs ruleSet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(newRuleSetJSON(rs))
-}
-
-// UnmarshalJSON unmarshals JSON-encoded data into staged policies.
-func (rs *ruleSet) UnmarshalJSON(data []byte) error {
-	var rsj ruleSetJSON
-	err := json.Unmarshal(data, &rsj)
-	if err != nil {
-		return err
-	}
-	*rs = *rsj.RuleSet()
-	return nil
-}
-
-func (rsj ruleSetJSON) RuleSet() *ruleSet {
-	return &ruleSet{
-		uuid:               rsj.UUID,
-		version:            rsj.Version,
-		namespace:          []byte(rsj.Namespace),
-		createdAtNanos:     rsj.CreatedAtNanos,
-		lastUpdatedAtNanos: rsj.LastUpdatedAtNanos,
-		tombstoned:         rsj.Tombstoned,
-		cutoverNanos:       rsj.CutoverNanos,
-		mappingRules:       rsj.MappingRules,
-		rollupRules:        rsj.RollupRules,
-	}
 }
 
 // resolvePolicies resolves the conflicts among policies if any, following the rules below:
@@ -798,3 +657,416 @@ type int64Asc []int64
 func (a int64Asc) Len() int           { return len(a) }
 func (a int64Asc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a int64Asc) Less(i, j int) bool { return a[i] < a[j] }
+
+// MutableRuleSet is an extention of a RuleSet that implements mutation functions.
+type MutableRuleSet interface {
+	RuleSet
+
+	// Schema returns the schema.Ruleset representation of this ruleset.
+	Schema() (*schema.RuleSet, error)
+
+	// MarshalJSON serializes this RuleSet into JSON.
+	MarshalJSON() ([]byte, error)
+
+	// UnmarshalJSON deserializes this RuleSet from JSON.
+	UnmarshalJSON(data []byte) error
+
+	// AppendMappingRule creates a new mapping rule and adds it to this ruleset.
+	AddMappingRule(MappingRuleData) error
+
+	// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
+	UpdateMappingRule(MappingRuleUpdate) error
+
+	// DeleteMappingRule deletes a mapping rule
+	DeleteMappingRule(RuleDeleteData string) error
+
+	// AppendRollupRule creates a new rollup rule and adds it to this ruleset.
+	AddRollupRule(RollupRuleData) error
+
+	// UpdateRollupRule creates a new rollup rule and adds it to this ruleset.
+	UpdateRollupRule(RollupRuleUpdate) error
+
+	// DeleteRollupRule deletes a rollup rule
+	DeleteRollupRule(RuleDeleteData string) error
+
+	// Tombstone tombstones this ruleset and all of its rules.
+	delete(DeleteData) error
+
+	// Revive removes the tombstone from this ruleset. It does not revive any rules.
+	revive(DeleteData) error
+}
+
+// Schema returns the protobuf representation fo a ruleset
+func (rs ruleSet) Schema() (*schema.RuleSet, error) {
+	res := &schema.RuleSet{
+		Uuid:          rs.uuid,
+		Namespace:     string(rs.namespace),
+		CreatedAt:     rs.createdAtNanos,
+		LastUpdatedAt: rs.lastUpdatedAtNanos,
+		Tombstoned:    rs.tombstoned,
+		CutoverTime:   rs.cutoverNanos,
+	}
+
+	mappingRules := make([]*schema.MappingRule, len(rs.mappingRules))
+	for i, m := range rs.mappingRules {
+		mr, err := m.Schema()
+		if err != nil {
+			return nil, err
+		}
+		mappingRules[i] = mr
+	}
+	res.MappingRules = mappingRules
+
+	rollupRules := make([]*schema.RollupRule, len(rs.rollupRules))
+	for i, r := range rs.rollupRules {
+		rr, err := r.Schema()
+		if err != nil {
+			return nil, err
+		}
+		rollupRules[i] = rr
+	}
+	res.RollupRules = rollupRules
+
+	return res, nil
+}
+
+// MarshalJSON returns the JSON encoding of staged policies.
+func (rs ruleSet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(newRuleSetJSON(rs))
+}
+
+// UnmarshalJSON unmarshals JSON-encoded data into staged policies.
+func (rs *ruleSet) UnmarshalJSON(data []byte) error {
+	var rsj ruleSetJSON
+	err := json.Unmarshal(data, &rsj)
+	if err != nil {
+		return err
+	}
+	*rs = *rsj.RuleSet()
+	return nil
+}
+
+type ruleSetJSON struct {
+	UUID               string         `json:"uuid"`
+	Version            int            `json:"version"`
+	Namespace          string         `json:"namespace"`
+	CreatedAtNanos     int64          `json:"createdAt"`
+	LastUpdatedAtNanos int64          `json:"lastUpdatedAt"`
+	Tombstoned         bool           `json:"tombstoned"`
+	CutoverNanos       int64          `json:"cutoverNanos"`
+	MappingRules       []*mappingRule `json:"mappingRules"`
+	RollupRules        []*rollupRule  `json:"rollupRules"`
+}
+
+func newRuleSetJSON(rs ruleSet) ruleSetJSON {
+	return ruleSetJSON{
+		UUID:               rs.uuid,
+		Version:            rs.version,
+		Namespace:          string(rs.namespace),
+		CreatedAtNanos:     rs.createdAtNanos,
+		LastUpdatedAtNanos: rs.lastUpdatedAtNanos,
+		Tombstoned:         rs.tombstoned,
+		CutoverNanos:       rs.cutoverNanos,
+		MappingRules:       rs.mappingRules,
+		RollupRules:        rs.rollupRules,
+	}
+}
+
+// RuleSet returns a ruleSet representation of a ruleSetJSON
+func (rsj ruleSetJSON) RuleSet() *ruleSet {
+	return &ruleSet{
+		uuid:               rsj.UUID,
+		version:            rsj.Version,
+		namespace:          []byte(rsj.Namespace),
+		createdAtNanos:     rsj.CreatedAtNanos,
+		lastUpdatedAtNanos: rsj.LastUpdatedAtNanos,
+		tombstoned:         rsj.Tombstoned,
+		cutoverNanos:       rsj.CutoverNanos,
+		mappingRules:       rsj.MappingRules,
+		rollupRules:        rsj.RollupRules,
+	}
+}
+
+// RuleSetUpdateHelper helps
+type RuleSetUpdateHelper struct {
+	propagationDelay time.Duration
+}
+
+// NewRuleSetUpdateHelper creates a new RuleSetUpdateHelper struct.
+func NewRuleSetUpdateHelper(propagationDelay time.Duration) RuleSetUpdateHelper {
+	return RuleSetUpdateHelper{propagationDelay: propagationDelay}
+}
+
+// GenUpdateMetadata creates a properly initialized UpdateMetadata object.
+func (r RuleSetUpdateHelper) GenUpdateMetadata() UpdateMetadata {
+	updateTime := time.Now().UnixNano()
+	cutoverTime := updateTime + int64(r.propagationDelay)
+	return UpdateMetadata{lastUpdatedAtNanos: updateTime, cutoverNanos: cutoverTime}
+}
+
+// UpdateMetadata contains fields that should be set with each
+// update to the state of a ruleset.
+type UpdateMetadata struct {
+	cutoverNanos       int64
+	lastUpdatedAtNanos int64
+}
+
+// MappingRuleData is the parts of a mapping rule that an end user would care about.
+// This struct is provided to create or make updates to the mapping rule.
+type MappingRuleData struct {
+	UpdateMetadata
+
+	Name     string            `json:"name" validate:"nonzero"`
+	Filters  map[string]string `json:"filters" validate:"nonzero"`
+	Policies []policy.Policy   `json:"policies" validate:"nonzero"`
+}
+
+// MappingRuleUpdate contains a MappingRuleData along with an ID for a mapping rule.
+// The rule with that ID is meant to updated to the given config.
+type MappingRuleUpdate struct {
+	UpdateMetadata
+
+	Data MappingRuleData `json:"config" validate:"nonzero"`
+	ID   string          `json:"id" validate:"nonzero"`
+}
+
+// RollupRuleData is the parts of a rollup rule that an end user would care about.
+// This struct is provided to create or make updates to the rollup rule.
+type RollupRuleData struct {
+	UpdateMetadata
+
+	Name    string            `json:"name" validate:"nonzero"`
+	Filters map[string]string `json:"filters" validate:"nonzero"`
+	Targets []RollupTarget    `json:"targets" validate:"nonzero"`
+}
+
+// RollupRuleUpdate is a RollupRuleConfig along with an ID for a rollup rule.
+// The rule with that ID is meant to updated with a given config.
+type RollupRuleUpdate struct {
+	UpdateMetadata
+
+	Data RollupRuleData `json:"data" validate:"nonzero"`
+	ID   string         `json:"id" validate:"nonzero"`
+}
+
+// DeleteData contains data necessary to delete a rule.
+type DeleteData struct {
+	UpdateMetadata
+
+	ID string `json:"id" validate:"nonzero"`
+}
+
+func (rs *ruleSet) AddMappingRule(mr MappingRuleData) error {
+	m, err := rs.getMappingRuleByName(mr.Name)
+	if err != nil && err != errNoSuchRule {
+		return fmt.Errorf(ruleActionErrorFmt, "add", mr.Name, err)
+	}
+	meta := mr.UpdateMetadata
+	if err == errNoSuchRule {
+		if m, err = newMappingRuleFromFields(
+			mr.Name,
+			mr.Filters,
+			mr.Policies,
+			meta.cutoverNanos,
+			rs.tagsFilterOpts,
+		); err != nil {
+			return fmt.Errorf(ruleActionErrorFmt, "add", mr.Name, err)
+		}
+		rs.mappingRules = append(rs.mappingRules, m)
+	} else {
+		if err := m.revive(
+			mr.Name,
+			mr.Filters,
+			mr.Policies,
+			meta.cutoverNanos,
+			rs.tagsFilterOpts,
+		); err != nil {
+			return fmt.Errorf(ruleActionErrorFmt, "revive", mr.Name, err)
+		}
+	}
+
+	rs.updateMetadata(meta)
+	return nil
+}
+
+func (rs *ruleSet) UpdateMappingRule(mru MappingRuleUpdate) error {
+	m, err := rs.getMappingRuleByID(mru.ID)
+	if err != nil {
+		return fmt.Errorf(ruleActionErrorFmt, "update", mru.ID, err)
+	}
+	meta, mrd := mru.UpdateMetadata, mru.Data
+	if err := m.addSnapshot(
+		mrd.Name,
+		mrd.Filters,
+		mrd.Policies,
+		meta.cutoverNanos,
+		rs.tagsFilterOpts,
+	); err != nil {
+		return fmt.Errorf(ruleActionErrorFmt, "update", mrd.Name, err)
+	}
+	rs.updateMetadata(meta)
+	return nil
+}
+
+func (rs *ruleSet) DeleteMappingRule(d DeleteData) error {
+	m, err := rs.getMappingRuleByID(d.ID)
+	if err != nil {
+		return fmt.Errorf(ruleActionErrorFmt, "delete", d.ID, err)
+	}
+	meta := d.UpdateMetadata
+	if err := m.markTombstoned(meta.cutoverNanos); err != nil {
+		return fmt.Errorf(ruleActionErrorFmt, "delete", d.ID, err)
+	}
+	rs.updateMetadata(meta)
+	return nil
+}
+
+func (rs *ruleSet) AddRollupRule(rr RollupRuleData) error {
+	r, err := rs.getRollupRuleByName(rr.Name)
+	if err != nil && err != errNoSuchRule {
+		return fmt.Errorf(ruleActionErrorFmt, "add", rr.Name, err)
+	}
+	meta := rr.UpdateMetadata
+	if err == errNoSuchRule {
+		if r, err = newRollupRuleFromFields(
+			rr.Name,
+			rr.Filters,
+			rr.Targets,
+			meta.cutoverNanos,
+			rs.tagsFilterOpts,
+		); err != nil {
+			return fmt.Errorf(ruleActionErrorFmt, "add", rr.Name, err)
+		}
+		rs.rollupRules = append(rs.rollupRules, r)
+	} else {
+		if err := r.revive(
+			rr.Name,
+			rr.Filters,
+			rr.Targets,
+			meta.cutoverNanos,
+			rs.tagsFilterOpts,
+		); err != nil {
+			return fmt.Errorf(ruleActionErrorFmt, "revive", rr.Name, err)
+		}
+	}
+	rs.updateMetadata(meta)
+	return nil
+}
+
+func (rs *ruleSet) UpdateRollupRule(rru RollupRuleUpdate) error {
+	r, err := rs.getRollupRuleByID(rru.ID)
+	if err != nil {
+		return fmt.Errorf(ruleActionErrorFmt, "update", rru.ID, err)
+	}
+
+	meta, rrd := rru.UpdateMetadata, rru.Data
+	if err = r.addSnapshot(
+		rrd.Name,
+		rrd.Filters,
+		rrd.Targets,
+		meta.cutoverNanos,
+		rs.tagsFilterOpts,
+	); err != nil {
+		return fmt.Errorf(ruleActionErrorFmt, "update", rrd.Name, err)
+	}
+	rs.updateMetadata(meta)
+	return nil
+}
+
+func (rs *ruleSet) DeleteRollupRule(d DeleteData) error {
+	r, err := rs.getRollupRuleByID(d.ID)
+	if err != nil {
+		return fmt.Errorf(ruleActionErrorFmt, "delete", d.ID, err)
+	}
+	meta := d.UpdateMetadata
+	if err := r.markTombstoned(meta.cutoverNanos); err != nil {
+		return fmt.Errorf(ruleActionErrorFmt, "delete", d.ID, err)
+	}
+	return nil
+}
+
+func (rs *ruleSet) delete(meta UpdateMetadata) error {
+	if rs.tombstoned {
+		return fmt.Errorf("%s is already tombstoned", string(rs.namespace))
+	}
+
+	rs.tombstoned = true
+	rs.updateMetadata(meta)
+
+	// Make sure that all of the rules in the ruleset are tombstoned as well.
+	for _, m := range rs.mappingRules {
+		if t := m.Tombstoned(); !t {
+			m.markTombstoned(meta.cutoverNanos)
+		}
+	}
+
+	for _, r := range rs.rollupRules {
+		if t := r.Tombstoned(); !t {
+			r.markTombstoned(meta.cutoverNanos)
+		}
+	}
+
+	return nil
+}
+
+func (rs *ruleSet) revive(meta UpdateMetadata) error {
+	if !rs.Tombstoned() {
+		return fmt.Errorf(ruleSetActionErrorFmt, "revive", string(rs.namespace), errNotTombstoned)
+	}
+
+	rs.tombstoned = false
+	rs.updateMetadata(meta)
+	return nil
+}
+
+func (rs ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
+	for _, m := range rs.mappingRules {
+		n, err := m.Name()
+		if err != nil {
+			continue
+		}
+
+		if n == name {
+			return m, nil
+		}
+	}
+
+	return nil, errNoSuchRule
+}
+
+func (rs ruleSet) getMappingRuleByID(id string) (*mappingRule, error) {
+	for _, m := range rs.mappingRules {
+		if m.uuid == id {
+			return m, nil
+		}
+	}
+	return nil, errNoSuchRule
+}
+
+func (rs ruleSet) getRollupRuleByName(name string) (*rollupRule, error) {
+	for _, r := range rs.rollupRules {
+		n, err := r.Name()
+		if err != nil {
+			return nil, err
+		}
+
+		if n == name {
+			return r, nil
+		}
+	}
+	return nil, errNoSuchRule
+}
+
+func (rs ruleSet) getRollupRuleByID(id string) (*rollupRule, error) {
+	for _, r := range rs.rollupRules {
+		if r.uuid == id {
+			return r, nil
+		}
+	}
+	return nil, errNoSuchRule
+}
+
+func (rs *ruleSet) updateMetadata(meta UpdateMetadata) {
+	rs.cutoverNanos = meta.cutoverNanos
+	rs.lastUpdatedAtNanos = meta.lastUpdatedAtNanos
+}

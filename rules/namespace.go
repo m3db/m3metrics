@@ -39,6 +39,8 @@ var (
 	errNilNamespaceSnapshot       = errors.New("nil namespace snapshot")
 	errMultipleNamespaceMatches   = errors.New("more than one namespace match found")
 	errNamespaceNotFound          = errors.New("namespace not found")
+
+	namespaceActionErrorFmt = "cannot %s namespace %s. %v"
 )
 
 // NamespaceSnapshot defines a namespace snapshot for which rules are defined.
@@ -231,12 +233,6 @@ func NewNamespaces(version int, namespaces *schema.Namespaces) (Namespaces, erro
 	}, nil
 }
 
-// Handler returns a handler that can update the given namespaces object.
-func (nss *Namespaces) Handler() NamespacesHandler {
-	//Todo(dgromov): This should create a copy.
-	return namespacesHandler{namespaces: nss}
-}
-
 type namespacesJSON struct {
 	Version    int         `json:"version"`
 	Namespaces []Namespace `json:"namespaces"`
@@ -311,4 +307,49 @@ func (nss *Namespaces) Namespace(name string) (*Namespace, error) {
 	}
 
 	return res, nil
+}
+
+// AddNamespace adds a new namespace to the namespaces structure and persists it
+func (nss *Namespaces) AddNamespace(nsName string) error {
+	existing, err := nss.Namespace(nsName)
+	if err != nil && err != errNamespaceNotFound {
+		return fmt.Errorf(namespaceActionErrorFmt, "add", nsName, err)
+	}
+
+	// Brand new namespace
+	if err == errNamespaceNotFound {
+		ns := Namespace{
+			name: []byte(nsName),
+			snapshots: []NamespaceSnapshot{
+				NamespaceSnapshot{
+					forRuleSetVersion: 1,
+					tombstoned:        false,
+				},
+			},
+		}
+
+		nss.namespaces = append(nss.namespaces, ns)
+		return nil
+	}
+
+	// Revive the namespace
+	if err = existing.revive(); err != nil {
+		return fmt.Errorf(namespaceActionErrorFmt, "revive", nsName, err)
+	}
+
+	return nil
+}
+
+// DeleteNamespace tombstones the given namespace mapping it to the given RuleSet version + 1
+func (nss *Namespaces) DeleteNamespace(nsName string, forRuleSetVersion int) error {
+	existing, err := nss.Namespace(nsName)
+	if err != nil {
+		return fmt.Errorf(namespaceActionErrorFmt, "delete", nsName, err)
+	}
+
+	if err := existing.markTombstoned(forRuleSetVersion + 1); err != nil {
+		return fmt.Errorf(namespaceActionErrorFmt, "delete", nsName, err)
+	}
+
+	return nil
 }
