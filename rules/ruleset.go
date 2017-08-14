@@ -33,6 +33,8 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	metricID "github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
+
+	"github.com/pborman/uuid"
 )
 
 const (
@@ -472,8 +474,7 @@ type ruleSet struct {
 	isRollupIDFn       metricID.MatchIDFn
 }
 
-// NewRuleSetFromSchema creates a new ruleset from a schema object
-func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {
+func newRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (*ruleSet, error) {
 	if rs == nil {
 		return nil, errNilRuleSetSchema
 	}
@@ -508,6 +509,34 @@ func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSe
 		newRollupIDFn:      opts.NewRollupIDFn(),
 		isRollupIDFn:       opts.IsRollupIDFn(),
 	}, nil
+}
+
+// NewRuleSetFromSchema creates a new RuleSet from a schema object
+func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {
+	return newRuleSetFromSchema(version, rs, opts)
+}
+
+// NewMutableRuleFromSchema creates a new MutableRuleSet from a schema object
+func NewMutableRuleFromSchema(version int, rs *schema.RuleSet, opts Options) (MutableRuleSet, error) {
+	return newRuleSetFromSchema(version, rs, opts)
+}
+
+// InitRuleSet returns an empty ruleset to be used with a new namespace
+func InitRuleSet(namespaceName string, opts Options, meta UpdateMetadata) MutableRuleSet {
+	return &ruleSet{
+		uuid:               uuid.NewUUID().String(),
+		version:            1,
+		namespace:          []byte(namespaceName),
+		createdAtNanos:     meta.lastUpdatedAtNanos,
+		lastUpdatedAtNanos: meta.lastUpdatedAtNanos,
+		cutoverNanos:       meta.cutoverNanos,
+		tombstoned:         false,
+		mappingRules:       make([]*mappingRule, 0),
+		rollupRules:        make([]*rollupRule, 0),
+		tagsFilterOpts:     opts.TagsFilterOptions(),
+		newRollupIDFn:      opts.NewRollupIDFn(),
+		isRollupIDFn:       opts.IsRollupIDFn(),
+	}
 }
 
 func (rs *ruleSet) Namespace() []byte   { return rs.namespace }
@@ -678,7 +707,7 @@ type MutableRuleSet interface {
 	UpdateMappingRule(MappingRuleUpdate) error
 
 	// DeleteMappingRule deletes a mapping rule
-	DeleteMappingRule(RuleDeleteData string) error
+	DeleteMappingRule(DeleteData) error
 
 	// AppendRollupRule creates a new rollup rule and adds it to this ruleset.
 	AddRollupRule(RollupRuleData) error
@@ -687,13 +716,13 @@ type MutableRuleSet interface {
 	UpdateRollupRule(RollupRuleUpdate) error
 
 	// DeleteRollupRule deletes a rollup rule
-	DeleteRollupRule(RuleDeleteData string) error
+	DeleteRollupRule(DeleteData) error
 
 	// Tombstone tombstones this ruleset and all of its rules.
-	delete(DeleteData) error
+	Delete(DeleteData) error
 
 	// Revive removes the tombstone from this ruleset. It does not revive any rules.
-	revive(DeleteData) error
+	Revive(UpdateMetadata) error
 }
 
 // Schema returns the protobuf representation fo a ruleset
@@ -985,12 +1014,13 @@ func (rs *ruleSet) DeleteRollupRule(d DeleteData) error {
 	return nil
 }
 
-func (rs *ruleSet) delete(meta UpdateMetadata) error {
+func (rs *ruleSet) Delete(d DeleteData) error {
 	if rs.tombstoned {
 		return fmt.Errorf("%s is already tombstoned", string(rs.namespace))
 	}
 
 	rs.tombstoned = true
+	meta := d.UpdateMetadata
 	rs.updateMetadata(meta)
 
 	// Make sure that all of the rules in the ruleset are tombstoned as well.
@@ -1009,7 +1039,7 @@ func (rs *ruleSet) delete(meta UpdateMetadata) error {
 	return nil
 }
 
-func (rs *ruleSet) revive(meta UpdateMetadata) error {
+func (rs *ruleSet) Revive(meta UpdateMetadata) error {
 	if !rs.Tombstoned() {
 		return fmt.Errorf(ruleSetActionErrorFmt, "revive", string(rs.namespace), errNotTombstoned)
 	}
