@@ -137,7 +137,7 @@ var (
 			 "snapshots":[{
 				 "name":"foo",
 				 "tombstoned":false,
-				 "cutoverTime":12345,
+				 "cutoverNanos":12345,
 				 "filters":{"tag1":"value1","tag2":"value2"},
 				 "policies":["10s@1s:24h0m0s|P999"]
 				}]
@@ -147,7 +147,7 @@ var (
 				"snapshots":[{
 					"name":"bar",
 					"tombstoned":false,
-					"cutoverTime":12345,
+					"cutoverNanos":12345,
 					"filters":{"tag1":"value1","tag2":"value2"},
 					"targets":[{
 						"name":"test",
@@ -645,9 +645,8 @@ func TestRuleSetMarshalJSON(t *testing.T) {
 }
 
 func TestRuleSetUnmarshalJSON(t *testing.T) {
-	opts := testRuleSetOptions()
 	version := 1
-	newRuleSet, err := NewRuleSetFromSchema(version, marshalTestSchema, opts)
+	newRuleSet, err := NewMutableRuleSetFromSchema(version, marshalTestSchema)
 	require.NoError(t, err)
 
 	data, err := json.Marshal(newRuleSet)
@@ -665,7 +664,6 @@ func TestRuleSetUnmarshalJSON(t *testing.T) {
 }
 
 func TestRuleSetSchema(t *testing.T) {
-	opts := testRuleSetOptions()
 	version := 1
 
 	expectedRs := &schema.RuleSet{
@@ -679,7 +677,7 @@ func TestRuleSetSchema(t *testing.T) {
 		RollupRules:   testRollupRulesConfig(),
 	}
 
-	rs, err := NewRuleSetFromSchema(version, expectedRs, opts)
+	rs, err := NewMutableRuleSetFromSchema(version, expectedRs)
 	require.NoError(t, err)
 	res, err := rs.Schema()
 	require.NoError(t, err)

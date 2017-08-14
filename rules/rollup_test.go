@@ -289,7 +289,7 @@ func TestMarshalRollupRule(t *testing.T) {
 		"snapshots":[
 			{"name":"foo",
 			 "tombstoned":false,
-			 "cutoverTime":12345,
+			 "cutoverNanos":12345,
 			 "filters":{"tag1":"value1","tag2":"value2"},
 			 "targets":[
 				 {"name":"rName1",
@@ -301,7 +301,7 @@ func TestMarshalRollupRule(t *testing.T) {
 			{
 				"name":"bar",
 				"tombstoned":true,
-				"cutoverTime":67890,
+				"cutoverNanos":67890,
 				"filters":{"tag3":"value3","tag4":"value4"},
 				"targets":[
 					{"name":"rName1",

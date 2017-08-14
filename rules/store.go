@@ -108,7 +108,7 @@ func (s store) ReadRuleSet(nsName string) (MutableRuleSet, error) {
 	if err := value.Unmarshal(&ruleSet); err != nil {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
-	rs, err := NewMutableRuleSetFromSchema(version, &ruleSet, NewOptions())
+	rs, err := NewMutableRuleSetFromSchema(version, &ruleSet)
 	if err != nil {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}

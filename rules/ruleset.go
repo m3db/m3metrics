@@ -47,7 +47,7 @@ var (
 	errNoSuchRule       = errors.New("no such rule exists")
 	errTombstoned       = errors.New("rule is tombstoned")
 	errNotTombstoned    = errors.New("not tombstoned")
-	errNoSnapshots      = errors.New("a rule has no snapshots")
+	errNoRuleSnapshots  = errors.New("no snapshots")
 
 	ruleActionErrorFmt    = "cannot %s rule %s. %v"
 	ruleSetActionErrorFmt = "cannot %s ruleset %s. %v"
@@ -511,18 +511,20 @@ func newRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (*ruleS
 	}, nil
 }
 
-// NewRuleSetFromSchema creates a new RuleSet from a schema object
+// NewRuleSetFromSchema creates a new RuleSet from a schema object.
 func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {
 	return newRuleSetFromSchema(version, rs, opts)
 }
 
 // NewMutableRuleSetFromSchema creates a new MutableRuleSet from a schema object
 func NewMutableRuleSetFromSchema(version int, rs *schema.RuleSet) (MutableRuleSet, error) {
+	// Takes a blank Options stuct because none of the mutation functions need the options.
 	return newRuleSetFromSchema(version, rs, NewOptions())
 }
 
 // InitRuleSet returns an empty ruleset to be used with a new namespace
 func InitRuleSet(namespaceName string, opts Options, meta UpdateMetadata) MutableRuleSet {
+	// Ignores the options parts because none of the mutation functions need the options.
 	return &ruleSet{
 		uuid:               uuid.NewUUID().String(),
 		version:            1,

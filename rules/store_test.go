@@ -438,12 +438,12 @@ func TestWrite(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	ruleSet, err := NewRuleSetFromSchema(0, testRuleSet, NewOptions())
+	ruleSet, err := NewMutableRuleSetFromSchema(0, testRuleSet)
 	require.NoError(t, err)
 	namespaces, err := NewNamespaces(0, testNamespaces)
 	require.NoError(t, err)
 
-	err = s.Write(ruleSet, &namespaces, true)
+	err = s.WriteAll(&namespaces, ruleSet)
 	require.NoError(t, err)
 
 	rs, err = s.ReadRuleSet(testNamespace)
@@ -468,13 +468,13 @@ func TestWriteError(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	ruleSet, err := NewRuleSetFromSchema(1, testRuleSet, NewOptions())
+	ruleSet, err := NewMutableRuleSetFromSchema(1, testRuleSet)
 	require.NoError(t, err)
 
 	namespaces, err := NewNamespaces(0, testNamespaces)
 	require.NoError(t, err)
 
-	err = s.Write(ruleSet, &namespaces, true)
+	err = s.WriteAll(&namespaces, ruleSet)
 	require.Error(t, err)
 
 	rs, err = s.ReadRuleSet(testNamespace)
@@ -494,13 +494,13 @@ func TestWriteNoNamespace(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	ruleSet, err := NewRuleSetFromSchema(0, testRuleSet, NewOptions())
+	ruleSet, err := NewMutableRuleSetFromSchema(0, testRuleSet)
 	require.NoError(t, err)
 
 	namespaces, err := NewNamespaces(0, testNamespaces)
 	require.NoError(t, err)
 
-	err = s.Write(ruleSet, &namespaces, true)
+	err = s.WriteAll(&namespaces, ruleSet)
 	require.NoError(t, err)
 
 	rs, err = s.ReadRuleSet(testNamespace)
@@ -509,7 +509,7 @@ func TestWriteNoNamespace(t *testing.T) {
 	nss, err = s.ReadNamespaces()
 	require.NoError(t, err)
 
-	err = s.Write(rs, nss, false)
+	err = s.WriteRuleSet(rs)
 	require.NoError(t, err)
 
 	nss, err = s.ReadNamespaces()

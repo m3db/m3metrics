@@ -135,7 +135,7 @@ func (t *RollupTarget) clone() RollupTarget {
 type rollupRuleSnapshotJSON struct {
 	Name         string             `json:"name"`
 	Tombstoned   bool               `json:"tombstoned"`
-	CutoverNanos int64              `json:"cutoverTime"`
+	CutoverNanos int64              `json:"cutoverNanos"`
 	TagFilters   map[string]string  `json:"filters"`
 	Targets      []rollupTargetJSON `json:"targets"`
 }
@@ -303,7 +303,9 @@ func newRollupRuleFromFields(
 	opts filters.TagsFilterOptions,
 ) (*rollupRule, error) {
 	rr := rollupRule{uuid: uuid.New()}
-	rr.addSnapshot(name, rawFilters, targets, cutoverTime, opts)
+	if err := rr.addSnapshot(name, rawFilters, targets, cutoverTime, opts); err != nil {
+		return nil, err
+	}
 	return &rr, nil
 }
 
@@ -337,7 +339,7 @@ func (rc *rollupRule) activeIndex(timeNanos int64) int {
 
 func (rc *rollupRule) Name() (string, error) {
 	if len(rc.snapshots) == 0 {
-		return "", errNoSnapshots
+		return "", errNoRuleSnapshots
 	}
 	latest := rc.snapshots[len(rc.snapshots)-1]
 	return latest.name, nil
@@ -387,6 +389,10 @@ func (rc *rollupRule) markTombstoned(cutoverTime int64) error {
 		return fmt.Errorf("%s is already tombstoned", n)
 	}
 
+	if len(rc.snapshots) == 0 {
+		return errNoRuleSnapshots
+	}
+
 	snapshot := *rc.snapshots[len(rc.snapshots)-1]
 	snapshot.tombstoned = true
 	snapshot.cutoverNanos = cutoverTime
@@ -408,7 +414,9 @@ func (rc *rollupRule) revive(
 	if !rc.Tombstoned() {
 		return fmt.Errorf("%s is not tombstoned", n)
 	}
-	rc.addSnapshot(name, rawFilters, targets, cutoverTime, opts)
+	if err := rc.addSnapshot(name, rawFilters, targets, cutoverTime, opts); err != nil {
+		return err
+	}
 	return nil
 }
 

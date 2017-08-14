@@ -209,13 +209,13 @@ func TestMarshalMappingRule(t *testing.T) {
 		"snapshots":[
 			{"name":"foo",
 			 "tombstoned":false,
-			 "cutoverTime":12345,
+			 "cutoverNanos":12345,
 			 "filters":{"tag1":"value1","tag2":"value2"},
 			 "policies":["10s@1s:24h0m0s|P999"]
 			},
 			{"name":"bar",
 			 "tombstoned":true,
-			 "cutoverTime":67890,
+			 "cutoverNanos":67890,
 			 "filters":{"tag3":"value3","tag4":"value4"},
 			 "policies":["1m0s@1m:24h0m0s","5m0s@1m:48h0m0s"]}
 		]

@@ -39,6 +39,9 @@ var (
 	errNilNamespaceSnapshot       = errors.New("nil namespace snapshot")
 	errMultipleNamespaceMatches   = errors.New("more than one namespace match found")
 	errNamespaceNotFound          = errors.New("namespace not found")
+	errNamespaceNotTombstoned     = errors.New("not tombstoned")
+	errNamespaceTombstoned        = errors.New("already tombstoned")
+	errNoNamespaceSnapshots       = errors.New("no snapshots")
 
 	namespaceActionErrorFmt = "cannot %s namespace %s. %v"
 )
@@ -183,7 +186,7 @@ func (n Namespace) Schema() (*schema.Namespace, error) {
 
 func (n *Namespace) markTombstoned(tombstonedRSVersion int) error {
 	if n.Tombstoned() {
-		return fmt.Errorf("%s is already tombstone", string(n.name))
+		return errNamespaceTombstoned
 	}
 	snapshot := NamespaceSnapshot{tombstoned: true, forRuleSetVersion: tombstonedRSVersion}
 	n.snapshots = append(n.snapshots, snapshot)
@@ -192,8 +195,12 @@ func (n *Namespace) markTombstoned(tombstonedRSVersion int) error {
 
 func (n *Namespace) revive() error {
 	if !n.Tombstoned() {
-		return fmt.Errorf("cannot revive %s. It is not tombstoned", string(n.name))
+		return errNamespaceNotTombstoned
 	}
+	if len(n.snapshots) == 0 {
+		return errNoNamespaceSnapshots
+	}
+
 	v := n.snapshots[len(n.snapshots)-1].forRuleSetVersion
 	snapshot := NamespaceSnapshot{tombstoned: false, forRuleSetVersion: v}
 	n.snapshots = append(n.snapshots, snapshot)

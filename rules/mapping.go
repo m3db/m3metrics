@@ -75,7 +75,7 @@ func newMappingRuleSnapshot(
 type mappingRuleSnapshotJSON struct {
 	Name         string            `json:"name"`
 	Tombstoned   bool              `json:"tombstoned"`
-	CutoverNanos int64             `json:"cutoverTime"`
+	CutoverNanos int64             `json:"cutoverNanos"`
 	TagFilters   map[string]string `json:"filters"`
 	Policies     []policy.Policy   `json:"policies"`
 }
@@ -173,13 +173,15 @@ func newMappingRuleFromFields(
 	opts filters.TagsFilterOptions,
 ) (*mappingRule, error) {
 	mr := mappingRule{uuid: uuid.New()}
-	mr.addSnapshot(name, rawFilters, policies, cutoverTime, opts)
+	if err := mr.addSnapshot(name, rawFilters, policies, cutoverTime, opts); err != nil {
+		return nil, err
+	}
 	return &mr, nil
 }
 
 func (mc *mappingRule) Name() (string, error) {
 	if len(mc.snapshots) == 0 {
-		return "", errNoSnapshots
+		return "", errNoRuleSnapshots
 	}
 	latest := mc.snapshots[len(mc.snapshots)-1]
 	return latest.name, nil
@@ -226,12 +228,13 @@ func (mc *mappingRule) markTombstoned(cutoverTime int64) error {
 	if mc.Tombstoned() {
 		return fmt.Errorf("%s is already tombstoned", n)
 	}
-
+	if len(mc.snapshots) == 0 {
+		return errNoRuleSnapshots
+	}
 	snapshot := *mc.snapshots[len(mc.snapshots)-1]
 	snapshot.tombstoned = true
 	snapshot.cutoverNanos = cutoverTime
 	mc.snapshots = append(mc.snapshots, &snapshot)
-
 	return nil
 }
 
@@ -249,7 +252,9 @@ func (mc *mappingRule) revive(
 	if !mc.Tombstoned() {
 		return fmt.Errorf("%s is not tombstoned", n)
 	}
-	mc.addSnapshot(name, rawFilters, policies, cutoverTime, opts)
+	if err := mc.addSnapshot(name, rawFilters, policies, cutoverTime, opts); err != nil {
+		return err
+	}
 	return nil
 }
 
