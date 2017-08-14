@@ -516,9 +516,9 @@ func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSe
 	return newRuleSetFromSchema(version, rs, opts)
 }
 
-// NewMutableRuleFromSchema creates a new MutableRuleSet from a schema object
-func NewMutableRuleFromSchema(version int, rs *schema.RuleSet, opts Options) (MutableRuleSet, error) {
-	return newRuleSetFromSchema(version, rs, opts)
+// NewMutableRuleSetFromSchema creates a new MutableRuleSet from a schema object
+func NewMutableRuleSetFromSchema(version int, rs *schema.RuleSet) (MutableRuleSet, error) {
+	return newRuleSetFromSchema(version, rs, NewOptions())
 }
 
 // InitRuleSet returns an empty ruleset to be used with a new namespace
@@ -533,9 +533,6 @@ func InitRuleSet(namespaceName string, opts Options, meta UpdateMetadata) Mutabl
 		tombstoned:         false,
 		mappingRules:       make([]*mappingRule, 0),
 		rollupRules:        make([]*rollupRule, 0),
-		tagsFilterOpts:     opts.TagsFilterOptions(),
-		newRollupIDFn:      opts.NewRollupIDFn(),
-		isRollupIDFn:       opts.IsRollupIDFn(),
 	}
 }
 
@@ -694,6 +691,9 @@ type MutableRuleSet interface {
 	// Schema returns the schema.Ruleset representation of this ruleset.
 	Schema() (*schema.RuleSet, error)
 
+	// Clone returns a copy of this MutableRuleSet
+	Clone() (MutableRuleSet, error)
+
 	// MarshalJSON serializes this RuleSet into JSON.
 	MarshalJSON() ([]byte, error)
 
@@ -757,6 +757,21 @@ func (rs ruleSet) Schema() (*schema.RuleSet, error) {
 	res.RollupRules = rollupRules
 
 	return res, nil
+}
+
+func (rs ruleSet) Clone() (MutableRuleSet, error) {
+	// schema.Namespaces and this Namespaces have the same structure
+	// so this is safe to do this way.
+	schema, err := rs.Schema()
+	if err != nil {
+		return nil, err
+	}
+
+	newRuleSet, err := NewMutableRuleSetFromSchema(rs.version, schema)
+	if err != nil {
+		return nil, err
+	}
+	return newRuleSet, nil
 }
 
 // MarshalJSON returns the JSON encoding of staged policies.

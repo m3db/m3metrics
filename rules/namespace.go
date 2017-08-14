@@ -233,6 +233,21 @@ func NewNamespaces(version int, namespaces *schema.Namespaces) (Namespaces, erro
 	}, nil
 }
 
+// Clone creates a deep copy of this namespace
+func (nss Namespaces) Clone() (Namespaces, error) {
+	// schema.Namespaces and this Namespaces have the same structure
+	// so this is safe to do this way.
+	schema, err := nss.Schema()
+	if err != nil {
+		return emptyNamespaces, err
+	}
+	newNamespaces, err := NewNamespaces(nss.version, schema)
+	if err != nil {
+		return emptyNamespaces, err
+	}
+	return newNamespaces, nil
+}
+
 type namespacesJSON struct {
 	Version    int         `json:"version"`
 	Namespaces []Namespace `json:"namespaces"`
