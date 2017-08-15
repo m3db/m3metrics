@@ -354,6 +354,13 @@ func (rc *rollupRule) Tombstoned() bool {
 	return latest.tombstoned
 }
 
+func (rc rollupRule) targets() []RollupTarget {
+	if len(rc.snapshots) == 0 {
+		return nil
+	}
+	return rc.snapshots[len(rc.snapshots)-1].targets
+}
+
 func (rc *rollupRule) addSnapshot(
 	name string,
 	rawFilters map[string]string,

@@ -42,13 +42,13 @@ const (
 )
 
 var (
-	errNilRuleSetSchema = errors.New("nil rule set schema")
-	errRuleAlreadyExist = errors.New("rule already exists")
-	errNoSuchRule       = errors.New("no such rule exists")
-	errTombstoned       = errors.New("rule is tombstoned")
-	errNotTombstoned    = errors.New("not tombstoned")
-	errNoRuleSnapshots  = errors.New("no snapshots")
-
+	errNilRuleSetSchema   = errors.New("nil rule set schema")
+	errRuleAlreadyExist   = errors.New("rule already exists")
+	errNoSuchRule         = errors.New("no such rule exists")
+	errTombstoned         = errors.New("rule is tombstoned")
+	errNotTombstoned      = errors.New("not tombstoned")
+	errNoRuleSnapshots    = errors.New("no snapshots")
+	errDuplicateTargets   = errors.New("duplicate targets")
 	ruleActionErrorFmt    = "cannot %s rule %s. %v"
 	ruleSetActionErrorFmt = "cannot %s ruleset %s. %v"
 )
@@ -903,6 +903,11 @@ type DeleteData struct {
 }
 
 func (rs *ruleSet) AddMappingRule(mr MappingRuleData) error {
+	err := rs.validateMappingRuleUpdate(mr)
+	if err != nil {
+		return err
+	}
+
 	m, err := rs.getMappingRuleByName(mr.Name)
 	if err != nil && err != errNoSuchRule {
 		return fmt.Errorf(ruleActionErrorFmt, "add", mr.Name, err)
@@ -936,11 +941,17 @@ func (rs *ruleSet) AddMappingRule(mr MappingRuleData) error {
 }
 
 func (rs *ruleSet) UpdateMappingRule(mru MappingRuleUpdate) error {
+	mrd := mru.Data
+	err := rs.validateMappingRuleUpdate(mrd)
+	if err != nil {
+		return err
+	}
+
 	m, err := rs.getMappingRuleByID(mru.ID)
 	if err != nil {
 		return fmt.Errorf(ruleActionErrorFmt, "update", mru.ID, err)
 	}
-	meta, mrd := mru.UpdateMetadata, mru.Data
+	meta := mru.UpdateMetadata
 	if err := m.addSnapshot(
 		mrd.Name,
 		mrd.Filters,
@@ -968,10 +979,16 @@ func (rs *ruleSet) DeleteMappingRule(d DeleteData) error {
 }
 
 func (rs *ruleSet) AddRollupRule(rr RollupRuleData) error {
+	err := rs.validateRollupRuleUpdate(rr)
+	if err != nil {
+		return err
+	}
+
 	r, err := rs.getRollupRuleByName(rr.Name)
 	if err != nil && err != errNoSuchRule {
 		return fmt.Errorf(ruleActionErrorFmt, "add", rr.Name, err)
 	}
+
 	meta := rr.UpdateMetadata
 	if err == errNoSuchRule {
 		if r, err = newRollupRuleFromFields(
@@ -1000,12 +1017,18 @@ func (rs *ruleSet) AddRollupRule(rr RollupRuleData) error {
 }
 
 func (rs *ruleSet) UpdateRollupRule(rru RollupRuleUpdate) error {
+	rrd := rru.Data
+	err := rs.validateRollupRuleUpdate(rrd)
+	if err != nil {
+		return err
+	}
+
 	r, err := rs.getRollupRuleByID(rru.ID)
 	if err != nil {
 		return fmt.Errorf(ruleActionErrorFmt, "update", rru.ID, err)
 	}
 
-	meta, rrd := rru.UpdateMetadata, rru.Data
+	meta := rru.UpdateMetadata
 	if err = r.addSnapshot(
 		rrd.Name,
 		rrd.Filters,
@@ -1066,6 +1089,11 @@ func (rs *ruleSet) Revive(meta UpdateMetadata) error {
 	return nil
 }
 
+func (rs *ruleSet) updateMetadata(meta UpdateMetadata) {
+	rs.cutoverNanos = meta.cutoverNanos
+	rs.lastUpdatedAtNanos = meta.lastUpdatedAtNanos
+}
+
 func (rs ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
 	for _, m := range rs.mappingRules {
 		n, err := m.Name()
@@ -1077,7 +1105,6 @@ func (rs ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
 			return m, nil
 		}
 	}
-
 	return nil, errNoSuchRule
 }
 
@@ -1113,7 +1140,53 @@ func (rs ruleSet) getRollupRuleByID(id string) (*rollupRule, error) {
 	return nil, errNoSuchRule
 }
 
-func (rs *ruleSet) updateMetadata(meta UpdateMetadata) {
-	rs.cutoverNanos = meta.cutoverNanos
-	rs.lastUpdatedAtNanos = meta.lastUpdatedAtNanos
+//RuleConflictError is returned when a rule modification is made that would conflict with the current state.
+type RuleConflictError struct {
+	ConflictUUID string
+	msg          string
+}
+
+func (e RuleConflictError) Error() string { return e.msg }
+
+func (rs ruleSet) validateMappingRuleUpdate(mrd MappingRuleData) error {
+	for _, m := range rs.mappingRules {
+		if m.Tombstoned() {
+			continue
+		}
+		if n, err := m.Name(); err != nil {
+			continue
+		} else if n == mrd.Name {
+			return RuleConflictError{msg: fmt.Sprintf("Rule with name: %s already exists", n), ConflictUUID: m.uuid}
+		}
+	}
+
+	return nil
+}
+
+func (rs ruleSet) validateRollupRuleUpdate(rrd RollupRuleData) error {
+	for _, r := range rs.rollupRules {
+		if r.Tombstoned() {
+			continue
+		}
+
+		if n, err := r.Name(); err != nil {
+			continue
+		} else if n == rrd.Name {
+			return RuleConflictError{msg: fmt.Sprintf("Rule with name: %s already exists", n), ConflictUUID: r.uuid}
+		}
+
+		if len(r.snapshots) == 0 {
+			continue
+		}
+		latestSnapshot := r.snapshots[len(r.snapshots)-1]
+		for _, t1 := range latestSnapshot.targets {
+			for _, t2 := range rrd.Targets {
+				if t1.sameTransform(t2) {
+					return RuleConflictError{msg: fmt.Sprintf("Same rollup transformation: %s: %v already exists", t1.Name, t1.Tags), ConflictUUID: r.uuid}
+				}
+			}
+		}
+	}
+
+	return nil
 }
