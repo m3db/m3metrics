@@ -364,7 +364,7 @@ func TestValidateRuleSetTombstoned(t *testing.T) {
 func TestValidateRuleSetInvalid(t *testing.T) {
 	store := mem.NewStore()
 	rulesSetKey := RuleSetKey(testKeyFmt, testNamespace)
-	_, err := store.Set(rulesSetKey, nil)
+	_, err := store.Set(rulesSetKey, &schema.Retention{Period: 100})
 	require.NoError(t, err)
 	_, _, err = ValidateRuleSet(store, rulesSetKey)
 	require.Error(t, err)

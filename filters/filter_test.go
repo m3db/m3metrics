@@ -232,7 +232,7 @@ func TestMultiCharSequenceFilter(t *testing.T) {
 	require.Error(t, err)
 
 	f, err := newMultiCharSequenceFilter([]byte("test2,test,tent,book"), false)
-	require.Error(t, err)
+	require.NoError(t, err)
 	validateLookup(t, f, "", false, "")
 	validateLookup(t, f, "t", false, "")
 	validateLookup(t, f, "tes", false, "")
@@ -245,7 +245,7 @@ func TestMultiCharSequenceFilter(t *testing.T) {
 	validateLookup(t, f, "book123", true, "123")
 
 	f, err = newMultiCharSequenceFilter([]byte("test2,test,tent,book"), true)
-	require.Error(t, err)
+	require.NoError(t, err)
 	validateLookup(t, f, "", false, "")
 	validateLookup(t, f, "t", false, "")
 	validateLookup(t, f, "tes", false, "")
