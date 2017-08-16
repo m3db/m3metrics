@@ -2184,6 +2184,373 @@ func testTagsFilterOptions() filters.TagsFilterOptions {
 	}
 }
 
+func initMutableTest() (MutableRuleSet, *ruleSet, RuleSetUpdateHelper, error) {
+	version := 1
+
+	expectedRs := &schema.RuleSet{
+		Uuid:          "ruleset",
+		Namespace:     "namespace",
+		CreatedAt:     1234,
+		LastUpdatedAt: 5678,
+		Tombstoned:    false,
+		CutoverTime:   34923,
+		MappingRules:  testMappingRulesConfig(),
+		RollupRules:   testRollupRulesConfig(),
+	}
+
+	mutable, err := NewMutableRuleSetFromSchema(version, expectedRs)
+	rs := mutable.(*ruleSet)
+	return mutable, rs, NewRuleSetUpdateHelper(10), err
+}
+
+func TestAddMappingRule(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+	_, err = rs.getMappingRuleByName("foo")
+	require.Error(t, err)
+
+	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+	data := MappingRuleData{
+		Name:           "foo",
+		Filters:        newFilters,
+		Policies:       p,
+		UpdateMetadata: helper.GenUpdateMetadata(),
+	}
+	err = mutable.AddMappingRule(data)
+	require.NoError(t, err)
+
+	_, err = rs.getMappingRuleByName("foo")
+	require.NoError(t, err)
+}
+
+func TestAddMappingRuleDup(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	m, err := rs.getMappingRuleByName("mappingRule5.snapshot1")
+	require.NoError(t, err)
+	require.NotNil(t, m)
+
+	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+	data := MappingRuleData{
+		Name:           "mappingRule5.snapshot1",
+		Filters:        newFilters,
+		Policies:       p,
+		UpdateMetadata: helper.GenUpdateMetadata(),
+	}
+
+	err = mutable.AddMappingRule(data)
+	require.Error(t, err)
+}
+
+func TestAddMappingRuleRevive(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	m, err := rs.getMappingRuleByName("mappingRule5.snapshot1")
+	require.NoError(t, err)
+	require.NotNil(t, m)
+
+	dd := DeleteData{ID: "mappingRule5"}
+	err = mutable.DeleteMappingRule(dd)
+	require.NoError(t, err)
+
+	newFilters := map[string]string{"test": "bar"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+	data := MappingRuleData{
+		Name:           "mappingRule5.snapshot1",
+		Filters:        newFilters,
+		Policies:       p,
+		UpdateMetadata: helper.GenUpdateMetadata(),
+	}
+	err = rs.AddMappingRule(data)
+	require.NoError(t, err)
+
+	mr, err := rs.getMappingRuleByID("mappingRule5")
+	require.NoError(t, err)
+	require.Equal(t, mr.snapshots[len(mr.snapshots)-1].rawFilters, newFilters)
+}
+
+func TestUpdateMappingRule(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	mutableClone, err := mutable.Clone()
+	require.NoError(t, err)
+
+	_, err = rs.getMappingRuleByID("mappingRule5")
+	require.NoError(t, err)
+
+	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+	data := MappingRuleData{
+		Name:           "foo",
+		Filters:        newFilters,
+		Policies:       p,
+		UpdateMetadata: helper.GenUpdateMetadata(),
+	}
+
+	update := MappingRuleUpdate{
+		Data: data,
+		ID:   "mappingRule5",
+	}
+
+	err = mutableClone.UpdateMappingRule(update)
+	require.NoError(t, err)
+
+	res, err := mutableClone.(*ruleSet).getMappingRuleByID("mappingRule5")
+	require.NoError(t, err)
+	n, err := res.Name()
+	require.NoError(t, err)
+	require.Equal(t, "foo", n)
+
+	orig, err := rs.getMappingRuleByID("mappingRule5")
+	require.NoError(t, err)
+	n, err = orig.Name()
+	require.NoError(t, err)
+	require.Equal(t, "mappingRule5.snapshot1", n)
+}
+
+func TestDeleteMappingRule(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	m, err := rs.getMappingRuleByID("mappingRule5")
+	require.NoError(t, err)
+	require.NotNil(t, m)
+
+	dd := DeleteData{ID: "mappingRule5", UpdateMetadata: helper.GenUpdateMetadata()}
+	err = mutable.DeleteMappingRule(dd)
+	require.NoError(t, err)
+
+	m, err = rs.getMappingRuleByID("mappingRule5")
+	require.NoError(t, err)
+	require.True(t, m.Tombstoned())
+}
+
+func TestAddRollupRule(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	_, err = rs.getRollupRuleByID("foo")
+	require.Error(t, err)
+
+	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+
+	newTargets := []RollupTarget{
+		RollupTarget{
+			Name:     b("blah"),
+			Tags:     bs("a"),
+			Policies: p,
+		},
+	}
+	data := RollupRuleData{
+		Name:           "foo",
+		Filters:        newFilters,
+		Targets:        newTargets,
+		UpdateMetadata: helper.GenUpdateMetadata(),
+	}
+
+	err = mutable.AddRollupRule(data)
+	require.NoError(t, err)
+
+	res, err := rs.getRollupRuleByName("foo")
+	require.NotEmpty(t, res.uuid)
+	require.NoError(t, err)
+}
+
+func TestAddRollupRuleDup(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	r, err := rs.getRollupRuleByID("rollupRule5")
+	require.NoError(t, err)
+	require.NotNil(t, r)
+
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+
+	newTargets := []RollupTarget{
+		RollupTarget{
+			Name:     b("blah"),
+			Tags:     bs("a"),
+			Policies: p,
+		},
+	}
+	newFilters := map[string]string{"test": "bar"}
+	rrd := RollupRuleData{
+		Name:           "rollupRule5.snapshot1",
+		Filters:        newFilters,
+		Targets:        newTargets,
+		UpdateMetadata: helper.GenUpdateMetadata(),
+	}
+	err = mutable.AddRollupRule(rrd)
+	require.Error(t, err)
+}
+
+func TestReviveRollupRule(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	rr, err := rs.getRollupRuleByID("rollupRule5")
+	require.NoError(t, err)
+	updateMeta := helper.GenUpdateMetadata()
+
+	dd := DeleteData{ID: rr.uuid, UpdateMetadata: updateMeta}
+	err = mutable.DeleteRollupRule(dd)
+	require.NoError(t, err)
+
+	rr, err = rs.getRollupRuleByID("rollupRule5")
+	require.NoError(t, err)
+	require.True(t, rr.Tombstoned())
+
+	snapshot := rr.snapshots[len(rr.snapshots)-1]
+
+	rrd := RollupRuleData{
+		Name:           "rollupRule5.snapshot1",
+		Filters:        snapshot.rawFilters,
+		Targets:        snapshot.targets,
+		UpdateMetadata: updateMeta,
+	}
+
+	err = mutable.AddRollupRule(rrd)
+	require.NoError(t, err)
+
+	rr, err = rs.getRollupRuleByID("rollupRule5")
+	require.NoError(t, err)
+	require.Equal(t, rr.snapshots[len(rr.snapshots)-1].rawFilters, snapshot.rawFilters)
+}
+
+func TestUpdateRollupRule(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	rr, err := rs.getRollupRuleByID("rollupRule5")
+	require.NoError(t, err)
+	updateMeta := helper.GenUpdateMetadata()
+
+	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+	newTargets := []RollupTarget{
+		RollupTarget{
+			Name:     b("blah"),
+			Tags:     bs("a"),
+			Policies: p,
+		},
+	}
+
+	data := RollupRuleData{
+		Name:           "foo",
+		Filters:        newFilters,
+		Targets:        newTargets,
+		UpdateMetadata: updateMeta,
+	}
+
+	update := RollupRuleUpdate{
+		Data: data,
+		ID:   rr.uuid,
+	}
+
+	err = mutable.UpdateRollupRule(update)
+	require.NoError(t, err)
+
+	_, err = rs.getRollupRuleByName("foo")
+	require.NoError(t, err)
+}
+func TestUpdateRollupRuleDupTarget(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	rr, err := rs.getRollupRuleByID("rollupRule5")
+	require.NoError(t, err)
+	updateMeta := helper.GenUpdateMetadata()
+
+	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
+	// Duplicate target from rollupRule4
+	newTargets := []RollupTarget{
+		RollupTarget{
+			Name:     b("rName3"),
+			Tags:     bs("rtagName1", "rtagName2"),
+			Policies: p,
+		},
+	}
+
+	data := RollupRuleData{
+		Name:           "foo",
+		Filters:        newFilters,
+		Targets:        newTargets,
+		UpdateMetadata: updateMeta,
+	}
+
+	update := RollupRuleUpdate{
+		Data: data,
+		ID:   rr.uuid,
+	}
+
+	err = mutable.UpdateRollupRule(update)
+	require.Error(t, err)
+}
+
+func TestDeleteRollupRule(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	rr, err := rs.getRollupRuleByID("rollupRule5")
+	require.NoError(t, err)
+	updateMeta := helper.GenUpdateMetadata()
+
+	dd := DeleteData{
+		ID:             rr.uuid,
+		UpdateMetadata: updateMeta,
+	}
+	err = mutable.DeleteRollupRule(dd)
+	require.NoError(t, err)
+
+	rr, err = rs.getRollupRuleByName("rollupRule5.snapshot1")
+	require.NoError(t, err)
+	require.True(t, rr.Tombstoned())
+}
+
+func TestDeleteRuleset(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	err = mutable.Delete(helper.GenUpdateMetadata())
+	require.NoError(t, err)
+
+	require.True(t, mutable.Tombstoned())
+	for _, m := range rs.mappingRules {
+		require.True(t, m.Tombstoned())
+	}
+
+	for _, r := range rs.rollupRules {
+		require.True(t, r.Tombstoned())
+	}
+}
+
+func TestReviveRuleSet(t *testing.T) {
+	mutable, rs, helper, err := initMutableTest()
+	require.NoError(t, err)
+
+	err = mutable.Delete(helper.GenUpdateMetadata())
+	require.NoError(t, err)
+
+	err = mutable.Revive(helper.GenUpdateMetadata())
+	require.NoError(t, err)
+
+	require.False(t, rs.Tombstoned())
+	for _, m := range rs.mappingRules {
+		require.True(t, m.Tombstoned())
+	}
+
+	for _, r := range rs.rollupRules {
+		require.True(t, r.Tombstoned())
+	}
+}
+
 type testMappingsData struct {
 	id            string
 	matchFrom     int64

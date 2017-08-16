@@ -457,7 +457,7 @@ func TestWrite(t *testing.T) {
 	require.Equal(t, nssSchema, testNamespaces)
 }
 
-func TestWriteError(t *testing.T) {
+func TestWriteErrorAll(t *testing.T) {
 	s := testStore()
 
 	rs, err := s.ReadRuleSet(testNamespaceKey)
@@ -474,8 +474,25 @@ func TestWriteError(t *testing.T) {
 	namespaces, err := NewNamespaces(0, testNamespaces)
 	require.NoError(t, err)
 
-	err = s.WriteAll(&namespaces, ruleSet)
-	require.Error(t, err)
+	type dataPair struct {
+		nss *Namespaces
+		rs  MutableRuleSet
+	}
+
+	otherNss, err := NewNamespaces(1, testNamespaces)
+	require.NoError(t, err)
+
+	badPairs := []dataPair{
+		dataPair{nil, nil},
+		dataPair{nil, ruleSet},
+		dataPair{&namespaces, nil},
+		dataPair{&otherNss, ruleSet},
+	}
+
+	for _, p := range badPairs {
+		err = s.WriteAll(p.nss, p.rs)
+		require.Error(t, err)
+	}
 
 	rs, err = s.ReadRuleSet(testNamespace)
 	require.Error(t, err)
@@ -483,6 +500,34 @@ func TestWriteError(t *testing.T) {
 	nss, err = s.ReadNamespaces()
 	require.Error(t, err)
 }
+
+func TestWriteErrorRuleSet(t *testing.T) {
+	s := testStore()
+
+	rs, err := s.ReadRuleSet(testNamespaceKey)
+	require.Error(t, err)
+	require.Nil(t, rs)
+
+	nss, err := s.ReadNamespaces()
+	require.Error(t, err)
+	require.Nil(t, nss)
+
+	ruleSet, err := NewMutableRuleSetFromSchema(1, testRuleSet)
+	require.NoError(t, err)
+
+	badRuleSets := []MutableRuleSet{ruleSet, nil}
+	for _, rs := range badRuleSets {
+		err = s.WriteRuleSet(rs)
+		require.Error(t, err)
+	}
+
+	err = s.WriteRuleSet(nil)
+	require.Error(t, err)
+
+	rs, err = s.ReadRuleSet(testNamespace)
+	require.Error(t, err)
+}
+
 func TestWriteNoNamespace(t *testing.T) {
 	s := testStore()
 

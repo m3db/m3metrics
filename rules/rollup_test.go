@@ -21,8 +21,6 @@
 package rules
 
 import (
-	"bytes"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -281,64 +279,6 @@ func TestRollupRuleSchema(t *testing.T) {
 	schema, err := rr.Schema()
 	require.NoError(t, err)
 	require.Equal(t, testRollupRuleSchema, schema)
-}
-
-func TestMarshalRollupRule(t *testing.T) {
-	marshalledRule := `{
-		"uuid":"12669817-13ae-40e6-ba2f-33087b262c68",
-		"snapshots":[
-			{"name":"foo",
-			 "tombstoned":false,
-			 "cutoverNanos":12345,
-			 "filters":{"tag1":"value1","tag2":"value2"},
-			 "targets":[
-				 {"name":"rName1",
-					"tags":["rtagName1","rtagName2"],
-					"policies":["10s@1s:24h0m0s"]
-				 }
-				]
-			},
-			{
-				"name":"bar",
-				"tombstoned":true,
-				"cutoverNanos":67890,
-				"filters":{"tag3":"value3","tag4":"value4"},
-				"targets":[
-					{"name":"rName1",
-					 "tags":["rtagName1","rtagName2"],
-					 "policies":["1m0s@1m:24h0m0s","5m0s@1m:48h0m0s|Mean"]
-					}
-				]
-			}
-		]
-	}`
-
-	rr, err := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
-	res, err := rr.MarshalJSON()
-	require.NoError(t, err)
-
-	var bb bytes.Buffer
-	err = json.Compact(&bb, []byte(marshalledRule))
-	require.NoError(t, err)
-
-	require.Equal(t, bb.String(), string(res))
-}
-
-func TestUnmarshalRollupRule(t *testing.T) {
-	rr, err := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
-	data, err := rr.MarshalJSON()
-
-	var rr2 rollupRule
-	err = json.Unmarshal(data, &rr2)
-	require.NoError(t, err)
-
-	expected, err := rr.Schema()
-	require.NoError(t, err)
-
-	actual, err := rr2.Schema()
-	require.NoError(t, err)
-
-	require.Equal(t, expected, actual)
 }
 
 func TestNewRollupRuleFromFields(t *testing.T) {

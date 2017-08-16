@@ -22,7 +22,6 @@ package rules
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -83,22 +82,6 @@ func newRollupTargetJSON(rt RollupTarget) rollupTargetJSON {
 	return rollupTargetJSON{Name: string(rt.Name), Tags: stringArrayFromBytesArray(rt.Tags), Policies: rt.Policies}
 }
 
-// MarshalJSON ...
-func (t RollupTarget) MarshalJSON() ([]byte, error) {
-	return json.Marshal(newRollupTargetJSON(t))
-}
-
-// UnmarshalJSON unmarshals JSON-encoded data into staged policies.
-func (t *RollupTarget) UnmarshalJSON(data []byte) error {
-	var tj rollupTargetJSON
-	err := json.Unmarshal(data, &tj)
-	if err != nil {
-		return err
-	}
-	*t = tj.rollupTarget()
-	return nil
-}
-
 func (tj rollupTargetJSON) rollupTarget() RollupTarget {
 	return NewRollupTargetFromFields(tj.Name, tj.Tags, tj.Policies)
 }
@@ -153,22 +136,6 @@ func newRollupRuleSnapshotJSON(rrs rollupRuleSnapshot) rollupRuleSnapshotJSON {
 		TagFilters:   rrs.rawFilters,
 		Targets:      targets,
 	}
-}
-
-// MarshalJSON returns the JSON encoding of rollupRuleSnapshots
-func (rrs rollupRuleSnapshot) MarshalJSON() ([]byte, error) {
-	return json.Marshal(newRollupRuleSnapshotJSON(rrs))
-}
-
-// UnmarshalJSON unmarshals JSON-encoded data into rollupRuleSnapshots
-func (rrs *rollupRuleSnapshot) UnmarshalJSON(data []byte) error {
-	var rrsj rollupRuleSnapshotJSON
-	err := json.Unmarshal(data, &rrsj)
-	if err != nil {
-		return err
-	}
-	*rrs = rrsj.rollupRuleSnapshot()
-	return nil
 }
 
 func (rrsj rollupRuleSnapshotJSON) rollupRuleSnapshot() rollupRuleSnapshot {
@@ -354,13 +321,6 @@ func (rc *rollupRule) Tombstoned() bool {
 	return latest.tombstoned
 }
 
-func (rc rollupRule) targets() []RollupTarget {
-	if len(rc.snapshots) == 0 {
-		return nil
-	}
-	return rc.snapshots[len(rc.snapshots)-1].targets
-}
-
 func (rc *rollupRule) addSnapshot(
 	name string,
 	rawFilters map[string]string,
@@ -441,22 +401,6 @@ func newRollupRuleJSON(rc rollupRule) rollupRuleJSON {
 		UUID:      rc.uuid,
 		Snapshots: snapshots,
 	}
-}
-
-// MarshalJSON returns the JSON encoding of mappingRuleSnapshots
-func (rc rollupRule) MarshalJSON() ([]byte, error) {
-	return json.Marshal(newRollupRuleJSON(rc))
-}
-
-// UnmarshalJSON unmarshals JSON-encoded data into mappingRuleSnapshots
-func (rc *rollupRule) UnmarshalJSON(data []byte) error {
-	var rrj rollupRuleJSON
-	err := json.Unmarshal(data, &rrj)
-	if err != nil {
-		return err
-	}
-	*rc = rrj.rollupRule()
-	return nil
 }
 
 func (rrj rollupRuleJSON) rollupRule() rollupRule {

@@ -721,7 +721,7 @@ type MutableRuleSet interface {
 	DeleteRollupRule(DeleteData) error
 
 	// Tombstone tombstones this ruleset and all of its rules.
-	Delete(DeleteData) error
+	Delete(UpdateMetadata) error
 
 	// Revive removes the tombstone from this ruleset. It does not revive any rules.
 	Revive(UpdateMetadata) error
@@ -793,18 +793,27 @@ func (rs *ruleSet) UnmarshalJSON(data []byte) error {
 }
 
 type ruleSetJSON struct {
-	UUID               string         `json:"uuid"`
-	Version            int            `json:"version"`
-	Namespace          string         `json:"namespace"`
-	CreatedAtNanos     int64          `json:"createdAt"`
-	LastUpdatedAtNanos int64          `json:"lastUpdatedAt"`
-	Tombstoned         bool           `json:"tombstoned"`
-	CutoverNanos       int64          `json:"cutoverNanos"`
-	MappingRules       []*mappingRule `json:"mappingRules"`
-	RollupRules        []*rollupRule  `json:"rollupRules"`
+	UUID               string            `json:"uuid"`
+	Version            int               `json:"version"`
+	Namespace          string            `json:"namespace"`
+	CreatedAtNanos     int64             `json:"createdAt"`
+	LastUpdatedAtNanos int64             `json:"lastUpdatedAt"`
+	Tombstoned         bool              `json:"tombstoned"`
+	CutoverNanos       int64             `json:"cutoverNanos"`
+	MappingRules       []mappingRuleJSON `json:"mappingRules"`
+	RollupRules        []rollupRuleJSON  `json:"rollupRules"`
 }
 
 func newRuleSetJSON(rs ruleSet) ruleSetJSON {
+	mappingRuleJSONs := make([]mappingRuleJSON, len(rs.mappingRules))
+	for i, m := range rs.mappingRules {
+		mappingRuleJSONs[i] = newMappingRuleJSON(*m)
+	}
+	rollupRuleJSONs := make([]rollupRuleJSON, len(rs.rollupRules))
+	for i, r := range rs.rollupRules {
+		rollupRuleJSONs[i] = newRollupRuleJSON(*r)
+	}
+
 	return ruleSetJSON{
 		UUID:               rs.uuid,
 		Version:            rs.version,
@@ -813,13 +822,25 @@ func newRuleSetJSON(rs ruleSet) ruleSetJSON {
 		LastUpdatedAtNanos: rs.lastUpdatedAtNanos,
 		Tombstoned:         rs.tombstoned,
 		CutoverNanos:       rs.cutoverNanos,
-		MappingRules:       rs.mappingRules,
-		RollupRules:        rs.rollupRules,
+		MappingRules:       mappingRuleJSONs,
+		RollupRules:        rollupRuleJSONs,
 	}
 }
 
 // RuleSet returns a ruleSet representation of a ruleSetJSON
 func (rsj ruleSetJSON) RuleSet() *ruleSet {
+	mappingRules := make([]*mappingRule, len(rsj.MappingRules))
+	for i, m := range rsj.MappingRules {
+		rule := m.mappingRule()
+		mappingRules[i] = &rule
+	}
+
+	rollupRules := make([]*rollupRule, len(rsj.RollupRules))
+	for i, r := range rsj.RollupRules {
+		rule := r.rollupRule()
+		rollupRules[i] = &rule
+	}
+
 	return &ruleSet{
 		uuid:               rsj.UUID,
 		version:            rsj.Version,
@@ -828,8 +849,8 @@ func (rsj ruleSetJSON) RuleSet() *ruleSet {
 		lastUpdatedAtNanos: rsj.LastUpdatedAtNanos,
 		tombstoned:         rsj.Tombstoned,
 		cutoverNanos:       rsj.CutoverNanos,
-		mappingRules:       rsj.MappingRules,
-		rollupRules:        rsj.RollupRules,
+		mappingRules:       mappingRules,
+		rollupRules:        rollupRules,
 	}
 }
 
@@ -870,8 +891,6 @@ type MappingRuleData struct {
 // MappingRuleUpdate contains a MappingRuleData along with an ID for a mapping rule.
 // The rule with that ID is meant to updated to the given config.
 type MappingRuleUpdate struct {
-	UpdateMetadata
-
 	Data MappingRuleData `json:"config" validate:"nonzero"`
 	ID   string          `json:"id" validate:"nonzero"`
 }
@@ -889,8 +908,6 @@ type RollupRuleData struct {
 // RollupRuleUpdate is a RollupRuleConfig along with an ID for a rollup rule.
 // The rule with that ID is meant to updated with a given config.
 type RollupRuleUpdate struct {
-	UpdateMetadata
-
 	Data RollupRuleData `json:"data" validate:"nonzero"`
 	ID   string         `json:"id" validate:"nonzero"`
 }
@@ -951,7 +968,7 @@ func (rs *ruleSet) UpdateMappingRule(mru MappingRuleUpdate) error {
 	if err != nil {
 		return fmt.Errorf(ruleActionErrorFmt, "update", mru.ID, err)
 	}
-	meta := mru.UpdateMetadata
+	meta := mrd.UpdateMetadata
 	if err := m.addSnapshot(
 		mrd.Name,
 		mrd.Filters,
@@ -1028,7 +1045,7 @@ func (rs *ruleSet) UpdateRollupRule(rru RollupRuleUpdate) error {
 		return fmt.Errorf(ruleActionErrorFmt, "update", rru.ID, err)
 	}
 
-	meta := rru.UpdateMetadata
+	meta := rrd.UpdateMetadata
 	if err = r.addSnapshot(
 		rrd.Name,
 		rrd.Filters,
@@ -1054,13 +1071,12 @@ func (rs *ruleSet) DeleteRollupRule(d DeleteData) error {
 	return nil
 }
 
-func (rs *ruleSet) Delete(d DeleteData) error {
+func (rs *ruleSet) Delete(meta UpdateMetadata) error {
 	if rs.tombstoned {
 		return fmt.Errorf("%s is already tombstoned", string(rs.namespace))
 	}
 
 	rs.tombstoned = true
-	meta := d.UpdateMetadata
 	rs.updateMetadata(meta)
 
 	// Make sure that all of the rules in the ruleset are tombstoned as well.

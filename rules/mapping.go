@@ -21,7 +21,6 @@
 package rules
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -88,22 +87,6 @@ func newMappingRuleSnapshotJSON(mrs mappingRuleSnapshot) mappingRuleSnapshotJSON
 		TagFilters:   mrs.rawFilters,
 		Policies:     mrs.policies,
 	}
-}
-
-// MarshalJSON returns the JSON encoding of mappingRuleSnapshots
-func (mrs mappingRuleSnapshot) MarshalJSON() ([]byte, error) {
-	return json.Marshal(newMappingRuleSnapshotJSON(mrs))
-}
-
-// UnmarshalJSON unmarshals JSON-encoded data into mappingRuleSnapshots
-func (mrs *mappingRuleSnapshot) UnmarshalJSON(data []byte) error {
-	var mrsj mappingRuleSnapshotJSON
-	err := json.Unmarshal(data, &mrsj)
-	if err != nil {
-		return err
-	}
-	*mrs = mrsj.mappingRuleSnapshot()
-	return nil
 }
 
 func (mrsj mappingRuleSnapshotJSON) mappingRuleSnapshot() mappingRuleSnapshot {
@@ -301,22 +284,6 @@ func newMappingRuleJSON(mc mappingRule) mappingRuleJSON {
 		UUID:      mc.uuid,
 		Snapshots: snapshots,
 	}
-}
-
-// MarshalJSON returns the JSON encoding of mappingRuleSnapshots
-func (mc mappingRule) MarshalJSON() ([]byte, error) {
-	return json.Marshal(newMappingRuleJSON(mc))
-}
-
-// UnmarshalJSON unmarshals JSON-encoded data into mappingRuleSnapshots
-func (mc *mappingRule) UnmarshalJSON(data []byte) error {
-	var mrj mappingRuleJSON
-	err := json.Unmarshal(data, &mrj)
-	if err != nil {
-		return err
-	}
-	*mc = mrj.mappingRule()
-	return nil
 }
 
 func (mrj mappingRuleJSON) mappingRule() mappingRule {

@@ -21,8 +21,6 @@
 package rules
 
 import (
-	"bytes"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -201,51 +199,6 @@ func TestMappingRuleSchema(t *testing.T) {
 	schema, err := mr.Schema()
 	require.NoError(t, err)
 	require.Equal(t, testMappingRuleSchema, schema)
-}
-
-func TestMarshalMappingRule(t *testing.T) {
-	marshalledRule := `{
-		"uuid":"12669817-13ae-40e6-ba2f-33087b262c68",
-		"snapshots":[
-			{"name":"foo",
-			 "tombstoned":false,
-			 "cutoverNanos":12345,
-			 "filters":{"tag1":"value1","tag2":"value2"},
-			 "policies":["10s@1s:24h0m0s|P999"]
-			},
-			{"name":"bar",
-			 "tombstoned":true,
-			 "cutoverNanos":67890,
-			 "filters":{"tag3":"value3","tag4":"value4"},
-			 "policies":["1m0s@1m:24h0m0s","5m0s@1m:48h0m0s"]}
-		]
-	}`
-	mr, err := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
-	res, err := mr.MarshalJSON()
-	require.NoError(t, err)
-
-	var bb bytes.Buffer
-	err = json.Compact(&bb, []byte(marshalledRule))
-	require.NoError(t, err)
-
-	require.Equal(t, bb.String(), string(res))
-}
-
-func TestUnmarshalMappingRule(t *testing.T) {
-	mr, err := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
-	data, err := mr.MarshalJSON()
-
-	var mr2 mappingRule
-	err = json.Unmarshal(data, &mr2)
-	require.NoError(t, err)
-
-	expected, err := mr.Schema()
-	require.NoError(t, err)
-
-	actual, err := mr2.Schema()
-	require.NoError(t, err)
-
-	require.Equal(t, expected, actual)
 }
 
 func TestNewMappingRuleFromFields(t *testing.T) {
