@@ -40,18 +40,18 @@ const (
 type unaggregatedIterator struct {
 	iteratorBase
 
-	largeFloatsSize int
-	largeFloatsPool pool.FloatsPool
-	iteratorPool    UnaggregatedIteratorPool
-
+	largeFloatsSize     int
+	largeFloatsPool     pool.FloatsPool
+	iteratorPool        UnaggregatedIteratorPool
 	ignoreHigherVersion bool
-	closed              bool
-	metric              unaggregated.MetricUnion
-	policiesList        policy.PoliciesList
-	id                  id.RawID
-	timerValues         []float64
-	cachedPolicies      [][]policy.Policy
-	cachedPoliciesList  policy.PoliciesList
+
+	closed             bool
+	metric             unaggregated.MetricUnion
+	policiesList       policy.PoliciesList
+	id                 id.RawID
+	timerValues        []float64
+	cachedPolicies     [][]policy.Policy
+	cachedPoliciesList policy.PoliciesList
 }
 
 // NewUnaggregatedIterator creates a new unaggregated iterator.
