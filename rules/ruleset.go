@@ -516,15 +516,14 @@ func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSe
 	return newRuleSetFromSchema(version, rs, opts)
 }
 
-// NewMutableRuleSetFromSchema creates a new MutableRuleSet from a schema object
+// NewMutableRuleSetFromSchema creates a new MutableRuleSet from a schema object.
 func NewMutableRuleSetFromSchema(version int, rs *schema.RuleSet) (MutableRuleSet, error) {
 	// Takes a blank Options stuct because none of the mutation functions need the options.
 	return newRuleSetFromSchema(version, rs, NewOptions())
 }
 
-// InitRuleSet returns an empty ruleset to be used with a new namespace
-func InitRuleSet(namespaceName string, opts Options, meta UpdateMetadata) MutableRuleSet {
-	// Ignores the options parts because none of the mutation functions need the options.
+// NewEmptyRuleSet returns an empty ruleset to be used with a new namespace.
+func NewEmptyRuleSet(namespaceName string, meta UpdateMetadata) MutableRuleSet {
 	return &ruleSet{
 		uuid:               uuid.NewUUID().String(),
 		version:            1,
@@ -762,8 +761,7 @@ func (rs ruleSet) Schema() (*schema.RuleSet, error) {
 }
 
 func (rs ruleSet) Clone() (MutableRuleSet, error) {
-	// schema.Namespaces and this Namespaces have the same structure
-	// so this is safe to do this way.
+	// TODO(dgromov): Do an actual deep copy that doesn't rely on .Schema()
 	schema, err := rs.Schema()
 	if err != nil {
 		return nil, err
@@ -854,7 +852,7 @@ func (rsj ruleSetJSON) RuleSet() *ruleSet {
 	}
 }
 
-// RuleSetUpdateHelper helps
+// RuleSetUpdateHelper stores the necessary details to create an UpdateMetadata.
 type RuleSetUpdateHelper struct {
 	propagationDelay time.Duration
 }
@@ -864,8 +862,8 @@ func NewRuleSetUpdateHelper(propagationDelay time.Duration) RuleSetUpdateHelper 
 	return RuleSetUpdateHelper{propagationDelay: propagationDelay}
 }
 
-// GenUpdateMetadata creates a properly initialized UpdateMetadata object.
-func (r RuleSetUpdateHelper) GenUpdateMetadata() UpdateMetadata {
+// NewUpdateMetadata creates a properly initialized UpdateMetadata object.
+func (r RuleSetUpdateHelper) NewUpdateMetadata() UpdateMetadata {
 	updateTime := time.Now().UnixNano()
 	cutoverTime := updateTime + int64(r.propagationDelay)
 	return UpdateMetadata{lastUpdatedAtNanos: updateTime, cutoverNanos: cutoverTime}
@@ -936,7 +934,6 @@ func (rs *ruleSet) AddMappingRule(mr MappingRuleData) error {
 			mr.Filters,
 			mr.Policies,
 			meta.cutoverNanos,
-			rs.tagsFilterOpts,
 		); err != nil {
 			return fmt.Errorf(ruleActionErrorFmt, "add", mr.Name, err)
 		}
@@ -947,7 +944,6 @@ func (rs *ruleSet) AddMappingRule(mr MappingRuleData) error {
 			mr.Filters,
 			mr.Policies,
 			meta.cutoverNanos,
-			rs.tagsFilterOpts,
 		); err != nil {
 			return fmt.Errorf(ruleActionErrorFmt, "revive", mr.Name, err)
 		}
@@ -974,7 +970,6 @@ func (rs *ruleSet) UpdateMappingRule(mru MappingRuleUpdate) error {
 		mrd.Filters,
 		mrd.Policies,
 		meta.cutoverNanos,
-		rs.tagsFilterOpts,
 	); err != nil {
 		return fmt.Errorf(ruleActionErrorFmt, "update", mrd.Name, err)
 	}
@@ -1013,7 +1008,6 @@ func (rs *ruleSet) AddRollupRule(rr RollupRuleData) error {
 			rr.Filters,
 			rr.Targets,
 			meta.cutoverNanos,
-			rs.tagsFilterOpts,
 		); err != nil {
 			return fmt.Errorf(ruleActionErrorFmt, "add", rr.Name, err)
 		}
@@ -1024,7 +1018,6 @@ func (rs *ruleSet) AddRollupRule(rr RollupRuleData) error {
 			rr.Filters,
 			rr.Targets,
 			meta.cutoverNanos,
-			rs.tagsFilterOpts,
 		); err != nil {
 			return fmt.Errorf(ruleActionErrorFmt, "revive", rr.Name, err)
 		}
@@ -1051,7 +1044,6 @@ func (rs *ruleSet) UpdateRollupRule(rru RollupRuleUpdate) error {
 		rrd.Filters,
 		rrd.Targets,
 		meta.cutoverNanos,
-		rs.tagsFilterOpts,
 	); err != nil {
 		return fmt.Errorf(ruleActionErrorFmt, "update", rrd.Name, err)
 	}
@@ -1156,7 +1148,7 @@ func (rs ruleSet) getRollupRuleByID(id string) (*rollupRule, error) {
 	return nil, errNoSuchRule
 }
 
-//RuleConflictError is returned when a rule modification is made that would conflict with the current state.
+// RuleConflictError is returned when a rule modification is made that would conflict with the current state.
 type RuleConflictError struct {
 	ConflictUUID string
 	msg          string

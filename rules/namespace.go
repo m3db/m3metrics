@@ -242,8 +242,7 @@ func NewNamespaces(version int, namespaces *schema.Namespaces) (Namespaces, erro
 
 // Clone creates a deep copy of this namespace
 func (nss Namespaces) Clone() (Namespaces, error) {
-	// schema.Namespaces and this Namespaces have the same structure
-	// so this is safe to do this way.
+	// TODO(dgromov): Do an actual deep copy that doesn't rely on .Schema()
 	schema, err := nss.Schema()
 	if err != nil {
 		return emptyNamespaces, err
@@ -280,7 +279,6 @@ func (nss *Namespaces) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Calling this NewNamespaces to not
 func (nsj namespacesJSON) NewNamespaces() *Namespaces {
 	return &Namespaces{version: nsj.Version, namespaces: nsj.Namespaces}
 }

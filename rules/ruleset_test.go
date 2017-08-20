@@ -2215,7 +2215,7 @@ func TestAddMappingRule(t *testing.T) {
 		Name:           "foo",
 		Filters:        newFilters,
 		Policies:       p,
-		UpdateMetadata: helper.GenUpdateMetadata(),
+		UpdateMetadata: helper.NewUpdateMetadata(),
 	}
 	err = mutable.AddMappingRule(data)
 	require.NoError(t, err)
@@ -2238,7 +2238,7 @@ func TestAddMappingRuleDup(t *testing.T) {
 		Name:           "mappingRule5.snapshot1",
 		Filters:        newFilters,
 		Policies:       p,
-		UpdateMetadata: helper.GenUpdateMetadata(),
+		UpdateMetadata: helper.NewUpdateMetadata(),
 	}
 
 	err = mutable.AddMappingRule(data)
@@ -2263,7 +2263,7 @@ func TestAddMappingRuleRevive(t *testing.T) {
 		Name:           "mappingRule5.snapshot1",
 		Filters:        newFilters,
 		Policies:       p,
-		UpdateMetadata: helper.GenUpdateMetadata(),
+		UpdateMetadata: helper.NewUpdateMetadata(),
 	}
 	err = rs.AddMappingRule(data)
 	require.NoError(t, err)
@@ -2289,7 +2289,7 @@ func TestUpdateMappingRule(t *testing.T) {
 		Name:           "foo",
 		Filters:        newFilters,
 		Policies:       p,
-		UpdateMetadata: helper.GenUpdateMetadata(),
+		UpdateMetadata: helper.NewUpdateMetadata(),
 	}
 
 	update := MappingRuleUpdate{
@@ -2321,7 +2321,7 @@ func TestDeleteMappingRule(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, m)
 
-	dd := DeleteData{ID: "mappingRule5", UpdateMetadata: helper.GenUpdateMetadata()}
+	dd := DeleteData{ID: "mappingRule5", UpdateMetadata: helper.NewUpdateMetadata()}
 	err = mutable.DeleteMappingRule(dd)
 	require.NoError(t, err)
 
@@ -2351,7 +2351,7 @@ func TestAddRollupRule(t *testing.T) {
 		Name:           "foo",
 		Filters:        newFilters,
 		Targets:        newTargets,
-		UpdateMetadata: helper.GenUpdateMetadata(),
+		UpdateMetadata: helper.NewUpdateMetadata(),
 	}
 
 	err = mutable.AddRollupRule(data)
@@ -2384,7 +2384,7 @@ func TestAddRollupRuleDup(t *testing.T) {
 		Name:           "rollupRule5.snapshot1",
 		Filters:        newFilters,
 		Targets:        newTargets,
-		UpdateMetadata: helper.GenUpdateMetadata(),
+		UpdateMetadata: helper.NewUpdateMetadata(),
 	}
 	err = mutable.AddRollupRule(rrd)
 	require.Error(t, err)
@@ -2396,7 +2396,7 @@ func TestReviveRollupRule(t *testing.T) {
 
 	rr, err := rs.getRollupRuleByID("rollupRule5")
 	require.NoError(t, err)
-	updateMeta := helper.GenUpdateMetadata()
+	updateMeta := helper.NewUpdateMetadata()
 
 	dd := DeleteData{ID: rr.uuid, UpdateMetadata: updateMeta}
 	err = mutable.DeleteRollupRule(dd)
@@ -2429,7 +2429,7 @@ func TestUpdateRollupRule(t *testing.T) {
 
 	rr, err := rs.getRollupRuleByID("rollupRule5")
 	require.NoError(t, err)
-	updateMeta := helper.GenUpdateMetadata()
+	updateMeta := helper.NewUpdateMetadata()
 
 	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
@@ -2465,7 +2465,7 @@ func TestUpdateRollupRuleDupTarget(t *testing.T) {
 
 	rr, err := rs.getRollupRuleByID("rollupRule5")
 	require.NoError(t, err)
-	updateMeta := helper.GenUpdateMetadata()
+	updateMeta := helper.NewUpdateMetadata()
 
 	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
@@ -2500,7 +2500,7 @@ func TestDeleteRollupRule(t *testing.T) {
 
 	rr, err := rs.getRollupRuleByID("rollupRule5")
 	require.NoError(t, err)
-	updateMeta := helper.GenUpdateMetadata()
+	updateMeta := helper.NewUpdateMetadata()
 
 	dd := DeleteData{
 		ID:             rr.uuid,
@@ -2518,7 +2518,7 @@ func TestDeleteRuleset(t *testing.T) {
 	mutable, rs, helper, err := initMutableTest()
 	require.NoError(t, err)
 
-	err = mutable.Delete(helper.GenUpdateMetadata())
+	err = mutable.Delete(helper.NewUpdateMetadata())
 	require.NoError(t, err)
 
 	require.True(t, mutable.Tombstoned())
@@ -2535,10 +2535,10 @@ func TestReviveRuleSet(t *testing.T) {
 	mutable, rs, helper, err := initMutableTest()
 	require.NoError(t, err)
 
-	err = mutable.Delete(helper.GenUpdateMetadata())
+	err = mutable.Delete(helper.NewUpdateMetadata())
 	require.NoError(t, err)
 
-	err = mutable.Revive(helper.GenUpdateMetadata())
+	err = mutable.Revive(helper.NewUpdateMetadata())
 	require.NoError(t, err)
 
 	require.False(t, rs.Tombstoned())

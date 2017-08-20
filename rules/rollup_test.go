@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3x/time"
@@ -282,7 +281,6 @@ func TestRollupRuleSchema(t *testing.T) {
 }
 
 func TestNewRollupRuleFromFields(t *testing.T) {
-	filterOpts := testTagsFilterOptions()
 	rawFilters := map[string]string{"tag3": "value3"}
 	rr, err := newRollupRuleFromFields(
 		"bar",
@@ -297,15 +295,13 @@ func TestNewRollupRuleFromFields(t *testing.T) {
 			},
 		},
 		12345,
-		filterOpts,
 	)
-	filter, err := filters.NewTagsFilter(rawFilters, filters.Conjunction, filterOpts)
 	require.NoError(t, err)
 	expectedSnapshot := rollupRuleSnapshot{
 		name:         "bar",
 		tombstoned:   false,
 		cutoverNanos: 12345,
-		filter:       filter,
+		filter:       nil,
 		rawFilters:   rawFilters,
 		targets: []RollupTarget{
 			{
@@ -328,7 +324,6 @@ func TestNewRollupRuleFromFields(t *testing.T) {
 	require.Equal(t, rr.snapshots[0].cutoverNanos, expectedSnapshot.cutoverNanos)
 	require.Equal(t, rr.snapshots[0].rawFilters, expectedSnapshot.rawFilters)
 	require.Equal(t, rr.snapshots[0].targets, expectedSnapshot.targets)
-	require.Equal(t, rr.snapshots[0].filter.String(), expectedSnapshot.filter.String())
 }
 
 func TestRollupNameNoSnapshot(t *testing.T) {

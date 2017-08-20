@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3x/time"
@@ -202,22 +201,19 @@ func TestMappingRuleSchema(t *testing.T) {
 }
 
 func TestNewMappingRuleFromFields(t *testing.T) {
-	filterOpts := testTagsFilterOptions()
 	rawFilters := map[string]string{"tag3": "value3"}
 	mr, err := newMappingRuleFromFields(
 		"bar",
 		rawFilters,
 		[]policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(10*time.Second, xtime.Second, time.Hour), policy.DefaultAggregationID)},
 		12345,
-		filterOpts,
 	)
-	filter, err := filters.NewTagsFilter(rawFilters, filters.Conjunction, filterOpts)
 	require.NoError(t, err)
 	expectedSnapshot := mappingRuleSnapshot{
 		name:         "bar",
 		tombstoned:   false,
 		cutoverNanos: 12345,
-		filter:       filter,
+		filter:       nil,
 		rawFilters:   rawFilters,
 		policies:     []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(10*time.Second, xtime.Second, time.Hour), policy.DefaultAggregationID)},
 	}
@@ -232,7 +228,6 @@ func TestNewMappingRuleFromFields(t *testing.T) {
 	require.Equal(t, mr.snapshots[0].cutoverNanos, expectedSnapshot.cutoverNanos)
 	require.Equal(t, mr.snapshots[0].rawFilters, expectedSnapshot.rawFilters)
 	require.Equal(t, mr.snapshots[0].policies, expectedSnapshot.policies)
-	require.Equal(t, mr.snapshots[0].filter.String(), expectedSnapshot.filter.String())
 }
 
 func TestMappingNameNoSnapshot(t *testing.T) {

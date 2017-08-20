@@ -382,7 +382,7 @@ func testStore() Store {
 
 func TestRuleSetKey(t *testing.T) {
 	s := testStore()
-	key := s.ruleSetKey(testNamespace)
+	key := s.(store).ruleSetKey(testNamespace)
 	require.Equal(t, "rules/fooNs", key)
 }
 

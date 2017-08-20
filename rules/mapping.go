@@ -27,6 +27,7 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
+
 	"github.com/pborman/uuid"
 )
 
@@ -71,6 +72,22 @@ func newMappingRuleSnapshot(
 	}, nil
 }
 
+func newMappingRuleSnapshotFromFields(
+	name string,
+	tombstoned bool,
+	cutoverNanos int64,
+	tagFilters map[string]string,
+	policies []policy.Policy,
+) mappingRuleSnapshot {
+	return mappingRuleSnapshot{
+		name:         name,
+		tombstoned:   tombstoned,
+		cutoverNanos: cutoverNanos,
+		policies:     policies,
+		rawFilters:   tagFilters,
+	}
+}
+
 type mappingRuleSnapshotJSON struct {
 	Name         string            `json:"name"`
 	Tombstoned   bool              `json:"tombstoned"`
@@ -90,13 +107,13 @@ func newMappingRuleSnapshotJSON(mrs mappingRuleSnapshot) mappingRuleSnapshotJSON
 }
 
 func (mrsj mappingRuleSnapshotJSON) mappingRuleSnapshot() mappingRuleSnapshot {
-	return mappingRuleSnapshot{
-		name:         mrsj.Name,
-		tombstoned:   mrsj.Tombstoned,
-		cutoverNanos: mrsj.CutoverNanos,
-		policies:     mrsj.Policies,
-		rawFilters:   mrsj.TagFilters,
-	}
+	return newMappingRuleSnapshotFromFields(
+		mrsj.Name,
+		mrsj.Tombstoned,
+		mrsj.CutoverNanos,
+		mrsj.TagFilters,
+		mrsj.Policies,
+	)
 }
 
 // Schema returns the given MappingRuleSnapshot in protobuf form.
@@ -153,10 +170,9 @@ func newMappingRuleFromFields(
 	rawFilters map[string]string,
 	policies []policy.Policy,
 	cutoverTime int64,
-	opts filters.TagsFilterOptions,
 ) (*mappingRule, error) {
 	mr := mappingRule{uuid: uuid.New()}
-	if err := mr.addSnapshot(name, rawFilters, policies, cutoverTime, opts); err != nil {
+	if err := mr.addSnapshot(name, rawFilters, policies, cutoverTime); err != nil {
 		return nil, err
 	}
 	return &mr, nil
@@ -183,22 +199,16 @@ func (mc *mappingRule) addSnapshot(
 	rawFilters map[string]string,
 	policies []policy.Policy,
 	cutoverTime int64,
-	opts filters.TagsFilterOptions,
 ) error {
-	filter, err := filters.NewTagsFilter(rawFilters, filters.Conjunction, opts)
-	if err != nil {
-		return err
-	}
-	snapshot := &mappingRuleSnapshot{
-		name:         name,
-		tombstoned:   false,
-		cutoverNanos: cutoverTime,
-		filter:       filter,
-		policies:     policies,
-		rawFilters:   rawFilters,
-	}
+	snapshot := newMappingRuleSnapshotFromFields(
+		name,
+		false,
+		cutoverTime,
+		rawFilters,
+		policies,
+	)
 
-	mc.snapshots = append(mc.snapshots, snapshot)
+	mc.snapshots = append(mc.snapshots, &snapshot)
 	return nil
 }
 
@@ -226,7 +236,6 @@ func (mc *mappingRule) revive(
 	rawFilters map[string]string,
 	policies []policy.Policy,
 	cutoverTime int64,
-	opts filters.TagsFilterOptions,
 ) error {
 	n, err := mc.Name()
 	if err != nil {
@@ -235,10 +244,7 @@ func (mc *mappingRule) revive(
 	if !mc.Tombstoned() {
 		return fmt.Errorf("%s is not tombstoned", n)
 	}
-	if err := mc.addSnapshot(name, rawFilters, policies, cutoverTime, opts); err != nil {
-		return err
-	}
-	return nil
+	return mc.addSnapshot(name, rawFilters, policies, cutoverTime)
 }
 
 // equal to timeNanos, or nil if not found.

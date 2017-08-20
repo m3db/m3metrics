@@ -29,6 +29,7 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
+
 	"github.com/pborman/uuid"
 )
 
@@ -67,7 +68,7 @@ func newRollupTarget(target *schema.RollupTarget) (RollupTarget, error) {
 	}, nil
 }
 
-// NewRollupTargetFromFields ...
+// NewRollupTargetFromFields creates a new rollupTarget from a list of it's component fields.
 func NewRollupTargetFromFields(name string, tags []string, policies []policy.Policy) RollupTarget {
 	return RollupTarget{Name: []byte(name), Tags: bytesArrayFromStringArray(tags), Policies: policies}
 }
@@ -144,16 +145,16 @@ func (rrsj rollupRuleSnapshotJSON) rollupRuleSnapshot() rollupRuleSnapshot {
 		targets[i] = t.rollupTarget()
 	}
 
-	return rollupRuleSnapshot{
-		name:         rrsj.Name,
-		tombstoned:   rrsj.Tombstoned,
-		cutoverNanos: rrsj.CutoverNanos,
-		rawFilters:   rrsj.TagFilters,
-		targets:      targets,
-	}
+	return newRollupRuleSnapshotFromFields(
+		rrsj.Name,
+		rrsj.Tombstoned,
+		rrsj.CutoverNanos,
+		rrsj.TagFilters,
+		targets,
+	)
 }
 
-// Schema returns the schema representation of a rollup target
+// Schema returns the schema representation of a rollup target.
 func (t RollupTarget) Schema() (*schema.RollupTarget, error) {
 	res := &schema.RollupTarget{
 		Name: string(t.Name),
@@ -213,6 +214,22 @@ func newRollupRuleSnapshot(
 	}, nil
 }
 
+func newRollupRuleSnapshotFromFields(
+	name string,
+	tombstoned bool,
+	cutoverNanos int64,
+	tagFilters map[string]string,
+	targets []RollupTarget,
+) rollupRuleSnapshot {
+	return rollupRuleSnapshot{
+		name:         name,
+		tombstoned:   tombstoned,
+		cutoverNanos: cutoverNanos,
+		targets:      targets,
+		rawFilters:   tagFilters,
+	}
+}
+
 // Schema returns the given MappingRuleSnapshot in protobuf form.
 func (rrs rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 	res := &schema.RollupRuleSnapshot{
@@ -267,10 +284,9 @@ func newRollupRuleFromFields(
 	rawFilters map[string]string,
 	targets []RollupTarget,
 	cutoverTime int64,
-	opts filters.TagsFilterOptions,
 ) (*rollupRule, error) {
 	rr := rollupRule{uuid: uuid.New()}
-	if err := rr.addSnapshot(name, rawFilters, targets, cutoverTime, opts); err != nil {
+	if err := rr.addSnapshot(name, rawFilters, targets, cutoverTime); err != nil {
 		return nil, err
 	}
 	return &rr, nil
@@ -326,23 +342,16 @@ func (rc *rollupRule) addSnapshot(
 	rawFilters map[string]string,
 	rollupTargets []RollupTarget,
 	cutoverTime int64,
-	opts filters.TagsFilterOptions,
 ) error {
-	filter, err := filters.NewTagsFilter(rawFilters, filters.Conjunction, opts)
-	if err != nil {
-		return err
-	}
+	snapshot := newRollupRuleSnapshotFromFields(
+		name,
+		false,
+		cutoverTime,
+		rawFilters,
+		rollupTargets,
+	)
 
-	snapshot := &rollupRuleSnapshot{
-		name:         name,
-		tombstoned:   false,
-		cutoverNanos: cutoverTime,
-		filter:       filter,
-		targets:      rollupTargets,
-		rawFilters:   rawFilters,
-	}
-
-	rc.snapshots = append(rc.snapshots, snapshot)
+	rc.snapshots = append(rc.snapshots, &snapshot)
 	return nil
 }
 
@@ -372,7 +381,6 @@ func (rc *rollupRule) revive(
 	rawFilters map[string]string,
 	targets []RollupTarget,
 	cutoverTime int64,
-	opts filters.TagsFilterOptions,
 ) error {
 	n, err := rc.Name()
 	if err != nil {
@@ -381,10 +389,7 @@ func (rc *rollupRule) revive(
 	if !rc.Tombstoned() {
 		return fmt.Errorf("%s is not tombstoned", n)
 	}
-	if err := rc.addSnapshot(name, rawFilters, targets, cutoverTime, opts); err != nil {
-		return err
-	}
-	return nil
+	return rc.addSnapshot(name, rawFilters, targets, cutoverTime)
 }
 
 type rollupRuleJSON struct {

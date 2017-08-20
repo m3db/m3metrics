@@ -38,7 +38,7 @@ type Store interface {
 	// WriteRuleSet saves the given ruleset to the backing store.
 	WriteRuleSet(MutableRuleSet) error
 
-	// WriteAll saves both the given rulset and namespace to the backing store.
+	// WriteAll saves both the given ruleset and namespace to the backing store.
 	WriteAll(*Namespaces, MutableRuleSet) error
 
 	// ReadNamespaces returns the version and the persisted namespaces in kv store.
@@ -46,9 +46,6 @@ type Store interface {
 
 	// ReadRuleSet returns the version and the persisted ruleset data in kv store.
 	ReadRuleSet(namespaceName string) (MutableRuleSet, error)
-
-	// RuleSetKey generates a ruleset key for a given namespace
-	ruleSetKey(namespaceName string) string
 }
 
 // StoreOptions is a configuration for the rules r/w store.
@@ -91,10 +88,6 @@ func (s store) ReadNamespaces() (*Namespaces, error) {
 	return &nss, err
 }
 
-func (s store) ruleSetKey(ns string) string {
-	return fmt.Sprintf(s.opts.RuleSetKeyFmt, ns)
-}
-
 func (s store) ReadRuleSet(nsName string) (MutableRuleSet, error) {
 	ruleSetKey := s.ruleSetKey(nsName)
 	value, err := s.kvStore.Get(ruleSetKey)
@@ -113,6 +106,46 @@ func (s store) ReadRuleSet(nsName string) (MutableRuleSet, error) {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
 	return rs, err
+}
+
+func (s store) WriteRuleSet(rs MutableRuleSet) error {
+	rsCond, rsOp, err := s.ruleSetTransaction(rs)
+	if err != nil {
+		return err
+	}
+	conditions, ops := []kv.Condition{rsCond}, []kv.Op{rsOp}
+	if _, err := s.kvStore.Commit(conditions, ops); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s store) WriteAll(nss *Namespaces, rs MutableRuleSet) error {
+	var conditions []kv.Condition
+	var ops []kv.Op
+
+	ruleSetCond, ruleSetOp, err := s.ruleSetTransaction(rs)
+	if err != nil {
+		return err
+	}
+	conditions = append(conditions, ruleSetCond)
+	ops = append(ops, ruleSetOp)
+
+	namespacesCond, namespacesOp, err := s.namespacesTransaction(nss)
+	if err != nil {
+		return err
+	}
+	conditions = append(conditions, namespacesCond)
+	ops = append(ops, namespacesOp)
+
+	if _, err := s.kvStore.Commit(conditions, ops); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s store) ruleSetKey(ns string) string {
+	return fmt.Sprintf(s.opts.RuleSetKeyFmt, ns)
 }
 
 func (s store) ruleSetTransaction(rs MutableRuleSet) (kv.Condition, kv.Op, error) {
@@ -152,40 +185,4 @@ func (s store) namespacesTransaction(nss *Namespaces) (kv.Condition, kv.Op, erro
 		SetValue(nss.Version())
 
 	return namespacesCond, kv.NewSetOp(namespacesKey, nssSchema), nil
-}
-
-func (s store) WriteRuleSet(rs MutableRuleSet) error {
-	rsCond, rsOp, err := s.ruleSetTransaction(rs)
-	if err != nil {
-		return err
-	}
-	conditions, ops := []kv.Condition{rsCond}, []kv.Op{rsOp}
-	if _, err := s.kvStore.Commit(conditions, ops); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s store) WriteAll(nss *Namespaces, rs MutableRuleSet) error {
-	var conditions []kv.Condition
-	var ops []kv.Op
-
-	ruleSetCond, ruleSetOp, err := s.ruleSetTransaction(rs)
-	if err != nil {
-		return err
-	}
-	conditions = append(conditions, ruleSetCond)
-	ops = append(ops, ruleSetOp)
-
-	namespacesCond, namespacesOp, err := s.namespacesTransaction(nss)
-	if err != nil {
-		return err
-	}
-	conditions = append(conditions, namespacesCond)
-	ops = append(ops, namespacesOp)
-
-	if _, err := s.kvStore.Commit(conditions, ops); err != nil {
-		return err
-	}
-	return nil
 }
