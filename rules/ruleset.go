@@ -43,12 +43,9 @@ const (
 
 var (
 	errNilRuleSetSchema   = errors.New("nil rule set schema")
-	errRuleAlreadyExist   = errors.New("rule already exists")
 	errNoSuchRule         = errors.New("no such rule exists")
-	errTombstoned         = errors.New("rule is tombstoned")
 	errNotTombstoned      = errors.New("not tombstoned")
 	errNoRuleSnapshots    = errors.New("no snapshots")
-	errDuplicateTargets   = errors.New("duplicate targets")
 	ruleActionErrorFmt    = "cannot %s rule %s. %v"
 	ruleSetActionErrorFmt = "cannot %s ruleset %s. %v"
 )
@@ -685,7 +682,7 @@ func (a int64Asc) Len() int           { return len(a) }
 func (a int64Asc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a int64Asc) Less(i, j int) bool { return a[i] < a[j] }
 
-// MutableRuleSet is an extention of a RuleSet that implements mutation functions.
+// MutableRuleSet is an extension of a RuleSet that implements mutation functions.
 type MutableRuleSet interface {
 	RuleSet
 
@@ -1074,13 +1071,13 @@ func (rs *ruleSet) Delete(meta UpdateMetadata) error {
 	// Make sure that all of the rules in the ruleset are tombstoned as well.
 	for _, m := range rs.mappingRules {
 		if t := m.Tombstoned(); !t {
-			m.markTombstoned(meta.cutoverNanos)
+			_ = m.markTombstoned(meta.cutoverNanos)
 		}
 	}
 
 	for _, r := range rs.rollupRules {
 		if t := r.Tombstoned(); !t {
-			r.markTombstoned(meta.cutoverNanos)
+			_ = r.markTombstoned(meta.cutoverNanos)
 		}
 	}
 

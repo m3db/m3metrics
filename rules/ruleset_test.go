@@ -650,6 +650,7 @@ func TestRuleSetUnmarshalJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	data, err := json.Marshal(newRuleSet)
+	require.NoError(t, err)
 	var rs ruleSet
 	err = json.Unmarshal(data, &rs)
 	require.NoError(t, err)

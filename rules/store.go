@@ -114,10 +114,8 @@ func (s store) WriteRuleSet(rs MutableRuleSet) error {
 		return err
 	}
 	conditions, ops := []kv.Condition{rsCond}, []kv.Op{rsOp}
-	if _, err := s.kvStore.Commit(conditions, ops); err != nil {
-		return err
-	}
-	return nil
+	_, err = s.kvStore.Commit(conditions, ops)
+	return err
 }
 
 func (s store) WriteAll(nss *Namespaces, rs MutableRuleSet) error {
@@ -137,11 +135,8 @@ func (s store) WriteAll(nss *Namespaces, rs MutableRuleSet) error {
 	}
 	conditions = append(conditions, namespacesCond)
 	ops = append(ops, namespacesOp)
-
-	if _, err := s.kvStore.Commit(conditions, ops); err != nil {
-		return err
-	}
-	return nil
+	_, err = s.kvStore.Commit(conditions, ops)
+	return err
 }
 
 func (s store) ruleSetKey(ns string) string {

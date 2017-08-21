@@ -279,6 +279,7 @@ func TestNamespacesUnmarshal(t *testing.T) {
 	require.NoError(t, err)
 
 	data, err := json.Marshal(nss)
+	require.NoError(t, err)
 	var nss2 Namespaces
 	err = json.Unmarshal(data, &nss2)
 	require.NoError(t, err)
@@ -384,7 +385,7 @@ func TestNamespaceReviveLive(t *testing.T) {
 			&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: false},
 		},
 	})
-
+	require.NoError(t, err)
 	err = ns.revive()
 	require.Error(t, err)
 }
@@ -396,7 +397,7 @@ func TestNamespaceMarkTombstoned(t *testing.T) {
 			&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: false},
 		},
 	})
-
+	require.NoError(t, err)
 	err = ns.markTombstoned(4)
 	require.NoError(t, err)
 
@@ -412,7 +413,7 @@ func TestNamespaceTombstoneAlreadyDead(t *testing.T) {
 			&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: true},
 		},
 	})
-
+	require.NoError(t, err)
 	err = ns.markTombstoned(4)
 	require.Error(t, err)
 }
@@ -441,7 +442,7 @@ func TestNamespaceAdd(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, ns.Tombstoned())
 
-	ns, err = nss.Namespace("bar")
+	_, err = nss.Namespace("bar")
 	require.Error(t, err)
 }
 
@@ -478,13 +479,14 @@ func TestNamespaceRevive(t *testing.T) {
 
 	nss, err := NewNamespaces(1, testNss)
 	require.NoError(t, err)
-	ns, err := nss.Namespace("foo")
+	_, err = nss.Namespace("foo")
 	require.NoError(t, err)
 
 	err = nss.DeleteNamespace("foo", 4)
 	require.NoError(t, err)
 
-	ns, err = nss.Namespace("foo")
+	ns, err := nss.Namespace("foo")
+	require.NoError(t, err)
 	require.True(t, ns.Tombstoned())
 
 	err = nss.AddNamespace("foo")
@@ -510,12 +512,12 @@ func TestNamespaceDelete(t *testing.T) {
 
 	nss, err := NewNamespaces(1, testNss)
 	require.NoError(t, err)
-	ns, err := nss.Namespace("foo")
+	_, err = nss.Namespace("foo")
 	require.NoError(t, err)
 
 	err = nss.DeleteNamespace("foo", 4)
 	require.NoError(t, err)
-	ns, err = nss.Namespace("foo")
+	ns, err := nss.Namespace("foo")
 	require.NoError(t, err)
 	require.True(t, ns.Tombstoned())
 	require.Equal(t, ns.snapshots[len(ns.snapshots)-1].forRuleSetVersion, 5)

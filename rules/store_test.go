@@ -69,12 +69,6 @@ var (
 		},
 	}
 
-	badNamespaces = &schema.Namespaces{
-		Namespaces: []*schema.Namespace{
-			&schema.Namespace{Name: "fooNs", Snapshots: nil},
-		},
-	}
-
 	testRuleSetKey = fmt.Sprintf(testRuleSetKeyFmt, testNamespace)
 	testRuleSet    = &schema.RuleSet{
 		Uuid:          "ruleset",
@@ -364,14 +358,6 @@ var (
 			},
 		},
 	}
-	testTombstonedRuleSet = &schema.RuleSet{
-		Uuid:          "ruleset",
-		Namespace:     "deadNs",
-		CreatedAt:     1234,
-		LastUpdatedAt: 5678,
-		Tombstoned:    true,
-		CutoverTime:   34923,
-	}
 )
 
 func testStore() Store {
@@ -397,7 +383,8 @@ func TestNewStore(t *testing.T) {
 
 func TestReadNamespaces(t *testing.T) {
 	s := testStore()
-	s.(store).kvStore.Set(testNamespaceKey, testNamespaces)
+	_, e := s.(store).kvStore.Set(testNamespaceKey, testNamespaces)
+	require.NoError(t, e)
 	nss, err := s.ReadNamespaces()
 	require.NoError(t, err)
 	require.NotNil(t, nss.Namespaces)
@@ -405,7 +392,8 @@ func TestReadNamespaces(t *testing.T) {
 
 func TestNamespacesError(t *testing.T) {
 	s := testStore()
-	s.(store).kvStore.Set(testNamespaceKey, &schema.RollupRule{Uuid: "x"})
+	_, e := s.(store).kvStore.Set(testNamespaceKey, &schema.RollupRule{Uuid: "x"})
+	require.NoError(t, e)
 	nss, err := s.ReadNamespaces()
 	require.Error(t, err)
 	require.Nil(t, nss)
@@ -413,7 +401,8 @@ func TestNamespacesError(t *testing.T) {
 
 func TestReadRuleSet(t *testing.T) {
 	s := testStore()
-	s.(store).kvStore.Set(testRuleSetKey, testRuleSet)
+	_, e := s.(store).kvStore.Set(testRuleSetKey, testRuleSet)
+	require.NoError(t, e)
 	rs, err := s.ReadRuleSet(testNamespace)
 	require.NoError(t, err)
 	require.NotNil(t, rs)
@@ -421,7 +410,8 @@ func TestReadRuleSet(t *testing.T) {
 
 func TestRuleSetError(t *testing.T) {
 	s := testStore()
-	s.(store).kvStore.Set(testRuleSetKey, &schema.Namespace{Name: "x"})
+	_, e := s.(store).kvStore.Set(testRuleSetKey, &schema.Namespace{Name: "x"})
+	require.NoError(t, e)
 	rs, err := s.ReadRuleSet("blah")
 	require.Error(t, err)
 	require.Nil(t, rs)
@@ -449,9 +439,11 @@ func TestWrite(t *testing.T) {
 	rs, err = s.ReadRuleSet(testNamespace)
 	require.NoError(t, err)
 	rsSchema, err := rs.Schema()
+	require.NoError(t, err)
 	require.Equal(t, rsSchema, testRuleSet)
 
 	nss, err = s.ReadNamespaces()
+	require.NoError(t, err)
 	nssSchema, err := nss.Schema()
 	require.NoError(t, err)
 	require.Equal(t, nssSchema, testNamespaces)
@@ -494,10 +486,10 @@ func TestWriteErrorAll(t *testing.T) {
 		require.Error(t, err)
 	}
 
-	rs, err = s.ReadRuleSet(testNamespace)
+	_, err = s.ReadRuleSet(testNamespace)
 	require.Error(t, err)
 
-	nss, err = s.ReadNamespaces()
+	_, err = s.ReadNamespaces()
 	require.Error(t, err)
 }
 
@@ -524,7 +516,7 @@ func TestWriteErrorRuleSet(t *testing.T) {
 	err = s.WriteRuleSet(nil)
 	require.Error(t, err)
 
-	rs, err = s.ReadRuleSet(testNamespace)
+	_, err = s.ReadRuleSet(testNamespace)
 	require.Error(t, err)
 }
 
@@ -551,18 +543,16 @@ func TestWriteNoNamespace(t *testing.T) {
 	rs, err = s.ReadRuleSet(testNamespace)
 	require.NoError(t, err)
 
-	nss, err = s.ReadNamespaces()
+	_, err = s.ReadNamespaces()
 	require.NoError(t, err)
 
 	err = s.WriteRuleSet(rs)
 	require.NoError(t, err)
 
+	rs, err = s.ReadRuleSet(testNamespace)
+	require.NoError(t, err)
 	nss, err = s.ReadNamespaces()
 	require.NoError(t, err)
-
-	rs, err = s.ReadRuleSet(testNamespace)
-	nss, err = s.ReadNamespaces()
-
 	require.Equal(t, nss.Version(), 1)
 	require.Equal(t, rs.Version(), 2)
 }
