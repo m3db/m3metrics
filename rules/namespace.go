@@ -240,9 +240,9 @@ func NewNamespaces(version int, namespaces *schema.Namespaces) (Namespaces, erro
 	}, nil
 }
 
-// Clone creates a deep copy of this namespace
+// Clone creates a deep copy of this namespace.
 func (nss Namespaces) Clone() (Namespaces, error) {
-	// TODO(dgromov): Do an actual deep copy that doesn't rely on .Schema()
+	// TODO(dgromov): Do an actual deep copy that doesn't rely on .Schema().
 	schema, err := nss.Schema()
 	if err != nil {
 		return emptyNamespaces, err

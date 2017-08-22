@@ -646,7 +646,7 @@ func TestRuleSetMarshalJSON(t *testing.T) {
 
 func TestRuleSetUnmarshalJSON(t *testing.T) {
 	version := 1
-	newRuleSet, err := NewMutableRuleSetFromSchema(version, marshalTestSchema)
+	newRuleSet, err := newMutableRuleSetFromSchema(version, marshalTestSchema)
 	require.NoError(t, err)
 
 	data, err := json.Marshal(newRuleSet)
@@ -678,7 +678,7 @@ func TestRuleSetSchema(t *testing.T) {
 		RollupRules:   testRollupRulesConfig(),
 	}
 
-	rs, err := NewMutableRuleSetFromSchema(version, expectedRs)
+	rs, err := newMutableRuleSetFromSchema(version, expectedRs)
 	require.NoError(t, err)
 	res, err := rs.Schema()
 	require.NoError(t, err)
@@ -2199,9 +2199,20 @@ func initMutableTest() (MutableRuleSet, *ruleSet, RuleSetUpdateHelper, error) {
 		RollupRules:   testRollupRulesConfig(),
 	}
 
-	mutable, err := NewMutableRuleSetFromSchema(version, expectedRs)
+	mutable, err := newMutableRuleSetFromSchema(version, expectedRs)
 	rs := mutable.(*ruleSet)
 	return mutable, rs, NewRuleSetUpdateHelper(10), err
+}
+
+// NewMutableRuleSetFromSchema creates a new MutableRuleSet from a schema object.
+func newMutableRuleSetFromSchema(version int, rs *schema.RuleSet) (MutableRuleSet, error) {
+	// Takes a blank Options stuct because none of the mutation functions need the options.
+	roRuleSet, err := NewRuleSetFromSchema(version, rs, NewOptions())
+	if err != nil {
+		return nil, err
+	}
+	rawRs := roRuleSet.(*ruleSet)
+	return MutableRuleSet(rawRs), nil
 }
 
 func TestAddMappingRule(t *testing.T) {

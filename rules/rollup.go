@@ -68,7 +68,7 @@ func newRollupTarget(target *schema.RollupTarget) (RollupTarget, error) {
 	}, nil
 }
 
-// NewRollupTargetFromFields creates a new rollupTarget from a list of it's component fields.
+// NewRollupTargetFromFields creates a new rollupTarget from a list of its component fields.
 func NewRollupTargetFromFields(name string, tags []string, policies []policy.Policy) RollupTarget {
 	return RollupTarget{Name: []byte(name), Tags: bytesArrayFromStringArray(tags), Policies: policies}
 }
@@ -139,7 +139,7 @@ func newRollupRuleSnapshotJSON(rrs rollupRuleSnapshot) rollupRuleSnapshotJSON {
 	}
 }
 
-func (rrsj rollupRuleSnapshotJSON) rollupRuleSnapshot() rollupRuleSnapshot {
+func (rrsj rollupRuleSnapshotJSON) rollupRuleSnapshot() *rollupRuleSnapshot {
 	targets := make([]RollupTarget, len(rrsj.Targets))
 	for i, t := range rrsj.Targets {
 		targets[i] = t.rollupTarget()
@@ -151,6 +151,7 @@ func (rrsj rollupRuleSnapshotJSON) rollupRuleSnapshot() rollupRuleSnapshot {
 		rrsj.CutoverNanos,
 		rrsj.TagFilters,
 		targets,
+		nil,
 	)
 }
 
@@ -204,14 +205,15 @@ func newRollupRuleSnapshot(
 	if err != nil {
 		return nil, err
 	}
-	return &rollupRuleSnapshot{
-		name:         r.Name,
-		tombstoned:   r.Tombstoned,
-		cutoverNanos: r.CutoverTime,
-		filter:       filter,
-		targets:      targets,
-		rawFilters:   r.TagFilters,
-	}, nil
+
+	return newRollupRuleSnapshotFromFields(
+		r.Name,
+		r.Tombstoned,
+		r.CutoverTime,
+		r.TagFilters,
+		targets,
+		filter,
+	), nil
 }
 
 func newRollupRuleSnapshotFromFields(
@@ -220,13 +222,15 @@ func newRollupRuleSnapshotFromFields(
 	cutoverNanos int64,
 	tagFilters map[string]string,
 	targets []RollupTarget,
-) rollupRuleSnapshot {
-	return rollupRuleSnapshot{
+	filter filters.Filter,
+) *rollupRuleSnapshot {
+	return &rollupRuleSnapshot{
 		name:         name,
 		tombstoned:   tombstoned,
 		cutoverNanos: cutoverNanos,
 		targets:      targets,
 		rawFilters:   tagFilters,
+		filter:       filter,
 	}
 }
 
@@ -349,9 +353,10 @@ func (rc *rollupRule) addSnapshot(
 		cutoverTime,
 		rawFilters,
 		rollupTargets,
+		nil,
 	)
 
-	rc.snapshots = append(rc.snapshots, &snapshot)
+	rc.snapshots = append(rc.snapshots, snapshot)
 	return nil
 }
 
@@ -411,8 +416,7 @@ func newRollupRuleJSON(rc rollupRule) rollupRuleJSON {
 func (rrj rollupRuleJSON) rollupRule() rollupRule {
 	snapshots := make([]*rollupRuleSnapshot, len(rrj.Snapshots))
 	for i, s := range rrj.Snapshots {
-		newSnapshot := s.rollupRuleSnapshot()
-		snapshots[i] = &newSnapshot
+		snapshots[i] = s.rollupRuleSnapshot()
 	}
 	return rollupRule{
 		uuid:      rrj.UUID,

@@ -454,6 +454,9 @@ type RuleSet interface {
 
 	// ActiveSet returns the active ruleset at a given time.
 	ActiveSet(timeNanos int64) Matcher
+
+	// ToMutableRuleSet returns a mutable version of this ruleset.
+	ToMutableRuleSet() MutableRuleSet
 }
 
 type ruleSet struct {
@@ -471,7 +474,8 @@ type ruleSet struct {
 	isRollupIDFn       metricID.MatchIDFn
 }
 
-func newRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (*ruleSet, error) {
+// NewRuleSetFromSchema creates a new RuleSet from a schema object.
+func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {
 	if rs == nil {
 		return nil, errNilRuleSetSchema
 	}
@@ -506,17 +510,6 @@ func newRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (*ruleS
 		newRollupIDFn:      opts.NewRollupIDFn(),
 		isRollupIDFn:       opts.IsRollupIDFn(),
 	}, nil
-}
-
-// NewRuleSetFromSchema creates a new RuleSet from a schema object.
-func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {
-	return newRuleSetFromSchema(version, rs, opts)
-}
-
-// NewMutableRuleSetFromSchema creates a new MutableRuleSet from a schema object.
-func NewMutableRuleSetFromSchema(version int, rs *schema.RuleSet) (MutableRuleSet, error) {
-	// Takes a blank Options stuct because none of the mutation functions need the options.
-	return newRuleSetFromSchema(version, rs, NewOptions())
 }
 
 // NewEmptyRuleSet returns an empty ruleset to be used with a new namespace.
@@ -558,6 +551,10 @@ func (rs *ruleSet) ActiveSet(timeNanos int64) Matcher {
 		rs.newRollupIDFn,
 		rs.isRollupIDFn,
 	)
+}
+
+func (rs *ruleSet) ToMutableRuleSet() MutableRuleSet {
+	return MutableRuleSet(rs)
 }
 
 // resolvePolicies resolves the conflicts among policies if any, following the rules below:
@@ -689,7 +686,7 @@ type MutableRuleSet interface {
 	// Schema returns the schema.Ruleset representation of this ruleset.
 	Schema() (*schema.RuleSet, error)
 
-	// Clone returns a copy of this MutableRuleSet
+	// Clone returns a copy of this MutableRuleSet.
 	Clone() (MutableRuleSet, error)
 
 	// MarshalJSON serializes this RuleSet into JSON.
@@ -758,17 +755,18 @@ func (rs ruleSet) Schema() (*schema.RuleSet, error) {
 }
 
 func (rs ruleSet) Clone() (MutableRuleSet, error) {
-	// TODO(dgromov): Do an actual deep copy that doesn't rely on .Schema()
+	// TODO(dgromov): Do an actual deep copy that doesn't rely on .Schema().
 	schema, err := rs.Schema()
 	if err != nil {
 		return nil, err
 	}
 
-	newRuleSet, err := NewMutableRuleSetFromSchema(rs.version, schema)
+	newRuleSet, err := NewRuleSetFromSchema(rs.version, schema, NewOptions())
 	if err != nil {
 		return nil, err
 	}
-	return newRuleSet, nil
+
+	return newRuleSet.ToMutableRuleSet(), nil
 }
 
 // MarshalJSON returns the JSON encoding of staged policies.
@@ -1147,8 +1145,8 @@ func (rs ruleSet) getRollupRuleByID(id string) (*rollupRule, error) {
 
 // RuleConflictError is returned when a rule modification is made that would conflict with the current state.
 type RuleConflictError struct {
-	ConflictUUID string
-	msg          string
+	ConflictRuleUUID string
+	msg              string
 }
 
 func (e RuleConflictError) Error() string { return e.msg }
@@ -1161,7 +1159,7 @@ func (rs ruleSet) validateMappingRuleUpdate(mrd MappingRuleData) error {
 		if n, err := m.Name(); err != nil {
 			continue
 		} else if n == mrd.Name {
-			return RuleConflictError{msg: fmt.Sprintf("Rule with name: %s already exists", n), ConflictUUID: m.uuid}
+			return RuleConflictError{msg: fmt.Sprintf("Rule with name: %s already exists", n), ConflictRuleUUID: m.uuid}
 		}
 	}
 
@@ -1177,7 +1175,7 @@ func (rs ruleSet) validateRollupRuleUpdate(rrd RollupRuleData) error {
 		if n, err := r.Name(); err != nil {
 			continue
 		} else if n == rrd.Name {
-			return RuleConflictError{msg: fmt.Sprintf("Rule with name: %s already exists", n), ConflictUUID: r.uuid}
+			return RuleConflictError{msg: fmt.Sprintf("Rule with name: %s already exists", n), ConflictRuleUUID: r.uuid}
 		}
 
 		if len(r.snapshots) == 0 {
@@ -1187,7 +1185,7 @@ func (rs ruleSet) validateRollupRuleUpdate(rrd RollupRuleData) error {
 		for _, t1 := range latestSnapshot.targets {
 			for _, t2 := range rrd.Targets {
 				if t1.sameTransform(t2) {
-					return RuleConflictError{msg: fmt.Sprintf("Same rollup transformation: %s: %v already exists", t1.Name, t1.Tags), ConflictUUID: r.uuid}
+					return RuleConflictError{msg: fmt.Sprintf("Same rollup transformation: %s: %v already exists", t1.Name, t1.Tags), ConflictRuleUUID: r.uuid}
 				}
 			}
 		}

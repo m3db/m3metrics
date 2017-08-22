@@ -62,14 +62,15 @@ func newMappingRuleSnapshot(
 	if err != nil {
 		return nil, err
 	}
-	return &mappingRuleSnapshot{
-		name:         r.Name,
-		tombstoned:   r.Tombstoned,
-		cutoverNanos: r.CutoverTime,
-		filter:       filter,
-		policies:     policies,
-		rawFilters:   r.TagFilters,
-	}, nil
+
+	return newMappingRuleSnapshotFromFields(
+		r.Name,
+		r.Tombstoned,
+		r.CutoverTime,
+		r.TagFilters,
+		policies,
+		filter,
+	), nil
 }
 
 func newMappingRuleSnapshotFromFields(
@@ -78,13 +79,15 @@ func newMappingRuleSnapshotFromFields(
 	cutoverNanos int64,
 	tagFilters map[string]string,
 	policies []policy.Policy,
-) mappingRuleSnapshot {
-	return mappingRuleSnapshot{
+	filter filters.Filter,
+) *mappingRuleSnapshot {
+	return &mappingRuleSnapshot{
 		name:         name,
 		tombstoned:   tombstoned,
 		cutoverNanos: cutoverNanos,
 		policies:     policies,
 		rawFilters:   tagFilters,
+		filter:       filter,
 	}
 }
 
@@ -106,13 +109,14 @@ func newMappingRuleSnapshotJSON(mrs mappingRuleSnapshot) mappingRuleSnapshotJSON
 	}
 }
 
-func (mrsj mappingRuleSnapshotJSON) mappingRuleSnapshot() mappingRuleSnapshot {
+func (mrsj mappingRuleSnapshotJSON) mappingRuleSnapshot() *mappingRuleSnapshot {
 	return newMappingRuleSnapshotFromFields(
 		mrsj.Name,
 		mrsj.Tombstoned,
 		mrsj.CutoverNanos,
 		mrsj.TagFilters,
 		mrsj.Policies,
+		nil,
 	)
 }
 
@@ -199,6 +203,7 @@ func (mc *mappingRule) addSnapshot(
 	rawFilters map[string]string,
 	policies []policy.Policy,
 	cutoverTime int64,
+
 ) error {
 	snapshot := newMappingRuleSnapshotFromFields(
 		name,
@@ -206,9 +211,10 @@ func (mc *mappingRule) addSnapshot(
 		cutoverTime,
 		rawFilters,
 		policies,
+		nil,
 	)
 
-	mc.snapshots = append(mc.snapshots, &snapshot)
+	mc.snapshots = append(mc.snapshots, snapshot)
 	return nil
 }
 
@@ -295,8 +301,7 @@ func newMappingRuleJSON(mc mappingRule) mappingRuleJSON {
 func (mrj mappingRuleJSON) mappingRule() mappingRule {
 	snapshots := make([]*mappingRuleSnapshot, len(mrj.Snapshots))
 	for i, s := range mrj.Snapshots {
-		newSnapshot := s.mappingRuleSnapshot()
-		snapshots[i] = &newSnapshot
+		snapshots[i] = s.mappingRuleSnapshot()
 	}
 	return mappingRule{
 		uuid:      mrj.UUID,

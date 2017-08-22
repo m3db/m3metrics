@@ -45,7 +45,7 @@ type Store interface {
 	ReadNamespaces() (*Namespaces, error)
 
 	// ReadRuleSet returns the version and the persisted ruleset data in kv store.
-	ReadRuleSet(namespaceName string) (MutableRuleSet, error)
+	ReadRuleSet(namespaceName string) (RuleSet, error)
 }
 
 // StoreOptions is a configuration for the rules r/w store.
@@ -88,7 +88,7 @@ func (s store) ReadNamespaces() (*Namespaces, error) {
 	return &nss, err
 }
 
-func (s store) ReadRuleSet(nsName string) (MutableRuleSet, error) {
+func (s store) ReadRuleSet(nsName string) (RuleSet, error) {
 	ruleSetKey := s.ruleSetKey(nsName)
 	value, err := s.kvStore.Get(ruleSetKey)
 
@@ -101,7 +101,8 @@ func (s store) ReadRuleSet(nsName string) (MutableRuleSet, error) {
 	if err := value.Unmarshal(&ruleSet); err != nil {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
-	rs, err := NewMutableRuleSetFromSchema(version, &ruleSet)
+
+	rs, err := NewRuleSetFromSchema(version, &ruleSet, NewOptions())
 	if err != nil {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
