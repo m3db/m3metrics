@@ -2288,7 +2288,7 @@ func TestUpdateMappingRule(t *testing.T) {
 	mutable, rs, helper, err := initMutableTest()
 	require.NoError(t, err)
 
-	mutableClone, err := mutable.Clone()
+	mutableClone := mutable.Clone()
 	require.NoError(t, err)
 
 	_, err = rs.getMappingRuleByID("mappingRule5")

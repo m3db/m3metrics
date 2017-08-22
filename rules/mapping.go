@@ -91,6 +91,22 @@ func newMappingRuleSnapshotFromFields(
 	}
 }
 
+func (mrs mappingRuleSnapshot) clone() *mappingRuleSnapshot {
+	filters := make(map[string]string, len(mrs.rawFilters))
+	for k, v := range mrs.rawFilters {
+		filters[k] = v
+	}
+	policies := make([]policy.Policy, len(mrs.policies))
+	copy(policies, mrs.policies)
+	return &mappingRuleSnapshot{
+		name:         mrs.name,
+		tombstoned:   mrs.tombstoned,
+		cutoverNanos: mrs.cutoverNanos,
+		rawFilters:   filters,
+		policies:     policies,
+	}
+}
+
 type mappingRuleSnapshotJSON struct {
 	Name         string            `json:"name"`
 	Tombstoned   bool              `json:"tombstoned"`
@@ -180,6 +196,17 @@ func newMappingRuleFromFields(
 		return nil, err
 	}
 	return &mr, nil
+}
+
+func (mc *mappingRule) clone() *mappingRule {
+	snapshots := make([]*mappingRuleSnapshot, len(mc.snapshots))
+	for i, s := range mc.snapshots {
+		snapshots[i] = s.clone()
+	}
+	return &mappingRule{
+		uuid:      mc.uuid,
+		snapshots: snapshots,
+	}
 }
 
 func (mc *mappingRule) Name() (string, error) {

@@ -686,8 +686,8 @@ type MutableRuleSet interface {
 	// Schema returns the schema.Ruleset representation of this ruleset.
 	Schema() (*schema.RuleSet, error)
 
-	// Clone returns a copy of this MutableRuleSet.
-	Clone() (MutableRuleSet, error)
+	// Clone returns a copy of this MutableRuleSet
+	Clone() MutableRuleSet
 
 	// MarshalJSON serializes this RuleSet into JSON.
 	MarshalJSON() ([]byte, error)
@@ -754,19 +754,33 @@ func (rs ruleSet) Schema() (*schema.RuleSet, error) {
 	return res, nil
 }
 
-func (rs ruleSet) Clone() (MutableRuleSet, error) {
-	// TODO(dgromov): Do an actual deep copy that doesn't rely on .Schema().
-	schema, err := rs.Schema()
-	if err != nil {
-		return nil, err
+func (rs ruleSet) Clone() MutableRuleSet {
+	namespace := make([]byte, len(rs.namespace))
+	copy(namespace, rs.namespace)
+
+	mappingRules := make([]*mappingRule, len(rs.mappingRules))
+
+	for i, m := range rs.mappingRules {
+		mappingRules[i] = m.clone()
 	}
 
-	newRuleSet, err := NewRuleSetFromSchema(rs.version, schema, NewOptions())
-	if err != nil {
-		return nil, err
+	rollupRules := make([]*rollupRule, len(rs.rollupRules))
+	for i, r := range rs.rollupRules {
+		rollupRules[i] = r.clone()
 	}
 
-	return newRuleSet.ToMutableRuleSet(), nil
+	// this clone deliberately ignores tagFliterOpts and rollupIDFn
+	// as they are not useful for the MutableRuleSet.
+	return MutableRuleSet(&ruleSet{
+		uuid:               rs.uuid,
+		createdAtNanos:     rs.createdAtNanos,
+		lastUpdatedAtNanos: rs.lastUpdatedAtNanos,
+		tombstoned:         rs.tombstoned,
+		cutoverNanos:       rs.cutoverNanos,
+		namespace:          namespace,
+		mappingRules:       mappingRules,
+		rollupRules:        rollupRules,
+	})
 }
 
 // MarshalJSON returns the JSON encoding of staged policies.
