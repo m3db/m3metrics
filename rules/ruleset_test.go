@@ -2211,8 +2211,7 @@ func newMutableRuleSetFromSchema(version int, rs *schema.RuleSet) (MutableRuleSe
 	if err != nil {
 		return nil, err
 	}
-	rawRs := roRuleSet.(*ruleSet)
-	return MutableRuleSet(rawRs), nil
+	return roRuleSet.(*ruleSet), nil
 }
 
 func TestAddMappingRule(t *testing.T) {
