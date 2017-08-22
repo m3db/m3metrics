@@ -554,7 +554,7 @@ func (rs *ruleSet) ActiveSet(timeNanos int64) Matcher {
 }
 
 func (rs *ruleSet) ToMutableRuleSet() MutableRuleSet {
-	return MutableRuleSet(rs)
+	return rs
 }
 
 // resolvePolicies resolves the conflicts among policies if any, following the rules below:

@@ -203,7 +203,6 @@ func (mc *mappingRule) addSnapshot(
 	rawFilters map[string]string,
 	policies []policy.Policy,
 	cutoverTime int64,
-
 ) error {
 	snapshot := newMappingRuleSnapshotFromFields(
 		name,

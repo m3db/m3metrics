@@ -2204,7 +2204,7 @@ func initMutableTest() (MutableRuleSet, *ruleSet, RuleSetUpdateHelper, error) {
 	return mutable, rs, NewRuleSetUpdateHelper(10), err
 }
 
-// NewMutableRuleSetFromSchema creates a new MutableRuleSet from a schema object.
+// newMutableRuleSetFromSchema creates a new MutableRuleSet from a schema object.
 func newMutableRuleSetFromSchema(version int, rs *schema.RuleSet) (MutableRuleSet, error) {
 	// Takes a blank Options stuct because none of the mutation functions need the options.
 	roRuleSet, err := NewRuleSetFromSchema(version, rs, NewOptions())
