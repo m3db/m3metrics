@@ -563,3 +563,43 @@ func TestNamespaceDeleteTombstoned(t *testing.T) {
 	err = nss.DeleteNamespace("foo", 4)
 	require.Error(t, err)
 }
+
+func TestNamespacesClone(t *testing.T) {
+	testNss := &schema.Namespaces{
+		Namespaces: []*schema.Namespace{
+			&schema.Namespace{
+				Name: "foo",
+				Snapshots: []*schema.NamespaceSnapshot{
+					&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: true},
+				},
+			},
+		},
+	}
+
+	nss, _ := NewNamespaces(1, testNss)
+	nssClone := nss.Clone()
+	require.Equal(t, nss, nssClone)
+	nssClone.namespaces = append(nssClone.namespaces, nssClone.namespaces[0])
+	require.NotEqual(t, nss, nssClone)
+}
+
+func TestNamespaceClone(t *testing.T) {
+	testNss := &schema.Namespaces{
+		Namespaces: []*schema.Namespace{
+			&schema.Namespace{
+				Name: "foo",
+				Snapshots: []*schema.NamespaceSnapshot{
+					&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: true},
+				},
+			},
+		},
+	}
+
+	nss, _ := NewNamespaces(1, testNss)
+	ns, _ := nss.Namespace("foo")
+	nsClone := ns.clone()
+
+	require.Equal(t, *ns, nsClone)
+	nsClone.snapshots = append(nsClone.snapshots, nsClone.snapshots[0])
+	require.NotEqual(t, *ns, nsClone)
+}
