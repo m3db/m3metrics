@@ -111,7 +111,7 @@ type Namespace struct {
 	snapshots []NamespaceSnapshot
 }
 
-// newNameSpace creates a new namespace.
+// newNamespace creates a new namespace.
 func newNamespace(namespace *schema.Namespace) (Namespace, error) {
 	if namespace == nil {
 		return emptyNamespace, errNilNamespaceSchema
@@ -251,9 +251,8 @@ func NewNamespaces(version int, namespaces *schema.Namespaces) (Namespaces, erro
 	}, nil
 }
 
-// Clone creates a deep copy of this namespace
+// Clone creates a deep copy of this Namespaces object.
 func (nss Namespaces) Clone() Namespaces {
-	// TODO(dgromov): Do an actual deep copy that doesn't rely on .Schema()
 	namespaces := make([]Namespace, len(nss.namespaces))
 	for i, n := range nss.namespaces {
 		namespaces[i] = n.clone()

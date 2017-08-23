@@ -760,12 +760,14 @@ func (rs ruleSet) Clone() MutableRuleSet {
 
 	mappingRules := make([]*mappingRule, len(rs.mappingRules))
 	for i, m := range rs.mappingRules {
-		mappingRules[i] = m.clone()
+		c := m.clone()
+		mappingRules[i] = &c
 	}
 
 	rollupRules := make([]*rollupRule, len(rs.rollupRules))
 	for i, r := range rs.rollupRules {
-		rollupRules[i] = r.clone()
+		c := r.clone()
+		rollupRules[i] = &c
 	}
 
 	// this clone deliberately ignores tagFliterOpts and rollupIDFn

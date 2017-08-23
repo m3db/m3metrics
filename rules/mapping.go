@@ -85,26 +85,26 @@ func newMappingRuleSnapshotFromFields(
 		name:         name,
 		tombstoned:   tombstoned,
 		cutoverNanos: cutoverNanos,
-		policies:     policies,
-		rawFilters:   tagFilters,
 		filter:       filter,
+		rawFilters:   tagFilters,
+		policies:     policies,
 	}
 }
 
-func (mrs mappingRuleSnapshot) clone() *mappingRuleSnapshot {
+func (mrs mappingRuleSnapshot) clone() mappingRuleSnapshot {
 	filters := make(map[string]string, len(mrs.rawFilters))
 	for k, v := range mrs.rawFilters {
 		filters[k] = v
 	}
 	policies := make([]policy.Policy, len(mrs.policies))
 	copy(policies, mrs.policies)
-	return &mappingRuleSnapshot{
+	return mappingRuleSnapshot{
 		name:         mrs.name,
 		tombstoned:   mrs.tombstoned,
 		cutoverNanos: mrs.cutoverNanos,
+		filter:       mrs.filter,
 		rawFilters:   filters,
 		policies:     policies,
-		filter:       mrs.filter,
 	}
 }
 
@@ -199,12 +199,13 @@ func newMappingRuleFromFields(
 	return &mr, nil
 }
 
-func (mc *mappingRule) clone() *mappingRule {
+func (mc mappingRule) clone() mappingRule {
 	snapshots := make([]*mappingRuleSnapshot, len(mc.snapshots))
 	for i, s := range mc.snapshots {
-		snapshots[i] = s.clone()
+		c := s.clone()
+		snapshots[i] = &c
 	}
-	return &mappingRule{
+	return mappingRule{
 		uuid:      mc.uuid,
 		snapshots: snapshots,
 	}

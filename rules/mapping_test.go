@@ -256,7 +256,7 @@ func TestMappingRuleClone(t *testing.T) {
 	mr, _ := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
 	clone := mr.clone()
 
-	require.Equal(t, mr, clone)
+	require.Equal(t, *mr, clone)
 	for i, m := range mr.snapshots {
 		c := clone.snapshots[i]
 		require.False(t, c == m)
@@ -271,8 +271,8 @@ func TestMappingRuleSnapshotClone(t *testing.T) {
 	s1 := mr.snapshots[0]
 	s1Clone := s1.clone()
 
-	require.Equal(t, s1, s1Clone)
-	require.False(t, s1 == s1Clone)
+	require.Equal(t, *s1, s1Clone)
+	require.False(t, s1 == &s1Clone)
 
 	s1Clone.rawFilters["blah"] = "foo"
 	require.NotContains(t, s1.rawFilters, "blah")

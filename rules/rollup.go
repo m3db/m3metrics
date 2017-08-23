@@ -228,13 +228,13 @@ func newRollupRuleSnapshotFromFields(
 		name:         name,
 		tombstoned:   tombstoned,
 		cutoverNanos: cutoverNanos,
+		filter:       filter,
 		targets:      targets,
 		rawFilters:   tagFilters,
-		filter:       filter,
 	}
 }
 
-func (rrs rollupRuleSnapshot) clone() *rollupRuleSnapshot {
+func (rrs rollupRuleSnapshot) clone() rollupRuleSnapshot {
 	filters := make(map[string]string, len(rrs.rawFilters))
 	for k, v := range rrs.rawFilters {
 		filters[k] = v
@@ -243,13 +243,13 @@ func (rrs rollupRuleSnapshot) clone() *rollupRuleSnapshot {
 	for i, t := range rrs.targets {
 		targets[i] = t.clone()
 	}
-	return &rollupRuleSnapshot{
+	return rollupRuleSnapshot{
 		name:         rrs.name,
 		tombstoned:   rrs.tombstoned,
 		cutoverNanos: rrs.cutoverNanos,
-		rawFilters:   filters,
-		targets:      targets,
 		filter:       rrs.filter,
+		targets:      targets,
+		rawFilters:   filters,
 	}
 }
 
@@ -315,12 +315,13 @@ func newRollupRuleFromFields(
 	return &rr, nil
 }
 
-func (rc *rollupRule) clone() *rollupRule {
+func (rc rollupRule) clone() rollupRule {
 	snapshots := make([]*rollupRuleSnapshot, len(rc.snapshots))
 	for i, s := range rc.snapshots {
-		snapshots[i] = s.clone()
+		c := s.clone()
+		snapshots[i] = &c
 	}
-	return &rollupRule{
+	return rollupRule{
 		uuid:      rc.uuid,
 		snapshots: snapshots,
 	}

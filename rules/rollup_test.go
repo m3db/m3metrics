@@ -351,7 +351,7 @@ func TestRollupTombstoned(t *testing.T) {
 func TestRollupRuleClone(t *testing.T) {
 	rr, _ := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
 	clone := rr.clone()
-	require.False(t, &rr.snapshots == &clone.snapshots)
+	require.Equal(t, *rr, clone)
 	for i, r := range rr.snapshots {
 		c := clone.snapshots[i]
 		require.False(t, c == r)
@@ -366,8 +366,8 @@ func TestRollupRuleSnapshotClone(t *testing.T) {
 	s1 := rr.snapshots[0]
 	s1Clone := s1.clone()
 
-	require.Equal(t, s1, s1Clone)
-	require.False(t, s1 == s1Clone)
+	require.Equal(t, *s1, s1Clone)
+	require.False(t, s1 == &s1Clone)
 
 	// Checking that things are cloned and not just referenced.
 	s1Clone.rawFilters["blah"] = "foo"
