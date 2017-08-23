@@ -759,7 +759,6 @@ func (rs ruleSet) Clone() MutableRuleSet {
 	copy(namespace, rs.namespace)
 
 	mappingRules := make([]*mappingRule, len(rs.mappingRules))
-
 	for i, m := range rs.mappingRules {
 		mappingRules[i] = m.clone()
 	}
@@ -773,6 +772,7 @@ func (rs ruleSet) Clone() MutableRuleSet {
 	// as they are not useful for the MutableRuleSet.
 	return MutableRuleSet(&ruleSet{
 		uuid:               rs.uuid,
+		version:            rs.version,
 		createdAtNanos:     rs.createdAtNanos,
 		lastUpdatedAtNanos: rs.lastUpdatedAtNanos,
 		tombstoned:         rs.tombstoned,
@@ -780,6 +780,9 @@ func (rs ruleSet) Clone() MutableRuleSet {
 		namespace:          namespace,
 		mappingRules:       mappingRules,
 		rollupRules:        rollupRules,
+		tagsFilterOpts:     rs.tagsFilterOpts,
+		newRollupIDFn:      rs.newRollupIDFn,
+		isRollupIDFn:       rs.isRollupIDFn,
 	})
 }
 

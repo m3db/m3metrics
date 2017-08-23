@@ -104,6 +104,7 @@ func (mrs mappingRuleSnapshot) clone() *mappingRuleSnapshot {
 		cutoverNanos: mrs.cutoverNanos,
 		rawFilters:   filters,
 		policies:     policies,
+		filter:       mrs.filter,
 	}
 }
 

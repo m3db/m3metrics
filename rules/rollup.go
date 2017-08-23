@@ -249,6 +249,7 @@ func (rrs rollupRuleSnapshot) clone() *rollupRuleSnapshot {
 		cutoverNanos: rrs.cutoverNanos,
 		rawFilters:   filters,
 		targets:      targets,
+		filter:       rrs.filter,
 	}
 }
 

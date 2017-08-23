@@ -2562,6 +2562,24 @@ func TestReviveRuleSet(t *testing.T) {
 	}
 }
 
+func TestRuleSetClone(t *testing.T) {
+	mutable, rs, _, _ := initMutableTest()
+	rsClone := mutable.Clone().(*ruleSet)
+
+	require.Equal(t, rsClone, rs)
+	for i, m := range rs.mappingRules {
+		require.False(t, m == rsClone.mappingRules[i])
+	}
+	for i, r := range rs.rollupRules {
+		require.False(t, r == rsClone.rollupRules[i])
+	}
+
+	rsClone.mappingRules = []*mappingRule{}
+	rsClone.rollupRules = []*rollupRule{}
+	require.NotEqual(t, rs.mappingRules, rsClone.mappingRules)
+	require.NotEqual(t, rs.rollupRules, rsClone.rollupRules)
+}
+
 type testMappingsData struct {
 	id            string
 	matchFrom     int64
