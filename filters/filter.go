@@ -642,7 +642,7 @@ func (f immutableFilter) String() string {
 }
 
 func (f immutableFilter) Matches(val []byte) bool {
-	return f.f.Matches([]byte(val))
+	return f.f.Matches(val)
 }
 
 func (f immutableFilter) Clone() Filter {
