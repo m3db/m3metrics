@@ -156,7 +156,7 @@ func (rrsj rollupRuleSnapshotJSON) rollupRuleSnapshot() *rollupRuleSnapshot {
 }
 
 // Schema returns the schema representation of a rollup target.
-func (t RollupTarget) Schema() (*schema.RollupTarget, error) {
+func (t *RollupTarget) Schema() (*schema.RollupTarget, error) {
 	res := &schema.RollupTarget{
 		Name: string(t.Name),
 	}
@@ -234,27 +234,28 @@ func newRollupRuleSnapshotFromFields(
 	}
 }
 
-func (rrs rollupRuleSnapshot) clone() rollupRuleSnapshot {
-	filters := make(map[string]string, len(rrs.rawFilters))
+func (rrs *rollupRuleSnapshot) clone() rollupRuleSnapshot {
+	rawFilters := make(map[string]string, len(rrs.rawFilters))
 	for k, v := range rrs.rawFilters {
-		filters[k] = v
+		rawFilters[k] = v
 	}
 	targets := make([]RollupTarget, len(rrs.targets))
 	for i, t := range rrs.targets {
 		targets[i] = t.clone()
 	}
+	filter := rrs.filter.Clone()
 	return rollupRuleSnapshot{
 		name:         rrs.name,
 		tombstoned:   rrs.tombstoned,
 		cutoverNanos: rrs.cutoverNanos,
-		filter:       rrs.filter,
+		filter:       filter,
 		targets:      targets,
-		rawFilters:   filters,
+		rawFilters:   rawFilters,
 	}
 }
 
 // Schema returns the given MappingRuleSnapshot in protobuf form.
-func (rrs rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
+func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 	res := &schema.RollupRuleSnapshot{
 		Name:        rrs.name,
 		Tombstoned:  rrs.tombstoned,
@@ -456,7 +457,7 @@ func (rrj rollupRuleJSON) rollupRule() rollupRule {
 }
 
 // Schema returns the given RollupRule in protobuf form.
-func (rc rollupRule) Schema() (*schema.RollupRule, error) {
+func (rc *rollupRule) Schema() (*schema.RollupRule, error) {
 	res := &schema.RollupRule{
 		Uuid: rc.uuid,
 	}

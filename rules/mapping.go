@@ -91,19 +91,20 @@ func newMappingRuleSnapshotFromFields(
 	}
 }
 
-func (mrs mappingRuleSnapshot) clone() mappingRuleSnapshot {
-	filters := make(map[string]string, len(mrs.rawFilters))
+func (mrs *mappingRuleSnapshot) clone() mappingRuleSnapshot {
+	rawFilters := make(map[string]string, len(mrs.rawFilters))
 	for k, v := range mrs.rawFilters {
-		filters[k] = v
+		rawFilters[k] = v
 	}
 	policies := make([]policy.Policy, len(mrs.policies))
 	copy(policies, mrs.policies)
+	filter := mrs.filter.Clone()
 	return mappingRuleSnapshot{
 		name:         mrs.name,
 		tombstoned:   mrs.tombstoned,
 		cutoverNanos: mrs.cutoverNanos,
-		filter:       mrs.filter,
-		rawFilters:   filters,
+		filter:       filter,
+		rawFilters:   rawFilters,
 		policies:     policies,
 	}
 }
@@ -138,7 +139,7 @@ func (mrsj mappingRuleSnapshotJSON) mappingRuleSnapshot() *mappingRuleSnapshot {
 }
 
 // Schema returns the given MappingRuleSnapshot in protobuf form.
-func (mrs mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
+func (mrs *mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
 	res := &schema.MappingRuleSnapshot{
 		Name:        mrs.name,
 		Tombstoned:  mrs.tombstoned,
@@ -199,7 +200,7 @@ func newMappingRuleFromFields(
 	return &mr, nil
 }
 
-func (mc mappingRule) clone() mappingRule {
+func (mc *mappingRule) clone() mappingRule {
 	snapshots := make([]*mappingRuleSnapshot, len(mc.snapshots))
 	for i, s := range mc.snapshots {
 		c := s.clone()
@@ -338,7 +339,7 @@ func (mrj mappingRuleJSON) mappingRule() mappingRule {
 }
 
 // Schema returns the given MappingRule in protobuf form.
-func (mc mappingRule) Schema() (*schema.MappingRule, error) {
+func (mc *mappingRule) Schema() (*schema.MappingRule, error) {
 	res := &schema.MappingRule{
 		Uuid: mc.uuid,
 	}
