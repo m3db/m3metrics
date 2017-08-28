@@ -91,10 +91,10 @@ type BufferedEncoderPool interface {
 // BufferedEncoderPoolOptions provides options for buffered encoder pools.
 type BufferedEncoderPoolOptions interface {
 	// SetMaxCapacity sets the maximum capacity of buffers that can be returned to the pool.
-	SetMaxCapacity(value int64) BufferedEncoderPoolOptions
+	SetMaxCapacity(value int) BufferedEncoderPoolOptions
 
 	// MaxBufferCapacity returns the maximum capacity of buffers that can be returned to the pool.
-	MaxCapacity() int64
+	MaxCapacity() int
 
 	// SetObjectPoolOptions sets the object pool options.
 	SetObjectPoolOptions(value pool.ObjectPoolOptions) BufferedEncoderPoolOptions

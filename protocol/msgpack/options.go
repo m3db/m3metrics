@@ -20,8 +20,11 @@
 
 package msgpack
 
-import xpool "github.com/m3db/m3x/pool"
-import "math"
+import (
+	"math"
+
+	xpool "github.com/m3db/m3x/pool"
+)
 
 const (
 	// The maximum capacity of buffers that can be returned to the buffered
@@ -49,7 +52,7 @@ const (
 )
 
 type bufferedEncoderPoolOptions struct {
-	maxCapacity int64
+	maxCapacity int
 	poolOpts    xpool.ObjectPoolOptions
 }
 
@@ -61,13 +64,13 @@ func NewBufferedEncoderPoolOptions() BufferedEncoderPoolOptions {
 	}
 }
 
-func (o *bufferedEncoderPoolOptions) SetMaxCapacity(value int64) BufferedEncoderPoolOptions {
+func (o *bufferedEncoderPoolOptions) SetMaxCapacity(value int) BufferedEncoderPoolOptions {
 	opts := *o
 	opts.maxCapacity = value
 	return &opts
 }
 
-func (o *bufferedEncoderPoolOptions) MaxCapacity() int64 {
+func (o *bufferedEncoderPoolOptions) MaxCapacity() int {
 	return o.maxCapacity
 }
 
