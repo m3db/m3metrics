@@ -88,6 +88,21 @@ type BufferedEncoderPool interface {
 	Put(enc BufferedEncoder)
 }
 
+// BufferedEncoderPoolOptions provides options for buffered encoder pools.
+type BufferedEncoderPoolOptions interface {
+	// SetMaxBufferCapacity sets the maximum buffer capacity.
+	SetMaxBufferCapacity(value int) BufferedEncoderPoolOptions
+
+	// MaxBufferCapacity returns the maximum buffer capacity.
+	MaxBufferCapacity() int
+
+	// SetObjectPoolOptions sets the object pool options.
+	SetObjectPoolOptions(value pool.ObjectPoolOptions) BufferedEncoderPoolOptions
+
+	// ObjectPoolOptions returns the object pool options.
+	ObjectPoolOptions() pool.ObjectPoolOptions
+}
+
 // encoderBase is the base encoder interface.
 type encoderBase interface {
 	// Encoder returns the encoder.

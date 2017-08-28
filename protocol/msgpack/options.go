@@ -23,6 +23,11 @@ package msgpack
 import xpool "github.com/m3db/m3x/pool"
 
 const (
+	// The maximum capacity of buffers that can be returned to the buffered
+	// encoder pool. A value of 0 indicates no maximum so all buffered
+	// encoders will be returned to the pool.
+	defaultBufferedEncoderPoolMaxCapacity = 0
+
 	// Whether the iterator should ignore higher-than-supported version
 	// by default for unaggregated iterator.
 	defaultUnaggregatedIgnoreHigherVersion = false
@@ -41,6 +46,39 @@ const (
 	// Default reader buffer size for the aggregated iterator.
 	defaultAggregatedReaderBufferSize = 1440
 )
+
+type bufferedEncoderPoolOptions struct {
+	maxBufferCapacity int
+	poolOpts          xpool.ObjectPoolOptions
+}
+
+// NewBufferedEncoderPoolOptions creates a new set of buffered encoder pool options.
+func NewBufferedEncoderPoolOptions() BufferedEncoderPoolOptions {
+	return &bufferedEncoderPoolOptions{
+		maxBufferCapacity: defaultBufferedEncoderPoolMaxCapacity,
+		poolOpts:          xpool.NewObjectPoolOptions(),
+	}
+}
+
+func (o *bufferedEncoderPoolOptions) SetMaxBufferCapacity(value int) BufferedEncoderPoolOptions {
+	opts := *o
+	opts.maxBufferCapacity = value
+	return &opts
+}
+
+func (o *bufferedEncoderPoolOptions) MaxBufferCapacity() int {
+	return o.maxBufferCapacity
+}
+
+func (o *bufferedEncoderPoolOptions) SetObjectPoolOptions(value xpool.ObjectPoolOptions) BufferedEncoderPoolOptions {
+	opts := *o
+	opts.poolOpts = value
+	return &opts
+}
+
+func (o *bufferedEncoderPoolOptions) ObjectPoolOptions() xpool.ObjectPoolOptions {
+	return o.poolOpts
+}
 
 type unaggregatedIteratorOptions struct {
 	ignoreHigherVersion bool
