@@ -28,8 +28,7 @@ import (
 
 const (
 	// The maximum capacity of buffers that can be returned to the buffered
-	// encoder pool. A value of 0 indicates no maximum so all buffered
-	// encoders will be returned to the pool.
+	// encoder pool.
 	defaultBufferedEncoderPoolMaxCapacity = math.MaxInt64
 
 	// Whether the iterator should ignore higher-than-supported version
