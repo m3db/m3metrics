@@ -23,15 +23,15 @@ package msgpack
 import "github.com/m3db/m3x/pool"
 
 type bufferedEncoderPool struct {
-	maxBufferCapacity int
-	pool              pool.ObjectPool
+	maxCapacity int64
+	pool        pool.ObjectPool
 }
 
 // NewBufferedEncoderPool creates a new pool for buffered encoders.
 func NewBufferedEncoderPool(opts BufferedEncoderPoolOptions) BufferedEncoderPool {
 	return &bufferedEncoderPool{
-		maxBufferCapacity: opts.MaxBufferCapacity(),
-		pool:              pool.NewObjectPool(opts.ObjectPoolOptions()),
+		maxCapacity: opts.MaxCapacity(),
+		pool:        pool.NewObjectPool(opts.ObjectPoolOptions()),
 	}
 }
 
@@ -46,7 +46,7 @@ func (p *bufferedEncoderPool) Get() BufferedEncoder {
 }
 
 func (p *bufferedEncoderPool) Put(encoder BufferedEncoder) {
-	if p.maxBufferCapacity != 0 && cap(encoder.Buffer().Bytes()) > p.maxBufferCapacity {
+	if int64(encoder.Buffer().Cap()) > p.maxCapacity {
 		return
 	}
 	p.pool.Put(encoder)

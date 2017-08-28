@@ -21,7 +21,6 @@
 package msgpack
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/m3db/m3x/pool"
@@ -59,7 +58,7 @@ func TestBufferedEncoderPool(t *testing.T) {
 func TestBufferedEncoderPoolMaxCapacity(t *testing.T) {
 	poolOpts := pool.NewObjectPoolOptions().SetSize(1)
 	opts := NewBufferedEncoderPoolOptions().
-		SetMaxBufferCapacity(2).
+		SetMaxCapacity(2).
 		SetObjectPoolOptions(poolOpts)
 
 	p := NewBufferedEncoderPool(opts)
@@ -78,6 +77,5 @@ func TestBufferedEncoderPoolMaxCapacity(t *testing.T) {
 	// Retrieve an encoder and assert it's a different encoder since
 	// the previous one exceeded the maximum capacity of the pool.
 	encoder = p.Get()
-	fmt.Println(encoder.Buffer().Len())
-	require.Equal(t, 0, encoder.Buffer().Len())
+	require.Equal(t, 0, encoder.Buffer().Cap())
 }

@@ -21,12 +21,13 @@
 package msgpack
 
 import xpool "github.com/m3db/m3x/pool"
+import "math"
 
 const (
 	// The maximum capacity of buffers that can be returned to the buffered
 	// encoder pool. A value of 0 indicates no maximum so all buffered
 	// encoders will be returned to the pool.
-	defaultBufferedEncoderPoolMaxCapacity = 0
+	defaultBufferedEncoderPoolMaxCapacity = math.MaxInt64
 
 	// Whether the iterator should ignore higher-than-supported version
 	// by default for unaggregated iterator.
@@ -48,26 +49,26 @@ const (
 )
 
 type bufferedEncoderPoolOptions struct {
-	maxBufferCapacity int
-	poolOpts          xpool.ObjectPoolOptions
+	maxCapacity int64
+	poolOpts    xpool.ObjectPoolOptions
 }
 
 // NewBufferedEncoderPoolOptions creates a new set of buffered encoder pool options.
 func NewBufferedEncoderPoolOptions() BufferedEncoderPoolOptions {
 	return &bufferedEncoderPoolOptions{
-		maxBufferCapacity: defaultBufferedEncoderPoolMaxCapacity,
-		poolOpts:          xpool.NewObjectPoolOptions(),
+		maxCapacity: defaultBufferedEncoderPoolMaxCapacity,
+		poolOpts:    xpool.NewObjectPoolOptions(),
 	}
 }
 
-func (o *bufferedEncoderPoolOptions) SetMaxBufferCapacity(value int) BufferedEncoderPoolOptions {
+func (o *bufferedEncoderPoolOptions) SetMaxCapacity(value int64) BufferedEncoderPoolOptions {
 	opts := *o
-	opts.maxBufferCapacity = value
+	opts.maxCapacity = value
 	return &opts
 }
 
-func (o *bufferedEncoderPoolOptions) MaxBufferCapacity() int {
-	return o.maxBufferCapacity
+func (o *bufferedEncoderPoolOptions) MaxCapacity() int64 {
+	return o.maxCapacity
 }
 
 func (o *bufferedEncoderPoolOptions) SetObjectPoolOptions(value xpool.ObjectPoolOptions) BufferedEncoderPoolOptions {
