@@ -22,7 +22,6 @@ package rules
 
 import (
 	"bytes"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -626,44 +625,6 @@ func TestRuleSetProperties(t *testing.T) {
 	require.Equal(t, int64(34923), ruleSet.CutoverNanos())
 	require.Equal(t, false, ruleSet.Tombstoned())
 }
-
-func TestRuleSetMarshalJSON(t *testing.T) {
-	opts := testRuleSetOptions()
-	version := 1
-
-	newRuleSet, err := NewRuleSetFromSchema(version, marshalTestSchema, opts)
-	require.NoError(t, err)
-
-	res, err := json.Marshal(newRuleSet)
-	require.NoError(t, err)
-
-	var bb bytes.Buffer
-	err = json.Compact(&bb, []byte(marshalTestString))
-	require.NoError(t, err)
-
-	require.Equal(t, bb.String(), string(res))
-}
-
-func TestRuleSetUnmarshalJSON(t *testing.T) {
-	version := 1
-	newRuleSet, err := newMutableRuleSetFromSchema(version, marshalTestSchema)
-	require.NoError(t, err)
-
-	data, err := json.Marshal(newRuleSet)
-	require.NoError(t, err)
-	var rs ruleSet
-	err = json.Unmarshal(data, &rs)
-	require.NoError(t, err)
-
-	expected, err := newRuleSet.Schema()
-	require.NoError(t, err)
-
-	actual, err := rs.Schema()
-	require.NoError(t, err)
-
-	require.Equal(t, expected, actual)
-}
-
 func TestRuleSetSchema(t *testing.T) {
 	version := 1
 

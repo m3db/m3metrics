@@ -73,19 +73,29 @@ func NewRollupTargetFromFields(name string, tags []string, policies []policy.Pol
 	return RollupTarget{Name: []byte(name), Tags: bytesArrayFromStringArray(tags), Policies: policies}
 }
 
-type rollupTargetJSON struct {
-	Name     string          `json:"name"`
-	Tags     []string        `json:"tags"`
-	Policies []policy.Policy `json:"policies"`
+// RollupTargetView is a human friendly representation of a rollup rule target at a given point in time.
+type RollupTargetView struct {
+	name     string
+	tags     []string
+	policies []policy.Policy
 }
 
-func newRollupTargetJSON(rt RollupTarget) rollupTargetJSON {
-	return rollupTargetJSON{Name: string(rt.Name), Tags: stringArrayFromBytesArray(rt.Tags), Policies: rt.Policies}
+func newRollupTargetView(target RollupTarget) RollupTargetView {
+	return RollupTargetView{
+		name:     string(target.Name),
+		tags:     stringArrayFromBytesArray(target.Tags),
+		policies: target.Policies,
+	}
 }
 
-func (tj rollupTargetJSON) rollupTarget() RollupTarget {
-	return NewRollupTargetFromFields(tj.Name, tj.Tags, tj.Policies)
-}
+// Name returnes the name in a rollup target view.
+func (tv RollupTargetView) Name() string { return tv.name }
+
+// Tags returnes the tags in a rollup target view.
+func (tv RollupTargetView) Tags() []string { return tv.tags }
+
+// Policies returnes the policies in a rollup target view.
+func (tv RollupTargetView) Policies() []policy.Policy { return tv.policies }
 
 // sameTransform determines whether two targets have the same transformation.
 func (t *RollupTarget) sameTransform(other RollupTarget) bool {
@@ -114,45 +124,6 @@ func (t *RollupTarget) clone() RollupTarget {
 		Tags:     bytesArrayCopy(t.Tags),
 		Policies: policies,
 	}
-}
-
-type rollupRuleSnapshotJSON struct {
-	Name         string             `json:"name"`
-	Tombstoned   bool               `json:"tombstoned"`
-	CutoverNanos int64              `json:"cutoverNanos"`
-	TagFilters   map[string]string  `json:"filters"`
-	Targets      []rollupTargetJSON `json:"targets"`
-}
-
-func newRollupRuleSnapshotJSON(rrs rollupRuleSnapshot) rollupRuleSnapshotJSON {
-	targets := make([]rollupTargetJSON, len(rrs.targets))
-	for i, t := range rrs.targets {
-		targets[i] = newRollupTargetJSON(t)
-	}
-
-	return rollupRuleSnapshotJSON{
-		Name:         rrs.name,
-		Tombstoned:   rrs.tombstoned,
-		CutoverNanos: rrs.cutoverNanos,
-		TagFilters:   rrs.rawFilters,
-		Targets:      targets,
-	}
-}
-
-func (rrsj rollupRuleSnapshotJSON) rollupRuleSnapshot() *rollupRuleSnapshot {
-	targets := make([]RollupTarget, len(rrsj.Targets))
-	for i, t := range rrsj.Targets {
-		targets[i] = t.rollupTarget()
-	}
-
-	return newRollupRuleSnapshotFromFields(
-		rrsj.Name,
-		rrsj.Tombstoned,
-		rrsj.CutoverNanos,
-		rrsj.TagFilters,
-		targets,
-		nil,
-	)
 }
 
 // Schema returns the schema representation of a rollup target.
@@ -275,6 +246,44 @@ func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 
 	return res, nil
 }
+
+// RollupRuleView is a human friendly representation of a rollup rule at a given point in time.
+type RollupRuleView struct {
+	id           string
+	name         string
+	cutoverNanos int64
+	filters      map[string]string
+	targets      []RollupTargetView
+}
+
+func newRollupRuleView(uuid string, rrs rollupRuleSnapshot) RollupRuleView {
+	targets := make([]RollupTargetView, len(rrs.targets))
+	for i, t := range rrs.targets {
+		targets[i] = newRollupTargetView(t)
+	}
+	return RollupRuleView{
+		id:           uuid,
+		name:         rrs.name,
+		cutoverNanos: rrs.cutoverNanos,
+		filters:      rrs.rawFilters,
+		targets:      targets,
+	}
+}
+
+// ID returns the ID in a rollup rule view
+func (rrv RollupRuleView) ID() string { return rrv.id }
+
+// Name returns the name in a rollup rule view
+func (rrv RollupRuleView) Name() string { return rrv.name }
+
+// CutoverNanos returnes the cutoverNanos in a rollup rule view
+func (rrv RollupRuleView) CutoverNanos() int64 { return rrv.cutoverNanos }
+
+// Filters returnes the filters in a rollup rule view
+func (rrv RollupRuleView) Filters() map[string]string { return rrv.filters }
+
+// Targets returnes the policies in a rollup rule view
+func (rrv RollupRuleView) Targets() []RollupTargetView { return rrv.targets }
 
 // rollupRule stores rollup rule snapshots.
 type rollupRule struct {
@@ -429,31 +438,13 @@ func (rc *rollupRule) revive(
 	return rc.addSnapshot(name, rawFilters, targets, cutoverTime)
 }
 
-type rollupRuleJSON struct {
-	UUID      string                   `json:"uuid"`
-	Snapshots []rollupRuleSnapshotJSON `json:"snapshots"`
-}
-
-func newRollupRuleJSON(rc rollupRule) rollupRuleJSON {
-	snapshots := make([]rollupRuleSnapshotJSON, len(rc.snapshots))
+func (rc *rollupRule) history() []RollupRuleView {
+	views := make([]RollupRuleView, len(rc.snapshots))
 	for i, s := range rc.snapshots {
-		snapshots[i] = newRollupRuleSnapshotJSON(*s)
+		views[i] = newRollupRuleView(rc.uuid, *s)
 	}
-	return rollupRuleJSON{
-		UUID:      rc.uuid,
-		Snapshots: snapshots,
-	}
-}
 
-func (rrj rollupRuleJSON) rollupRule() rollupRule {
-	snapshots := make([]*rollupRuleSnapshot, len(rrj.Snapshots))
-	for i, s := range rrj.Snapshots {
-		snapshots[i] = s.rollupRuleSnapshot()
-	}
-	return rollupRule{
-		uuid:      rrj.UUID,
-		snapshots: snapshots,
-	}
+	return views
 }
 
 // Schema returns the given RollupRule in protobuf form.

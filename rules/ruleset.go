@@ -22,7 +22,6 @@ package rules
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -438,6 +437,14 @@ func (as *activeRuleSet) cutoverNanosAt(idx int) int64 {
 	return timeNanosMax
 }
 
+// MappingRules belonging to a ruleset indexed by uuid.
+// Each value contains the entire snapshot history of the rule.
+type MappingRules map[string][]MappingRuleView
+
+// RollupRules belonging to a ruleset indexed by uuid.
+// Each value contains the entire snapshot history of the rule.
+type RollupRules map[string][]RollupRuleView
+
 // RuleSet is a set of rules associated with a namespace.
 type RuleSet interface {
 	// Namespace is the metrics namespace the ruleset applies to.
@@ -452,8 +459,20 @@ type RuleSet interface {
 	// TombStoned returns whether the ruleset is tombstoned.
 	Tombstoned() bool
 
+	// CreatedAtNanos returns the creation time for this ruleset.
+	CreatedAtNanos() int64
+
+	// LastUpdatedAtNanos returns the time when this ruleset was last updated.
+	LastUpdatedAtNanos() int64
+
 	// ActiveSet returns the active ruleset at a given time.
 	ActiveSet(timeNanos int64) Matcher
+
+	// MappingRuleHistory returns a map of mapping rule id to states that rule has been in.
+	MappingRules() MappingRules
+
+	// RollupRuleHistory returns a map of rollup rule id to states that rule has been in.
+	RollupRules() RollupRules
 
 	// ToMutableRuleSet returns a mutable version of this ruleset.
 	ToMutableRuleSet() MutableRuleSet
@@ -468,12 +487,6 @@ type MutableRuleSet interface {
 
 	// Clone returns a copy of this MutableRuleSet.
 	Clone() MutableRuleSet
-
-	// MarshalJSON serializes this RuleSet into JSON.
-	MarshalJSON() ([]byte, error)
-
-	// UnmarshalJSON deserializes this RuleSet from JSON.
-	UnmarshalJSON(data []byte) error
 
 	// AppendMappingRule creates a new mapping rule and adds it to this ruleset.
 	AddMappingRule(MappingRuleData) error
@@ -568,10 +581,12 @@ func NewEmptyRuleSet(namespaceName string, meta UpdateMetadata) MutableRuleSet {
 	}
 }
 
-func (rs *ruleSet) Namespace() []byte   { return rs.namespace }
-func (rs *ruleSet) Version() int        { return rs.version }
-func (rs *ruleSet) CutoverNanos() int64 { return rs.cutoverNanos }
-func (rs *ruleSet) Tombstoned() bool    { return rs.tombstoned }
+func (rs *ruleSet) Namespace() []byte         { return rs.namespace }
+func (rs *ruleSet) Version() int              { return rs.version }
+func (rs *ruleSet) CutoverNanos() int64       { return rs.cutoverNanos }
+func (rs *ruleSet) Tombstoned() bool          { return rs.tombstoned }
+func (rs *ruleSet) LastUpdatedAtNanos() int64 { return rs.lastUpdatedAtNanos }
+func (rs *ruleSet) CreatedAtNanos() int64     { return rs.createdAtNanos }
 
 func (rs *ruleSet) ActiveSet(timeNanos int64) Matcher {
 	mappingRules := make([]*mappingRule, 0, len(rs.mappingRules))
@@ -598,7 +613,7 @@ func (rs *ruleSet) ToMutableRuleSet() MutableRuleSet {
 	return rs
 }
 
-// Schema returns the protobuf representation fo a ruleset
+// Schema returns the protobuf representation fo a ruleset.
 func (rs *ruleSet) Schema() (*schema.RuleSet, error) {
 	res := &schema.RuleSet{
 		Uuid:          rs.uuid,
@@ -632,38 +647,20 @@ func (rs *ruleSet) Schema() (*schema.RuleSet, error) {
 	return res, nil
 }
 
-func (rs *ruleSet) Clone() MutableRuleSet {
-	namespace := make([]byte, len(rs.namespace))
-	copy(namespace, rs.namespace)
-
-	mappingRules := make([]*mappingRule, len(rs.mappingRules))
-	for i, m := range rs.mappingRules {
-		c := m.clone()
-		mappingRules[i] = &c
+func (rs *ruleSet) MappingRules() MappingRules {
+	mappingRules := make(MappingRules, len(rs.mappingRules))
+	for _, m := range rs.mappingRules {
+		mappingRules[m.uuid] = m.history()
 	}
+	return mappingRules
+}
 
-	rollupRules := make([]*rollupRule, len(rs.rollupRules))
-	for i, r := range rs.rollupRules {
-		c := r.clone()
-		rollupRules[i] = &c
+func (rs *ruleSet) RollupRules() RollupRules {
+	rollupRules := make(RollupRules, len(rs.rollupRules))
+	for _, r := range rs.rollupRules {
+		rollupRules[r.uuid] = r.history()
 	}
-
-	// this clone deliberately ignores tagFliterOpts and rollupIDFn
-	// as they are not useful for the MutableRuleSet.
-	return MutableRuleSet(&ruleSet{
-		uuid:               rs.uuid,
-		version:            rs.version,
-		createdAtNanos:     rs.createdAtNanos,
-		lastUpdatedAtNanos: rs.lastUpdatedAtNanos,
-		tombstoned:         rs.tombstoned,
-		cutoverNanos:       rs.cutoverNanos,
-		namespace:          namespace,
-		mappingRules:       mappingRules,
-		rollupRules:        rollupRules,
-		tagsFilterOpts:     rs.tagsFilterOpts,
-		newRollupIDFn:      rs.newRollupIDFn,
-		isRollupIDFn:       rs.isRollupIDFn,
-	})
+	return rollupRules
 }
 
 // UpdateMetadata contains fields that should be set with each
@@ -712,6 +709,40 @@ type DeleteData struct {
 	UpdateMetadata
 
 	ID string `json:"id" validate:"nonzero"`
+}
+
+func (rs *ruleSet) Clone() MutableRuleSet {
+	namespace := make([]byte, len(rs.namespace))
+	copy(namespace, rs.namespace)
+
+	mappingRules := make([]*mappingRule, len(rs.mappingRules))
+	for i, m := range rs.mappingRules {
+		c := m.clone()
+		mappingRules[i] = &c
+	}
+
+	rollupRules := make([]*rollupRule, len(rs.rollupRules))
+	for i, r := range rs.rollupRules {
+		c := r.clone()
+		rollupRules[i] = &c
+	}
+
+	// this clone deliberately ignores tagFliterOpts and rollupIDFn
+	// as they are not useful for the MutableRuleSet.
+	return MutableRuleSet(&ruleSet{
+		uuid:               rs.uuid,
+		version:            rs.version,
+		createdAtNanos:     rs.createdAtNanos,
+		lastUpdatedAtNanos: rs.lastUpdatedAtNanos,
+		tombstoned:         rs.tombstoned,
+		cutoverNanos:       rs.cutoverNanos,
+		namespace:          namespace,
+		mappingRules:       mappingRules,
+		rollupRules:        rollupRules,
+		tagsFilterOpts:     rs.tagsFilterOpts,
+		newRollupIDFn:      rs.newRollupIDFn,
+		isRollupIDFn:       rs.isRollupIDFn,
+	})
 }
 
 func (rs *ruleSet) AddMappingRule(mr MappingRuleData) error {
@@ -1067,83 +1098,7 @@ func (a int64Asc) Len() int           { return len(a) }
 func (a int64Asc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a int64Asc) Less(i, j int) bool { return a[i] < a[j] }
 
-// MarshalJSON returns the JSON encoding of staged policies.
-func (rs ruleSet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(newRuleSetJSON(rs))
-}
-
-// UnmarshalJSON unmarshals JSON-encoded data into staged policies.
-func (rs *ruleSet) UnmarshalJSON(data []byte) error {
-	var rsj ruleSetJSON
-	err := json.Unmarshal(data, &rsj)
-	if err != nil {
-		return err
-	}
-	*rs = *rsj.RuleSet()
-	return nil
-}
-
-type ruleSetJSON struct {
-	UUID               string            `json:"uuid"`
-	Version            int               `json:"version"`
-	Namespace          string            `json:"namespace"`
-	CreatedAtNanos     int64             `json:"createdAt"`
-	LastUpdatedAtNanos int64             `json:"lastUpdatedAt"`
-	Tombstoned         bool              `json:"tombstoned"`
-	CutoverNanos       int64             `json:"cutoverNanos"`
-	MappingRules       []mappingRuleJSON `json:"mappingRules"`
-	RollupRules        []rollupRuleJSON  `json:"rollupRules"`
-}
-
-func newRuleSetJSON(rs ruleSet) ruleSetJSON {
-	mappingRuleJSONs := make([]mappingRuleJSON, len(rs.mappingRules))
-	for i, m := range rs.mappingRules {
-		mappingRuleJSONs[i] = newMappingRuleJSON(*m)
-	}
-	rollupRuleJSONs := make([]rollupRuleJSON, len(rs.rollupRules))
-	for i, r := range rs.rollupRules {
-		rollupRuleJSONs[i] = newRollupRuleJSON(*r)
-	}
-
-	return ruleSetJSON{
-		UUID:               rs.uuid,
-		Version:            rs.version,
-		Namespace:          string(rs.namespace),
-		CreatedAtNanos:     rs.createdAtNanos,
-		LastUpdatedAtNanos: rs.lastUpdatedAtNanos,
-		Tombstoned:         rs.tombstoned,
-		CutoverNanos:       rs.cutoverNanos,
-		MappingRules:       mappingRuleJSONs,
-		RollupRules:        rollupRuleJSONs,
-	}
-}
-
-// RuleSet returns a ruleSet representation of a ruleSetJSON
-func (rsj ruleSetJSON) RuleSet() *ruleSet {
-	mappingRules := make([]*mappingRule, len(rsj.MappingRules))
-	for i, m := range rsj.MappingRules {
-		rule := m.mappingRule()
-		mappingRules[i] = &rule
-	}
-
-	rollupRules := make([]*rollupRule, len(rsj.RollupRules))
-	for i, r := range rsj.RollupRules {
-		rule := r.rollupRule()
-		rollupRules[i] = &rule
-	}
-
-	return &ruleSet{
-		uuid:               rsj.UUID,
-		version:            rsj.Version,
-		namespace:          []byte(rsj.Namespace),
-		createdAtNanos:     rsj.CreatedAtNanos,
-		lastUpdatedAtNanos: rsj.LastUpdatedAtNanos,
-		tombstoned:         rsj.Tombstoned,
-		cutoverNanos:       rsj.CutoverNanos,
-		mappingRules:       mappingRules,
-		rollupRules:        rollupRules,
-	}
-}
+// RuleSetView is a view into the current state of the ruleset.
 
 // RuleSetUpdateHelper stores the necessary details to create an UpdateMetadata.
 type RuleSetUpdateHelper struct {
