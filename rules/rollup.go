@@ -249,41 +249,27 @@ func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 
 // RollupRuleView is a human friendly representation of a rollup rule at a given point in time.
 type RollupRuleView struct {
-	id           string
-	name         string
-	cutoverNanos int64
-	filters      map[string]string
-	targets      []RollupTargetView
+	ID           string
+	Name         string
+	CutoverNanos int64
+	Filters      map[string]string
+	Targets      []RollupTargetView
 }
 
 func newRollupRuleView(uuid string, rrs rollupRuleSnapshot) RollupRuleView {
+	rrs = rrs.clone()
 	targets := make([]RollupTargetView, len(rrs.targets))
 	for i, t := range rrs.targets {
 		targets[i] = newRollupTargetView(t)
 	}
 	return RollupRuleView{
-		id:           uuid,
-		name:         rrs.name,
-		cutoverNanos: rrs.cutoverNanos,
-		filters:      rrs.rawFilters,
-		targets:      targets,
+		ID:           uuid,
+		Name:         rrs.name,
+		CutoverNanos: rrs.cutoverNanos,
+		Filters:      rrs.rawFilters,
+		Targets:      targets,
 	}
 }
-
-// ID returns the ID in a rollup rule view
-func (rrv RollupRuleView) ID() string { return rrv.id }
-
-// Name returns the name in a rollup rule view
-func (rrv RollupRuleView) Name() string { return rrv.name }
-
-// CutoverNanos returnes the cutoverNanos in a rollup rule view
-func (rrv RollupRuleView) CutoverNanos() int64 { return rrv.cutoverNanos }
-
-// Filters returnes the filters in a rollup rule view
-func (rrv RollupRuleView) Filters() map[string]string { return rrv.filters }
-
-// Targets returnes the policies in a rollup rule view
-func (rrv RollupRuleView) Targets() []RollupTargetView { return rrv.targets }
 
 // rollupRule stores rollup rule snapshots.
 type rollupRule struct {

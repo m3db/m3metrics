@@ -133,37 +133,23 @@ func (mrs *mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
 
 // MappingRuleView is a human friendly representation of a mapping rule at a given point in time.
 type MappingRuleView struct {
-	id           string
-	name         string
-	cutoverNanos int64
-	tagFilters   map[string]string
-	policies     []policy.Policy
+	ID           string
+	Name         string
+	CutoverNanos int64
+	Filters      map[string]string
+	Policies     []policy.Policy
 }
 
 func newMappingRuleView(uuid string, mrs mappingRuleSnapshot) MappingRuleView {
+	mrs = mrs.clone()
 	return MappingRuleView{
-		id:           uuid,
-		name:         mrs.name,
-		cutoverNanos: mrs.cutoverNanos,
-		tagFilters:   mrs.rawFilters,
-		policies:     mrs.policies,
+		ID:           uuid,
+		Name:         mrs.name,
+		CutoverNanos: mrs.cutoverNanos,
+		Filters:      mrs.rawFilters,
+		Policies:     mrs.policies,
 	}
 }
-
-// ID returns the ID in a mapping rule view
-func (mrv MappingRuleView) ID() string { return mrv.id }
-
-// Name returns the name in a mapping rule view
-func (mrv MappingRuleView) Name() string { return mrv.name }
-
-// CutoverNanos returnes the cutoverNanos in a mapping rule view
-func (mrv MappingRuleView) CutoverNanos() int64 { return mrv.cutoverNanos }
-
-// Filters returnes the filters in a mapping rule view
-func (mrv MappingRuleView) Filters() map[string]string { return mrv.tagFilters }
-
-// Policies returnes the policies in a mapping rule view
-func (mrv MappingRuleView) Policies() []policy.Policy { return mrv.policies }
 
 // mappingRule stores mapping rule snapshots.
 type mappingRule struct {
