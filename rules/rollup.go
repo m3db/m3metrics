@@ -75,29 +75,34 @@ func NewRollupTargetFromFields(name string, tags []string, policies []policy.Pol
 
 // RollupTargetView is a human friendly representation of a rollup rule target at a given point in time.
 type RollupTargetView struct {
-	name     string
-	tags     []string
-	policies []policy.Policy
+	Name     string
+	Tags     []string
+	Policies []policy.Policy
 }
 
 func newRollupTargetView(target RollupTarget) RollupTargetView {
 	return RollupTargetView{
-		name:     string(target.Name),
-		tags:     stringArrayFromBytesArray(target.Tags),
-		policies: target.Policies,
+		Name:     string(target.Name),
+		Tags:     stringArrayFromBytesArray(target.Tags),
+		Policies: target.Policies,
 	}
 }
 
-// Name returnes the name in a rollup target view.
-func (tv RollupTargetView) Name() string { return tv.name }
+func (rtv RollupTargetView) rollupTarget() RollupTarget {
+	return RollupTarget{
+		Name:     []byte(rtv.Name),
+		Tags:     bytesArrayFromStringArray(rtv.Tags),
+		Policies: rtv.Policies}
+}
 
-// Tags returnes the tags in a rollup target view.
-func (tv RollupTargetView) Tags() []string { return tv.tags }
+func rollupTargetViewsToTargets(views []RollupTargetView) []RollupTarget {
+	targets := make([]RollupTarget, len(views))
+	for i, t := range views {
+		targets[i] = t.rollupTarget()
+	}
+	return targets
+}
 
-// Policies returnes the policies in a rollup target view.
-func (tv RollupTargetView) Policies() []policy.Policy { return tv.policies }
-
-// sameTransform determines whether two targets have the same transformation.
 func (t *RollupTarget) sameTransform(other RollupTarget) bool {
 	if !bytes.Equal(t.Name, other.Name) {
 		return false
