@@ -2294,6 +2294,7 @@ func TestAddRollupRule(t *testing.T) {
 
 	res, err := rs.getRollupRuleByName("foo")
 	require.NotEmpty(t, res.uuid)
+
 	require.NoError(t, err)
 }
 
@@ -2394,7 +2395,18 @@ func TestUpdateRollupRule(t *testing.T) {
 	err = mutable.UpdateRollupRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
-	_, err = rs.getRollupRuleByName("foo")
+	// r, err := rs.getRollupRuleByName("foo")
+	// mrs := rs.RollupRules()
+	// require.Contains(t, mrs, rr.uuid)
+	// views := mrs[rr.uuid]
+	// rLen := len(views)
+	// require.True(t, rLen > 0)
+	// r := views[rLen-1]
+	// require.NoError(t, err)
+	// require.Equal(t, r.Name, "foo")
+	// require.Equal(t, r.LastUpdatedAtNanos, now)
+	// require.Equal(t, r.LastUpdatedBy, testUser)
+
 	require.NoError(t, err)
 }
 func TestUpdateRollupRuleDupTarget(t *testing.T) {

@@ -29,7 +29,6 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
-
 	"github.com/pborman/uuid"
 )
 
