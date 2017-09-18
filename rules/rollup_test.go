@@ -294,7 +294,7 @@ func TestNewRollupRuleFromFields(t *testing.T) {
 				},
 			},
 		},
-		12345,
+		UpdateMetadata{12345, 12345, "test_user"},
 	)
 	require.NoError(t, err)
 	expectedSnapshot := rollupRuleSnapshot{

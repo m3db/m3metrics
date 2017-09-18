@@ -206,7 +206,7 @@ func TestNewMappingRuleFromFields(t *testing.T) {
 		"bar",
 		rawFilters,
 		[]policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(10*time.Second, xtime.Second, time.Hour), policy.DefaultAggregationID)},
-		12345,
+		UpdateMetadata{12345, 12345, "test_user"},
 	)
 	require.NoError(t, err)
 	expectedSnapshot := mappingRuleSnapshot{

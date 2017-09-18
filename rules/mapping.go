@@ -200,10 +200,10 @@ func newMappingRuleFromFields(
 	name string,
 	rawFilters map[string]string,
 	policies []policy.Policy,
-	cutoverTime int64,
+	meta UpdateMetadata,
 ) (*mappingRule, error) {
 	mr := mappingRule{uuid: uuid.New()}
-	if err := mr.addSnapshot(name, rawFilters, policies, cutoverTime); err != nil {
+	if err := mr.addSnapshot(name, rawFilters, policies, meta); err != nil {
 		return nil, err
 	}
 	return &mr, nil
@@ -239,21 +239,26 @@ func (mc *mappingRule) Tombstoned() bool {
 	return latest.tombstoned
 }
 
+func (mc *mappingRule) updateMetadata(meta UpdateMetadata) {
+	mc.lastUpdatedAtNanos = meta.updatedAtNanos
+	mc.lastUpdatedBy = meta.updatedBy
+}
+
 func (mc *mappingRule) addSnapshot(
 	name string,
 	rawFilters map[string]string,
 	policies []policy.Policy,
-	cutoverTime int64,
+	meta UpdateMetadata,
 ) error {
 	snapshot := newMappingRuleSnapshotFromFields(
 		name,
 		false,
-		cutoverTime,
+		meta.cutoverNanos,
 		rawFilters,
 		policies,
 		nil,
 	)
-
+	mc.updateMetadata(meta)
 	mc.snapshots = append(mc.snapshots, snapshot)
 	return nil
 }
@@ -281,7 +286,7 @@ func (mc *mappingRule) revive(
 	name string,
 	rawFilters map[string]string,
 	policies []policy.Policy,
-	cutoverTime int64,
+	meta UpdateMetadata,
 ) error {
 	n, err := mc.Name()
 	if err != nil {
@@ -290,7 +295,7 @@ func (mc *mappingRule) revive(
 	if !mc.Tombstoned() {
 		return fmt.Errorf("%s is not tombstoned", n)
 	}
-	return mc.addSnapshot(name, rawFilters, policies, cutoverTime)
+	return mc.addSnapshot(name, rawFilters, policies, meta)
 }
 
 // equal to timeNanos, or nil if not found.

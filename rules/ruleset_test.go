@@ -44,7 +44,8 @@ var (
 	compressedP999, _         = compressor.Compress(policy.AggregationTypes{policy.P999})
 	compressedCountAndMean, _ = compressor.Compress(policy.AggregationTypes{policy.Count, policy.Mean})
 
-	now = time.Now().UnixNano()
+	now      = time.Now().UnixNano()
+	testUser = "test_user"
 )
 
 func TestMatchModeUnmarshalYAML(t *testing.T) {
@@ -2133,10 +2134,14 @@ func TestAddMappingRule(t *testing.T) {
 		Filters:  newFilters,
 		Policies: p,
 	}
+<<<<<<< HEAD
 
 	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(time.Now().UnixNano()))
 	require.NoError(t, err)
 	mrs, err := mutable.MappingRules()
+=======
+	err = mutable.AddMappingRule(view, helper.NewUpdateMetadata(now, testUser))
+>>>>>>> Plumbing last update meta through update functions
 	require.NoError(t, err)
 	require.Contains(t, mrs, newID)
 
@@ -2160,8 +2165,12 @@ func TestAddMappingRuleDup(t *testing.T) {
 		Policies: p,
 	}
 
+<<<<<<< HEAD
 	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(time.Now().UnixNano()))
 	require.Empty(t, newID)
+=======
+	err = mutable.AddMappingRule(view, helper.NewUpdateMetadata(now, testUser))
+>>>>>>> Plumbing last update meta through update functions
 	require.Error(t, err)
 }
 
@@ -2173,7 +2182,7 @@ func TestAddMappingRuleRevive(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, m)
 
-	err = mutable.DeleteMappingRule("mappingRule5", helper.NewUpdateMetadata(now))
+	err = mutable.DeleteMappingRule("mappingRule5", helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
 	newFilters := map[string]string{"test": "bar"}
@@ -2183,11 +2192,15 @@ func TestAddMappingRuleRevive(t *testing.T) {
 		Filters:  newFilters,
 		Policies: p,
 	}
+<<<<<<< HEAD
 	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(time.Now().UnixNano()))
 	require.NoError(t, err)
 
 	mrs, err := mutable.MappingRules()
 	require.Contains(t, mrs, newID)
+=======
+	err = rs.AddMappingRule(view, helper.NewUpdateMetadata(now, testUser))
+>>>>>>> Plumbing last update meta through update functions
 	require.NoError(t, err)
 
 	mr, err := rs.getMappingRuleByID("mappingRule5")
@@ -2214,7 +2227,7 @@ func TestUpdateMappingRule(t *testing.T) {
 		Policies: p,
 	}
 
-	err = mutableClone.UpdateMappingRule(view, helper.NewUpdateMetadata(now))
+	err = mutableClone.UpdateMappingRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
 	res, err := mutableClone.(*ruleSet).getMappingRuleByID("mappingRule5")
@@ -2238,7 +2251,7 @@ func TestDeleteMappingRule(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, m)
 
-	err = mutable.DeleteMappingRule("mappingRule5", helper.NewUpdateMetadata(now))
+	err = mutable.DeleteMappingRule("mappingRule5", helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
 	m, err = rs.getMappingRuleByID("mappingRule5")
@@ -2269,10 +2282,14 @@ func TestAddRollupRule(t *testing.T) {
 		Targets: newTargets,
 	}
 
+<<<<<<< HEAD
 	newID, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(time.Now().UnixNano()))
 	require.NoError(t, err)
 	rrs, err := mutable.RollupRules()
 	require.Contains(t, rrs, newID)
+=======
+	err = mutable.AddRollupRule(view, helper.NewUpdateMetadata(now, testUser))
+>>>>>>> Plumbing last update meta through update functions
 	require.NoError(t, err)
 
 	res, err := rs.getRollupRuleByName("foo")
@@ -2303,8 +2320,12 @@ func TestAddRollupRuleDup(t *testing.T) {
 		Filters: newFilters,
 		Targets: newTargets,
 	}
+<<<<<<< HEAD
 	uuid, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(now))
 	require.Empty(t, uuid)
+=======
+	err = mutable.AddRollupRule(view, helper.NewUpdateMetadata(now, testUser))
+>>>>>>> Plumbing last update meta through update functions
 	require.Error(t, err)
 }
 
@@ -2315,7 +2336,7 @@ func TestReviveRollupRule(t *testing.T) {
 	rr, err := rs.getRollupRuleByID("rollupRule5")
 	require.NoError(t, err)
 
-	err = mutable.DeleteRollupRule(rr.uuid, helper.NewUpdateMetadata(now))
+	err = mutable.DeleteRollupRule(rr.uuid, helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
 	rr, err = rs.getRollupRuleByID("rollupRule5")
@@ -2330,10 +2351,14 @@ func TestReviveRollupRule(t *testing.T) {
 		Filters: snapshot.rawFilters,
 	}
 
+<<<<<<< HEAD
 	uuid, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(now))
 	require.NoError(t, err)
 	require.NotEmpty(t, uuid)
 	hist, err := mutable.RollupRules()
+=======
+	err = mutable.AddRollupRule(view, helper.NewUpdateMetadata(now, testUser))
+>>>>>>> Plumbing last update meta through update functions
 	require.NoError(t, err)
 	require.Contains(t, hist, uuid)
 
@@ -2366,7 +2391,7 @@ func TestUpdateRollupRule(t *testing.T) {
 		Targets: newTargets,
 	}
 
-	err = mutable.UpdateRollupRule(view, helper.NewUpdateMetadata(now))
+	err = mutable.UpdateRollupRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
 	_, err = rs.getRollupRuleByName("foo")
@@ -2397,7 +2422,7 @@ func TestUpdateRollupRuleDupTarget(t *testing.T) {
 		Targets: newTargets,
 	}
 
-	err = mutable.UpdateRollupRule(view, helper.NewUpdateMetadata(now))
+	err = mutable.UpdateRollupRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.Error(t, err)
 }
 
@@ -2408,7 +2433,7 @@ func TestDeleteRollupRule(t *testing.T) {
 	rr, err := rs.getRollupRuleByID("rollupRule5")
 	require.NoError(t, err)
 
-	err = mutable.DeleteRollupRule(rr.uuid, helper.NewUpdateMetadata(now))
+	err = mutable.DeleteRollupRule(rr.uuid, helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
 	rr, err = rs.getRollupRuleByName("rollupRule5.snapshot1")
@@ -2420,7 +2445,7 @@ func TestDeleteRuleset(t *testing.T) {
 	mutable, rs, helper, err := initMutableTest()
 	require.NoError(t, err)
 
-	err = mutable.Delete(helper.NewUpdateMetadata(now))
+	err = mutable.Delete(helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
 	require.True(t, mutable.Tombstoned())
@@ -2437,10 +2462,10 @@ func TestReviveRuleSet(t *testing.T) {
 	mutable, rs, helper, err := initMutableTest()
 	require.NoError(t, err)
 
-	err = mutable.Delete(helper.NewUpdateMetadata(now))
+	err = mutable.Delete(helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
-	err = mutable.Revive(helper.NewUpdateMetadata(now))
+	err = mutable.Revive(helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
 	require.False(t, rs.Tombstoned())

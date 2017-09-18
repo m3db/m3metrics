@@ -724,7 +724,7 @@ func (rs *ruleSet) AddMappingRule(mrv MappingRuleView, meta UpdateMetadata) (str
 			mrv.Name,
 			mrv.Filters,
 			mrv.Policies,
-			meta.cutoverNanos,
+			meta,
 		); err != nil {
 			return "", fmt.Errorf(ruleActionErrorFmt, "add", mrv.Name, err)
 		}
@@ -734,7 +734,7 @@ func (rs *ruleSet) AddMappingRule(mrv MappingRuleView, meta UpdateMetadata) (str
 			mrv.Name,
 			mrv.Filters,
 			mrv.Policies,
-			meta.cutoverNanos,
+			meta,
 		); err != nil {
 			return "", fmt.Errorf(ruleActionErrorFmt, "revive", mrv.Name, err)
 		}
@@ -757,7 +757,7 @@ func (rs *ruleSet) UpdateMappingRule(mrv MappingRuleView, meta UpdateMetadata) e
 		mrv.Name,
 		mrv.Filters,
 		mrv.Policies,
-		meta.cutoverNanos,
+		meta,
 	); err != nil {
 		return fmt.Errorf(ruleActionErrorFmt, "update", mrv.Name, err)
 	}
@@ -793,7 +793,7 @@ func (rs *ruleSet) AddRollupRule(rrv RollupRuleView, meta UpdateMetadata) (strin
 			rrv.Name,
 			rrv.Filters,
 			targets,
-			meta.cutoverNanos,
+			meta,
 		); err != nil {
 			return "", fmt.Errorf(ruleActionErrorFmt, "add", rrv.Name, err)
 		}
@@ -803,7 +803,7 @@ func (rs *ruleSet) AddRollupRule(rrv RollupRuleView, meta UpdateMetadata) (strin
 			rrv.Name,
 			rrv.Filters,
 			targets,
-			meta.cutoverNanos,
+			meta,
 		); err != nil {
 			return "", fmt.Errorf(ruleActionErrorFmt, "revive", rrv.Name, err)
 		}
@@ -827,7 +827,7 @@ func (rs *ruleSet) UpdateRollupRule(rrv RollupRuleView, meta UpdateMetadata) err
 		rrv.Name,
 		rrv.Filters,
 		targets,
-		meta.cutoverNanos,
+		meta,
 	); err != nil {
 		return fmt.Errorf(ruleActionErrorFmt, "update", rrv.Name, err)
 	}
@@ -883,7 +883,8 @@ func (rs *ruleSet) Revive(meta UpdateMetadata) error {
 
 func (rs *ruleSet) updateMetadata(meta UpdateMetadata) {
 	rs.cutoverNanos = meta.cutoverNanos
-	rs.lastUpdatedAtNanos = meta.lastUpdatedAtNanos
+	rs.lastUpdatedAtNanos = meta.updatedAtNanos
+	rs.lastUpdatedBy = meta.updatedBy
 }
 
 func (rs ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
@@ -1069,14 +1070,15 @@ func NewRuleSetUpdateHelper(propagationDelay time.Duration) RuleSetUpdateHelper 
 // UpdateMetadata contains descriptive information that needs to be updated
 // with any modification of the ruleset.
 type UpdateMetadata struct {
-	cutoverNanos       int64
-	lastUpdatedAtNanos int64
+	cutoverNanos   int64
+	updatedAtNanos int64
+	updatedBy      string
 }
 
 // NewUpdateMetadata creates a properly initialized UpdateMetadata object.
-func (r RuleSetUpdateHelper) NewUpdateMetadata(updateTime int64) UpdateMetadata {
+func (r RuleSetUpdateHelper) NewUpdateMetadata(updateTime int64, updatedBy string) UpdateMetadata {
 	cutoverNanos := updateTime + int64(r.propagationDelay)
-	return UpdateMetadata{lastUpdatedAtNanos: updateTime, cutoverNanos: cutoverNanos}
+	return UpdateMetadata{updatedAtNanos: updateTime, cutoverNanos: cutoverNanos, updatedBy: updatedBy}
 }
 
 // RuleConflictError is returned when a rule modification is made that would conflict with the current state.
