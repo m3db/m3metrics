@@ -612,7 +612,7 @@ func (rs *ruleSet) ToMutableRuleSet() MutableRuleSet {
 	return rs
 }
 
-// Schema returns the protobuf representation fo a ruleset.
+// Schema returns the protobuf representation of a ruleset.
 func (rs *ruleSet) Schema() (*schema.RuleSet, error) {
 	res := &schema.RuleSet{
 		Uuid:          rs.uuid,
