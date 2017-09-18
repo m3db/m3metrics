@@ -2073,8 +2073,7 @@ func TestMappingRules(t *testing.T) {
 		require.Contains(t, mr, v.uuid)
 		if len(v.snapshots) > 0 {
 			lastIdx := len(v.snapshots) - 1
-			view, _ := mr[v.uuid]
-			require.Equal(t, view[lastIdx], newMappingRuleView(v.uuid, *v.snapshots[lastIdx]))
+			require.Equal(t, mr[v.uuid][lastIdx], newMappingRuleView(v.uuid, *v.snapshots[lastIdx]))
 		}
 	}
 
@@ -2089,9 +2088,8 @@ func TestRollupRules(t *testing.T) {
 	for _, v := range rs.rollupRules {
 		require.Contains(t, rr, v.uuid)
 		lastIdx := len(v.snapshots) - 1
-		view, _ := rr[v.uuid]
 		if len(v.snapshots) > 0 {
-			require.Equal(t, view[lastIdx], newRollupRuleView(v.uuid, *v.snapshots[lastIdx]))
+			require.Equal(t, rr[v.uuid][lastIdx], newRollupRuleView(v.uuid, *v.snapshots[lastIdx]))
 		}
 	}
 
