@@ -2064,6 +2064,40 @@ func newMutableRuleSetFromSchema(version int, rs *schema.RuleSet) (MutableRuleSe
 	return roRuleSet.(*ruleSet), nil
 }
 
+func TestMappingRules(t *testing.T) {
+	_, rs, _, err := initMutableTest()
+	require.NoError(t, err)
+
+	mr := rs.MappingRules()
+	for _, v := range rs.mappingRules {
+		require.Contains(t, mr, v.uuid)
+		if len(v.snapshots) > 0 {
+			lastIdx := len(v.snapshots) - 1
+			view, _ := mr[v.uuid]
+			require.Equal(t, view[lastIdx], newMappingRuleView(v.uuid, *v.snapshots[lastIdx]))
+		}
+	}
+
+	require.NotNil(t, mr)
+}
+
+func TestRollupRules(t *testing.T) {
+	_, rs, _, err := initMutableTest()
+	require.NoError(t, err)
+
+	rr := rs.RollupRules()
+	for _, v := range rs.rollupRules {
+		require.Contains(t, rr, v.uuid)
+		lastIdx := len(v.snapshots) - 1
+		view, _ := rr[v.uuid]
+		if len(v.snapshots) > 0 {
+			require.Equal(t, view[lastIdx], newRollupRuleView(v.uuid, *v.snapshots[lastIdx]))
+		}
+	}
+
+	require.NotNil(t, rr)
+}
+
 func TestAddMappingRule(t *testing.T) {
 	mutable, rs, helper, err := initMutableTest()
 	require.NoError(t, err)
