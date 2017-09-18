@@ -2068,6 +2068,7 @@ func TestMappingRules(t *testing.T) {
 	_, rs, _, err := initMutableTest()
 	require.NoError(t, err)
 
+<<<<<<< HEAD
 	mr, err := rs.MappingRules()
 	require.NoError(t, err)
 	for _, m := range rs.mappingRules {
@@ -2075,6 +2076,17 @@ func TestMappingRules(t *testing.T) {
 		mrv, err := m.mappingRuleView(len(m.snapshots) - 1)
 		require.NoError(t, err)
 		require.Equal(t, mr[m.uuid][0], mrv)
+=======
+	mr := rs.MappingRules()
+	for _, v := range rs.mappingRules {
+		require.Contains(t, mr, v.uuid)
+		if len(v.snapshots) > 0 {
+			lastIdx := len(v.snapshots) - 1
+			mrv, err := newMappingRuleView(v, lastIdx)
+			require.NoError(t, err)
+			require.Equal(t, mr[v.uuid][lastIdx], mrv)
+		}
+>>>>>>> Adding LastUpdatedBy and LastUpdatedAtNanos to rule proto.
 	}
 
 	require.NotNil(t, mr)
@@ -2084,6 +2096,7 @@ func TestRollupRules(t *testing.T) {
 	_, rs, _, err := initMutableTest()
 	require.NoError(t, err)
 
+<<<<<<< HEAD
 	rr, err := rs.RollupRules()
 	require.NoError(t, err)
 	for _, r := range rs.rollupRules {
@@ -2091,6 +2104,17 @@ func TestRollupRules(t *testing.T) {
 		rrv, err := r.rollupRuleView(len(r.snapshots) - 1)
 		require.NoError(t, err)
 		require.Equal(t, rr[r.uuid][0], rrv)
+=======
+	rr := rs.RollupRules()
+	for _, r := range rs.rollupRules {
+		require.Contains(t, rr, r.uuid)
+		lastIdx := len(r.snapshots) - 1
+		if len(r.snapshots) > 0 {
+			rrv, err := newRollupRuleView(r, lastIdx)
+			require.NoError(t, err)
+			require.Equal(t, rr[r.uuid][lastIdx], rrv)
+		}
+>>>>>>> Adding LastUpdatedBy and LastUpdatedAtNanos to rule proto.
 	}
 
 	require.NotNil(t, rr)

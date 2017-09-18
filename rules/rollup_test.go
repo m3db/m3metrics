@@ -379,7 +379,11 @@ func TestRollupRuleSnapshotClone(t *testing.T) {
 func TestNewRollupRuleView(t *testing.T) {
 	rr, err := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
 	require.NoError(t, err)
+<<<<<<< HEAD
 	actual, err := rr.rollupRuleView(0)
+=======
+	actual, err := newRollupRuleView(rr, 0)
+>>>>>>> Adding LastUpdatedBy and LastUpdatedAtNanos to rule proto.
 	require.NoError(t, err)
 
 	p, _ := policy.ParsePolicy("10s:24h")

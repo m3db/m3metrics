@@ -521,6 +521,7 @@ type ruleSet struct {
 	namespace          []byte
 	createdAtNanos     int64
 	lastUpdatedAtNanos int64
+	lastUpdatedBy      string
 	tombstoned         bool
 	cutoverNanos       int64
 	mappingRules       []*mappingRule
@@ -558,6 +559,7 @@ func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSe
 		namespace:          []byte(rs.Namespace),
 		createdAtNanos:     rs.CreatedAt,
 		lastUpdatedAtNanos: rs.LastUpdatedAt,
+		lastUpdatedBy:      rs.LastUpdatedBy,
 		tombstoned:         rs.Tombstoned,
 		cutoverNanos:       rs.CutoverTime,
 		mappingRules:       mappingRules,
@@ -695,6 +697,7 @@ func (rs *ruleSet) Clone() MutableRuleSet {
 		version:            rs.version,
 		createdAtNanos:     rs.createdAtNanos,
 		lastUpdatedAtNanos: rs.lastUpdatedAtNanos,
+		lastUpdatedBy:      rs.lastUpdatedBy,
 		tombstoned:         rs.tombstoned,
 		cutoverNanos:       rs.cutoverNanos,
 		namespace:          namespace,

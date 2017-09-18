@@ -33,7 +33,9 @@ message MappingRuleSnapshot {
 
 message MappingRule {
   string uuid = 1;
-  repeated MappingRuleSnapshot snapshots = 2;
+  int64 last_updated_at = 2;
+  string last_updated_by = 3;
+  repeated MappingRuleSnapshot snapshots = 4;
 }
 
 message RollupTarget {
@@ -52,7 +54,9 @@ message RollupRuleSnapshot {
 
 message RollupRule {
   string uuid = 1;
-  repeated RollupRuleSnapshot snapshots = 2;
+  int64 last_updated_at = 2;
+  string last_updated_by = 3;
+  repeated RollupRuleSnapshot snapshots = 4;
 }
 
 message RuleSet {
@@ -60,8 +64,9 @@ message RuleSet {
   string namespace = 2;
   int64 created_at = 3;
   int64 last_updated_at = 4;
-  bool tombstoned = 5;
-  int64 cutover_time = 6;
-  repeated MappingRule mapping_rules = 7;
-  repeated RollupRule rollup_rules = 8;
+  string last_updated_by = 5;
+  bool tombstoned = 6;
+  int64 cutover_time = 7;
+  repeated MappingRule mapping_rules = 8;
+  repeated RollupRule rollup_rules = 9;
 }

@@ -137,12 +137,14 @@ func (mrs *mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
 
 // MappingRuleView is a human friendly representation of a mapping rule at a given point in time.
 type MappingRuleView struct {
-	ID           string
-	Name         string
-	Tombstoned   bool
-	CutoverNanos int64
-	Filters      map[string]string
-	Policies     []policy.Policy
+	ID                 string
+	Name               string
+	Tombstoned         bool
+	CutoverNanos       int64
+	Filters            map[string]string
+	Policies           []policy.Policy
+	LastUpdatedBy      string
+	LastUpdatedAtNanos int64
 }
 
 func (mc *mappingRule) mappingRuleView(snapshotIdx int) (*MappingRuleView, error) {
@@ -152,19 +154,23 @@ func (mc *mappingRule) mappingRuleView(snapshotIdx int) (*MappingRuleView, error
 
 	mrs := mc.snapshots[snapshotIdx].clone()
 	return &MappingRuleView{
-		ID:           mc.uuid,
-		Name:         mrs.name,
-		Tombstoned:   mrs.tombstoned,
-		CutoverNanos: mrs.cutoverNanos,
-		Filters:      mrs.rawFilters,
-		Policies:     mrs.policies,
+		ID:                 mc.uuid,
+		Name:               mrs.name,
+		Tombstoned:         mrs.tombstoned,
+		CutoverNanos:       mrs.cutoverNanos,
+		Filters:            mrs.rawFilters,
+		Policies:           mrs.policies,
+		LastUpdatedAtNanos: mr.lastUpdatedAtNanos,
+		LastUpdatedBy:      mr.lastUpdatedBy,
 	}, nil
 }
 
 // mappingRule stores mapping rule snapshots.
 type mappingRule struct {
-	uuid      string
-	snapshots []*mappingRuleSnapshot
+	uuid               string
+	lastUpdatedAtNanos int64
+	lastUpdatedBy      string
+	snapshots          []*mappingRuleSnapshot
 }
 
 func newMappingRule(
@@ -183,8 +189,10 @@ func newMappingRule(
 		snapshots = append(snapshots, mr)
 	}
 	return &mappingRule{
-		uuid:      mc.Uuid,
-		snapshots: snapshots,
+		uuid:               mc.Uuid,
+		lastUpdatedAtNanos: mc.LastUpdatedAt,
+		lastUpdatedBy:      mc.LastUpdatedBy,
+		snapshots:          snapshots,
 	}, nil
 }
 
@@ -208,8 +216,10 @@ func (mc *mappingRule) clone() mappingRule {
 		snapshots[i] = &c
 	}
 	return mappingRule{
-		uuid:      mc.uuid,
-		snapshots: snapshots,
+		uuid:               mc.uuid,
+		lastUpdatedAtNanos: mc.lastUpdatedAtNanos,
+		lastUpdatedBy:      mc.lastUpdatedBy,
+		snapshots:          snapshots,
 	}
 }
 
@@ -328,10 +338,6 @@ func (mc *mappingRule) history() ([]*MappingRuleView, error) {
 
 // Schema returns the given MappingRule in protobuf form.
 func (mc *mappingRule) Schema() (*schema.MappingRule, error) {
-	res := &schema.MappingRule{
-		Uuid: mc.uuid,
-	}
-
 	snapshots := make([]*schema.MappingRuleSnapshot, len(mc.snapshots))
 	for i, s := range mc.snapshots {
 		snapshot, err := s.Schema()
@@ -340,7 +346,12 @@ func (mc *mappingRule) Schema() (*schema.MappingRule, error) {
 		}
 		snapshots[i] = snapshot
 	}
-	res.Snapshots = snapshots
 
-	return res, nil
+	return &schema.MappingRule{
+		Uuid:          mc.uuid,
+		LastUpdatedAt: mc.lastUpdatedAtNanos,
+		LastUpdatedBy: mc.lastUpdatedBy,
+		Snapshots:     snapshots,
+	}, nil
+
 }

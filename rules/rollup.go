@@ -259,12 +259,14 @@ func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 
 // RollupRuleView is a human friendly representation of a rollup rule at a given point in time.
 type RollupRuleView struct {
-	ID           string
-	Name         string
-	Tombstoned   bool
-	CutoverNanos int64
-	Filters      map[string]string
-	Targets      []RollupTargetView
+	ID                 string
+	Name               string
+	Tombstoned         bool
+	CutoverNanos       int64
+	Filters            map[string]string
+	Targets            []RollupTargetView
+	LastUpdatedBy      string
+	LastUpdatedAtNanos int64
 }
 
 func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
@@ -279,39 +281,45 @@ func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
 	}
 
 	return &RollupRuleView{
-		ID:           rc.uuid,
-		Name:         rrs.name,
-		Tombstoned:   rrs.tombstoned,
-		CutoverNanos: rrs.cutoverNanos,
-		Filters:      rrs.rawFilters,
-		Targets:      targets,
+		ID:                 rc.uuid,
+		Name:               rrs.name,
+		Tombstoned:         rrs.tombstoned,
+		CutoverNanos:       rrs.cutoverNanos,
+		Filters:            rrs.rawFilters,
+		Targets:            targets,
+		LastUpdatedAtNanos: rr.lastUpdatedAtNanos,
+		LastUpdatedBy:      rr.lastUpdatedBy,
 	}, nil
 }
 
 // rollupRule stores rollup rule snapshots.
 type rollupRule struct {
-	uuid      string
-	snapshots []*rollupRuleSnapshot
+	uuid               string
+	lastUpdatedAtNanos int64
+	lastUpdatedBy      string
+	snapshots          []*rollupRuleSnapshot
 }
 
 func newRollupRule(
-	mc *schema.RollupRule,
+	rc *schema.RollupRule,
 	opts filters.TagsFilterOptions,
 ) (*rollupRule, error) {
-	if mc == nil {
+	if rc == nil {
 		return nil, errNilRollupRuleSchema
 	}
-	snapshots := make([]*rollupRuleSnapshot, 0, len(mc.Snapshots))
-	for i := 0; i < len(mc.Snapshots); i++ {
-		mr, err := newRollupRuleSnapshot(mc.Snapshots[i], opts)
+	snapshots := make([]*rollupRuleSnapshot, 0, len(rc.Snapshots))
+	for i := 0; i < len(rc.Snapshots); i++ {
+		rr, err := newRollupRuleSnapshot(rc.Snapshots[i], opts)
 		if err != nil {
 			return nil, err
 		}
-		snapshots = append(snapshots, mr)
+		snapshots = append(snapshots, rr)
 	}
 	return &rollupRule{
-		uuid:      mc.Uuid,
-		snapshots: snapshots,
+		uuid:               rc.Uuid,
+		lastUpdatedAtNanos: rc.LastUpdatedAt,
+		lastUpdatedBy:      rc.LastUpdatedBy,
+		snapshots:          snapshots,
 	}, nil
 }
 
