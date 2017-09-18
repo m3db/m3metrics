@@ -92,7 +92,8 @@ func (rtv RollupTargetView) rollupTarget() RollupTarget {
 	return RollupTarget{
 		Name:     []byte(rtv.Name),
 		Tags:     bytesArrayFromStringArray(rtv.Tags),
-		Policies: rtv.Policies}
+		Policies: rtv.Policies,
+	}
 }
 
 func rollupTargetViewsToTargets(views []RollupTargetView) []RollupTarget {

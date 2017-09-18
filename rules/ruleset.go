@@ -662,13 +662,6 @@ func (rs *ruleSet) RollupRules() RollupRules {
 	return rollupRules
 }
 
-//UpdateMetadata contains descriptive information that needs to be updated
-//with any modification of the ruleset.
-type UpdateMetadata struct {
-	cutoverNanos       int64
-	lastUpdatedAtNanos int64
-}
-
 func (rs *ruleSet) Clone() MutableRuleSet {
 	namespace := make([]byte, len(rs.namespace))
 	copy(namespace, rs.namespace)
@@ -760,13 +753,13 @@ func (rs *ruleSet) UpdateMappingRule(mrv MappingRuleView, meta UpdateMetadata) e
 	return nil
 }
 
-func (rs *ruleSet) DeleteMappingRule(ID string, meta UpdateMetadata) error {
-	m, err := rs.getMappingRuleByID(ID)
+func (rs *ruleSet) DeleteMappingRule(id string, meta UpdateMetadata) error {
+	m, err := rs.getMappingRuleByID(id)
 	if err != nil {
-		return fmt.Errorf(ruleActionErrorFmt, "delete", ID, err)
+		return fmt.Errorf(ruleActionErrorFmt, "delete", id, err)
 	}
 	if err := m.markTombstoned(meta.cutoverNanos); err != nil {
-		return fmt.Errorf(ruleActionErrorFmt, "delete", ID, err)
+		return fmt.Errorf(ruleActionErrorFmt, "delete", id, err)
 	}
 	rs.updateMetadata(meta)
 	return nil
@@ -830,13 +823,13 @@ func (rs *ruleSet) UpdateRollupRule(rrv RollupRuleView, meta UpdateMetadata) err
 	return nil
 }
 
-func (rs *ruleSet) DeleteRollupRule(ID string, meta UpdateMetadata) error {
-	r, err := rs.getRollupRuleByID(ID)
+func (rs *ruleSet) DeleteRollupRule(id string, meta UpdateMetadata) error {
+	r, err := rs.getRollupRuleByID(id)
 	if err != nil {
-		return fmt.Errorf(ruleActionErrorFmt, "delete", ID, err)
+		return fmt.Errorf(ruleActionErrorFmt, "delete", id, err)
 	}
 	if err := r.markTombstoned(meta.cutoverNanos); err != nil {
-		return fmt.Errorf(ruleActionErrorFmt, "delete", ID, err)
+		return fmt.Errorf(ruleActionErrorFmt, "delete", id, err)
 	}
 	rs.updateMetadata(meta)
 	return nil
@@ -1059,6 +1052,13 @@ type RuleSetUpdateHelper struct {
 // NewRuleSetUpdateHelper creates a new RuleSetUpdateHelper struct.
 func NewRuleSetUpdateHelper(propagationDelay time.Duration) RuleSetUpdateHelper {
 	return RuleSetUpdateHelper{propagationDelay: propagationDelay}
+}
+
+// UpdateMetadata contains descriptive information that needs to be updated
+// with any modification of the ruleset.
+type UpdateMetadata struct {
+	cutoverNanos       int64
+	lastUpdatedAtNanos int64
 }
 
 // NewUpdateMetadata creates a properly initialized UpdateMetadata object.
