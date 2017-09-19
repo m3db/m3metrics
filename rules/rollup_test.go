@@ -33,7 +33,9 @@ import (
 
 var (
 	testRollupRuleSchema = &schema.RollupRule{
-		Uuid: "12669817-13ae-40e6-ba2f-33087b262c68",
+		Uuid:          "12669817-13ae-40e6-ba2f-33087b262c68",
+		LastUpdatedAt: 12345,
+		LastUpdatedBy: "someone",
 		Snapshots: []*schema.RollupRuleSnapshot{
 			&schema.RollupRuleSnapshot{
 				Name:        "foo",
@@ -243,8 +245,10 @@ func TestRollupRuleActiveRuleFound(t *testing.T) {
 	rr, err := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
 	require.NoError(t, err)
 	expected := &rollupRule{
-		uuid:      rr.uuid,
-		snapshots: rr.snapshots[1:],
+		uuid:               rr.uuid,
+		lastUpdatedAtNanos: rr.lastUpdatedAtNanos,
+		lastUpdatedBy:      rr.lastUpdatedBy,
+		snapshots:          rr.snapshots[1:],
 	}
 	require.Equal(t, expected, rr.ActiveRule(100000))
 }
@@ -379,18 +383,16 @@ func TestRollupRuleSnapshotClone(t *testing.T) {
 func TestNewRollupRuleView(t *testing.T) {
 	rr, err := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
 	require.NoError(t, err)
-<<<<<<< HEAD
 	actual, err := rr.rollupRuleView(0)
-=======
-	actual, err := newRollupRuleView(rr, 0)
->>>>>>> Adding LastUpdatedBy and LastUpdatedAtNanos to rule proto.
 	require.NoError(t, err)
 
 	p, _ := policy.ParsePolicy("10s:24h")
 	expected := &RollupRuleView{
-		ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
-		Name:         "foo",
-		CutoverNanos: 12345,
+		ID:                 "12669817-13ae-40e6-ba2f-33087b262c68",
+		Name:               "foo",
+		CutoverNanos:       12345,
+		LastUpdatedAtNanos: 12345,
+		LastUpdatedBy:      "someone",
 		Filters: map[string]string{
 			"tag1": "value1",
 			"tag2": "value2",

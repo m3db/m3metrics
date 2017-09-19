@@ -342,8 +342,10 @@ func (rc rollupRule) clone() rollupRule {
 		snapshots[i] = &c
 	}
 	return rollupRule{
-		uuid:      rc.uuid,
-		snapshots: snapshots,
+		uuid:               rc.uuid,
+		lastUpdatedAtNanos: rc.lastUpdatedAtNanos,
+		lastUpdatedBy:      rc.lastUpdatedBy,
+		snapshots:          snapshots,
 	}
 }
 
@@ -364,7 +366,11 @@ func (rc *rollupRule) ActiveRule(timeNanos int64) *rollupRule {
 	if idx < 0 {
 		return rc
 	}
-	return &rollupRule{uuid: rc.uuid, snapshots: rc.snapshots[idx:]}
+	return &rollupRule{
+		uuid:               rc.uuid,
+		lastUpdatedAtNanos: rc.lastUpdatedAtNanos,
+		lastUpdatedBy:      rc.lastUpdatedBy,
+		snapshots:          rc.snapshots[idx:]}
 }
 
 func (rc *rollupRule) activeIndex(timeNanos int64) int {
@@ -469,10 +475,6 @@ func (rc *rollupRule) history() ([]*RollupRuleView, error) {
 
 // Schema returns the given RollupRule in protobuf form.
 func (rc *rollupRule) Schema() (*schema.RollupRule, error) {
-	res := &schema.RollupRule{
-		Uuid: rc.uuid,
-	}
-
 	snapshots := make([]*schema.RollupRuleSnapshot, len(rc.snapshots))
 	for i, s := range rc.snapshots {
 		snapshot, err := s.Schema()
@@ -481,9 +483,13 @@ func (rc *rollupRule) Schema() (*schema.RollupRule, error) {
 		}
 		snapshots[i] = snapshot
 	}
-	res.Snapshots = snapshots
 
-	return res, nil
+	return &schema.RollupRule{
+		Uuid:          rc.uuid,
+		LastUpdatedAt: rc.lastUpdatedAtNanos,
+		LastUpdatedBy: rc.lastUpdatedBy,
+		Snapshots:     snapshots,
+	}, nil
 }
 
 func bytesArrayFromStringArray(values []string) [][]byte {

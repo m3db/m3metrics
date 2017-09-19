@@ -315,7 +315,12 @@ func (mc *mappingRule) ActiveRule(timeNanos int64) *mappingRule {
 	if idx < 0 {
 		return mc
 	}
-	return &mappingRule{uuid: mc.uuid, snapshots: mc.snapshots[idx:]}
+	return &mappingRule{
+		uuid:               mc.uuid,
+		lastUpdatedAtNanos: mc.lastUpdatedAtNanos,
+		lastUpdatedBy:      mc.lastUpdatedBy,
+		snapshots:          mc.snapshots[idx:],
+	}
 }
 
 func (mc *mappingRule) activeIndex(timeNanos int64) int {

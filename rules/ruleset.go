@@ -623,6 +623,7 @@ func (rs *ruleSet) Schema() (*schema.RuleSet, error) {
 		Namespace:     string(rs.namespace),
 		CreatedAt:     rs.createdAtNanos,
 		LastUpdatedAt: rs.lastUpdatedAtNanos,
+		LastUpdatedBy: rs.lastUpdatedBy,
 		Tombstoned:    rs.tombstoned,
 		CutoverTime:   rs.cutoverNanos,
 	}

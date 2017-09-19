@@ -33,7 +33,9 @@ import (
 
 var (
 	testMappingRuleSchema = &schema.MappingRule{
-		Uuid: "12669817-13ae-40e6-ba2f-33087b262c68",
+		Uuid:          "12669817-13ae-40e6-ba2f-33087b262c68",
+		LastUpdatedAt: 1234,
+		LastUpdatedBy: "someone",
 		Snapshots: []*schema.MappingRuleSnapshot{
 			&schema.MappingRuleSnapshot{
 				Name:        "foo",
@@ -171,8 +173,10 @@ func TestMappingRuleActiveRuleFound_Second(t *testing.T) {
 	mr, err := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
 	require.NoError(t, err)
 	expected := &mappingRule{
-		uuid:      mr.uuid,
-		snapshots: mr.snapshots[1:],
+		uuid:               mr.uuid,
+		lastUpdatedAtNanos: 1234,
+		lastUpdatedBy:      "someone",
+		snapshots:          mr.snapshots[1:],
 	}
 	require.Equal(t, expected, mr.ActiveRule(100000))
 }
@@ -285,16 +289,18 @@ func TestNewMappingRuleView(t *testing.T) {
 	mr, err := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
 	require.NoError(t, err)
 
-	actual, err := mr.mappingRuleView(len(mr.snapshots) - 1)
+	actual, err := mr.mappingRuleView(0)
 	require.NoError(t, err)
 
 	p1, _ := policy.ParsePolicy("1m:24h")
 	p2, _ := policy.ParsePolicy("5m:2d")
 	expected := &MappingRuleView{
-		ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
-		Name:         "bar",
-		CutoverNanos: 67890,
-		Tombstoned:   true,
+		ID:                 "12669817-13ae-40e6-ba2f-33087b262c68",
+		Name:               "bar",
+		CutoverNanos:       67890,
+		Tombstoned:         true,
+		LastUpdatedAtNanos: 1234,
+		LastUpdatedBy:      "someone",
 		Filters: map[string]string{
 			"tag3": "value3",
 			"tag4": "value4",
