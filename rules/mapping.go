@@ -159,8 +159,8 @@ func (mc *mappingRule) mappingRuleView(snapshotIdx int) (*MappingRuleView, error
 		CutoverNanos:       mrs.cutoverNanos,
 		Filters:            mrs.rawFilters,
 		Policies:           mrs.policies,
-		LastUpdatedAtNanos: mr.lastUpdatedAtNanos,
-		LastUpdatedBy:      mr.lastUpdatedBy,
+		LastUpdatedAtNanos: mrs.lastUpdatedAtNanos,
+		LastUpdatedBy:      mrs.lastUpdatedBy,
 	}, nil
 }
 

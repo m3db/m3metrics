@@ -286,8 +286,8 @@ func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
 		CutoverNanos:       rrs.cutoverNanos,
 		Filters:            rrs.rawFilters,
 		Targets:            targets,
-		LastUpdatedAtNanos: rr.lastUpdatedAtNanos,
-		LastUpdatedBy:      rr.lastUpdatedBy,
+		LastUpdatedAtNanos: rrs.lastUpdatedAtNanos,
+		LastUpdatedBy:      rrs.lastUpdatedBy,
 	}, nil
 }
 
