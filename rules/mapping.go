@@ -336,7 +336,11 @@ func (mc *mappingRule) history() ([]*MappingRuleView, error) {
 	views := make([]*MappingRuleView, len(mc.snapshots))
 	// Snapshots are stored oldest -> newest. History should start with newest.
 	for i := 0; i < len(mc.snapshots); i++ {
+<<<<<<< HEAD
 		mrs, err := mc.mappingRuleView(lastIdx - i)
+=======
+		mrs, err := mc.mappingRuleView(lastIdx - 1)
+>>>>>>> slight code cleanup
 		if err != nil {
 			return nil, err
 		}
