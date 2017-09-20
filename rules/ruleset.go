@@ -489,7 +489,7 @@ type MutableRuleSet interface {
 	Clone() MutableRuleSet
 
 	// AppendMappingRule creates a new mapping rule and adds it to this ruleset.
-	AddMappingRule(MappingRuleView, UpdateMetadata) error
+	AddMappingRule(MappingRuleView, UpdateMetadata) (string, error)
 
 	// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
 	UpdateMappingRule(MappingRuleView, UpdateMetadata) error
@@ -498,7 +498,7 @@ type MutableRuleSet interface {
 	DeleteMappingRule(string, UpdateMetadata) error
 
 	// AppendRollupRule creates a new rollup rule and adds it to this ruleset.
-	AddRollupRule(RollupRuleView, UpdateMetadata) error
+	AddRollupRule(RollupRuleView, UpdateMetadata) (string, error)
 
 	// UpdateRollupRule creates a new rollup rule and adds it to this ruleset.
 	UpdateRollupRule(RollupRuleView, UpdateMetadata) error
