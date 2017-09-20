@@ -1268,12 +1268,12 @@ func testRollupRules(t *testing.T) []*rollupRule {
 		uuid: "rollupRule5",
 		snapshots: []*rollupRuleSnapshot{
 			&rollupRuleSnapshot{
-				name:          "rollupRule5.snapshot1",
-				tombstoned:    false,
-				cutoverNanos:  24000,
-				filter:        filter2,
-				lastUpdatedAt: 123456,
-				lastUpdatedBy: "test",
+				name:               "rollupRule5.snapshot1",
+				tombstoned:         false,
+				cutoverNanos:       24000,
+				filter:             filter2,
+				lastUpdatedAtNanos: 123456,
+				lastUpdatedBy:      "test",
 				targets: []RollupTarget{
 					{
 						Name: b("rName4"),
@@ -2118,7 +2118,7 @@ func TestAddMappingRule(t *testing.T) {
 		Policies: p,
 	}
 
-	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(time.Now().UnixNano()))
+	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 	mrs, err := mutable.MappingRules()
 	require.NoError(t, err)
@@ -2127,15 +2127,11 @@ func TestAddMappingRule(t *testing.T) {
 	mr, err := rs.getMappingRuleByName("foo")
 	require.NoError(t, err)
 
-	mrs, err := mutable.MappingRules()
-	require.NoError(t, err)
-	require.Contains(t, mrs, mr.uuid)
-
 	updated := mrs[mr.uuid][0]
 	require.Equal(t, updated.Name, view.Name)
 	require.Equal(t, updated.ID, mr.uuid)
 	require.Equal(t, updated.Filters, view.Filters)
-	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedAtNanos, now)
 	require.Equal(t, updated.LastUpdatedBy, testUser)
 }
 
@@ -2155,10 +2151,9 @@ func TestAddMappingRuleDup(t *testing.T) {
 		Policies: p,
 	}
 
-	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(time.Now().UnixNano()))
+	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(time.Now().UnixNano(), testUser))
 	require.Empty(t, newID)
 	require.Error(t, err)
-
 }
 
 func TestAddMappingRuleRevive(t *testing.T) {
@@ -2179,7 +2174,7 @@ func TestAddMappingRuleRevive(t *testing.T) {
 		Filters:  newFilters,
 		Policies: p,
 	}
-	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(time.Now().UnixNano()))
+	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
 	mrs, err := mutable.MappingRules()
@@ -2190,15 +2185,12 @@ func TestAddMappingRuleRevive(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, mr.snapshots[len(mr.snapshots)-1].rawFilters, newFilters)
 
-	mrs, err := mutable.MappingRules()
-	require.NoError(t, err)
-	require.Contains(t, mrs, mr.uuid)
 	updated := mrs[mr.uuid][0]
 	require.NoError(t, err)
 	require.Equal(t, updated.Name, "mappingRule5.snapshot1")
 	require.Equal(t, updated.ID, mr.uuid)
 	require.Equal(t, updated.Filters, newFilters)
-	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedAtNanos, now)
 	require.Equal(t, updated.LastUpdatedBy, testUser)
 }
 
@@ -2239,7 +2231,7 @@ func TestUpdateMappingRule(t *testing.T) {
 	require.Equal(t, updated.Name, "foo")
 	require.Equal(t, updated.ID, mr.uuid)
 	require.Equal(t, updated.Filters, newFilters)
-	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedAtNanos, now)
 	require.Equal(t, updated.LastUpdatedBy, testUser)
 }
 
@@ -2290,17 +2282,13 @@ func TestAddRollupRule(t *testing.T) {
 		Targets: newTargets,
 	}
 
-	newID, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(time.Now().UnixNano()))
+	newID, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 	rrs, err := mutable.RollupRules()
 	require.Contains(t, rrs, newID)
 	require.NoError(t, err)
 
 	rr, err := rs.getRollupRuleByName("foo")
-	require.NotEmpty(t, rr.uuid)
-	require.NoError(t, err)
-
-	rrs, err := rs.RollupRules()
 	require.NoError(t, err)
 	require.Contains(t, rrs, rr.uuid)
 
@@ -2309,7 +2297,7 @@ func TestAddRollupRule(t *testing.T) {
 	require.Equal(t, updated.ID, rr.uuid)
 	require.Equal(t, updated.Targets, view.Targets)
 	require.Equal(t, updated.Filters, view.Filters)
-	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedAtNanos, now)
 	require.Equal(t, updated.LastUpdatedBy, testUser)
 }
 
@@ -2336,7 +2324,7 @@ func TestAddRollupRuleDup(t *testing.T) {
 		Filters: newFilters,
 		Targets: newTargets,
 	}
-	uuid, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(now))
+	uuid, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.Empty(t, uuid)
 	require.Error(t, err)
 }
@@ -2364,7 +2352,7 @@ func TestReviveRollupRule(t *testing.T) {
 		Targets: []RollupTargetView{},
 	}
 
-	uuid, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(now))
+	uuid, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 	require.NotEmpty(t, uuid)
 	hist, err := mutable.RollupRules()
@@ -2382,7 +2370,7 @@ func TestReviveRollupRule(t *testing.T) {
 	require.Equal(t, updated.ID, rr.uuid)
 	require.Equal(t, updated.Targets, view.Targets)
 	require.Equal(t, updated.Filters, view.Filters)
-	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedAtNanos, now)
 	require.Equal(t, updated.LastUpdatedBy, testUser)
 }
 
@@ -2425,7 +2413,7 @@ func TestUpdateRollupRule(t *testing.T) {
 	require.Equal(t, updated.ID, rr.uuid)
 	require.Equal(t, updated.Targets, newTargets)
 	require.Equal(t, updated.Filters, newFilters)
-	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedAtNanos, now)
 	require.Equal(t, updated.LastUpdatedBy, testUser)
 
 	require.NoError(t, err)

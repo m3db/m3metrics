@@ -155,14 +155,14 @@ func (t *RollupTarget) Schema() (*schema.RollupTarget, error) {
 // rollupRuleSnapshot defines a rule snapshot such that if a metric matches the
 // provided filters, it is rolled up using the provided list of rollup targets.
 type rollupRuleSnapshot struct {
-	name          string
-	tombstoned    bool
-	cutoverNanos  int64
-	filter        filters.Filter
-	targets       []RollupTarget
-	rawFilters    map[string]string
-	lastUpdatedAt int64
-	lastUpdatedBy string
+	name               string
+	tombstoned         bool
+	cutoverNanos       int64
+	filter             filters.Filter
+	targets            []RollupTarget
+	rawFilters         map[string]string
+	lastUpdatedAtNanos int64
+	lastUpdatedBy      string
 }
 
 func newRollupRuleSnapshot(
@@ -204,18 +204,18 @@ func newRollupRuleSnapshotFromFields(
 	tagFilters map[string]string,
 	targets []RollupTarget,
 	filter filters.Filter,
-	lastUpdatedAt int64,
+	lastUpdatedAtNanos int64,
 	lastUpdatedBy string,
 ) *rollupRuleSnapshot {
 	return &rollupRuleSnapshot{
-		name:          name,
-		tombstoned:    tombstoned,
-		cutoverNanos:  cutoverNanos,
-		filter:        filter,
-		targets:       targets,
-		rawFilters:    tagFilters,
-		lastUpdatedAt: lastUpdatedAt,
-		lastUpdatedBy: lastUpdatedBy,
+		name:               name,
+		tombstoned:         tombstoned,
+		cutoverNanos:       cutoverNanos,
+		filter:             filter,
+		targets:            targets,
+		rawFilters:         tagFilters,
+		lastUpdatedAtNanos: lastUpdatedAtNanos,
+		lastUpdatedBy:      lastUpdatedBy,
 	}
 }
 
@@ -233,14 +233,14 @@ func (rrs *rollupRuleSnapshot) clone() rollupRuleSnapshot {
 		filter = rrs.filter.Clone()
 	}
 	return rollupRuleSnapshot{
-		name:          rrs.name,
-		tombstoned:    rrs.tombstoned,
-		cutoverNanos:  rrs.cutoverNanos,
-		filter:        filter,
-		targets:       targets,
-		rawFilters:    rawFilters,
-		lastUpdatedAt: rrs.lastUpdatedAt,
-		lastUpdatedBy: rrs.lastUpdatedBy,
+		name:               rrs.name,
+		tombstoned:         rrs.tombstoned,
+		cutoverNanos:       rrs.cutoverNanos,
+		filter:             filter,
+		targets:            targets,
+		rawFilters:         rawFilters,
+		lastUpdatedAtNanos: rrs.lastUpdatedAtNanos,
+		lastUpdatedBy:      rrs.lastUpdatedBy,
 	}
 }
 
@@ -251,7 +251,7 @@ func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 		Tombstoned:    rrs.tombstoned,
 		CutoverTime:   rrs.cutoverNanos,
 		TagFilters:    rrs.rawFilters,
-		LastUpdatedAt: rrs.lastUpdatedAt,
+		LastUpdatedAt: rrs.lastUpdatedAtNanos,
 		LastUpdatedBy: rrs.lastUpdatedBy,
 	}
 
@@ -353,28 +353,6 @@ func (rc rollupRule) clone() rollupRule {
 		uuid:      rc.uuid,
 		snapshots: snapshots,
 	}
-}
-
-func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
-	if snapshotIdx < 0 || snapshotIdx > len(rc.snapshots) {
-		return nil, errBadRollupRuleSnapshotIdx
-	}
-
-	rrs := rc.snapshots[snapshotIdx].clone()
-	targets := make([]RollupTargetView, len(rrs.targets))
-	for i, t := range rrs.targets {
-		targets[i] = newRollupTargetView(t)
-	}
-
-	return &RollupRuleView{
-		ID:            rc.uuid,
-		Name:          rrs.name,
-		CutoverNanos:  rrs.cutoverNanos,
-		Filters:       rrs.rawFilters,
-		Targets:       targets,
-		LastUpdatedAt: rrs.lastUpdatedAt,
-		LastUpdatedBy: rrs.lastUpdatedBy,
-	}, nil
 }
 
 // ActiveSnapshot returns the latest rule snapshot whose cutover time is earlier

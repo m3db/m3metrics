@@ -39,14 +39,14 @@ var (
 // mappingRuleSnapshot defines a rule snapshot such that if a metric matches the
 // provided filters, it is aggregated and retained under the provided set of policies.
 type mappingRuleSnapshot struct {
-	name          string
-	tombstoned    bool
-	cutoverNanos  int64
-	filter        filters.Filter
-	rawFilters    map[string]string
-	policies      []policy.Policy
-	lastUpdatedAt int64
-	lastUpdatedBy string
+	name               string
+	tombstoned         bool
+	cutoverNanos       int64
+	filter             filters.Filter
+	rawFilters         map[string]string
+	policies           []policy.Policy
+	lastUpdatedAtNanos int64
+	lastUpdatedBy      string
 }
 
 func newMappingRuleSnapshot(
@@ -84,18 +84,18 @@ func newMappingRuleSnapshotFromFields(
 	tagFilters map[string]string,
 	policies []policy.Policy,
 	filter filters.Filter,
-	lastUpdatedAt int64,
+	lastUpdatedAtNanos int64,
 	lastUpdatedBy string,
 ) *mappingRuleSnapshot {
 	return &mappingRuleSnapshot{
-		name:          name,
-		tombstoned:    tombstoned,
-		cutoverNanos:  cutoverNanos,
-		filter:        filter,
-		rawFilters:    tagFilters,
-		policies:      policies,
-		lastUpdatedAt: lastUpdatedAt,
-		lastUpdatedBy: lastUpdatedBy,
+		name:               name,
+		tombstoned:         tombstoned,
+		cutoverNanos:       cutoverNanos,
+		filter:             filter,
+		rawFilters:         tagFilters,
+		policies:           policies,
+		lastUpdatedAtNanos: lastUpdatedAtNanos,
+		lastUpdatedBy:      lastUpdatedBy,
 	}
 }
 
@@ -111,14 +111,14 @@ func (mrs *mappingRuleSnapshot) clone() mappingRuleSnapshot {
 		filter = mrs.filter.Clone()
 	}
 	return mappingRuleSnapshot{
-		name:          mrs.name,
-		tombstoned:    mrs.tombstoned,
-		cutoverNanos:  mrs.cutoverNanos,
-		filter:        filter,
-		rawFilters:    rawFilters,
-		policies:      policies,
-		lastUpdatedAt: mrs.lastUpdatedAt,
-		lastUpdatedBy: mrs.lastUpdatedBy,
+		name:               mrs.name,
+		tombstoned:         mrs.tombstoned,
+		cutoverNanos:       mrs.cutoverNanos,
+		filter:             filter,
+		rawFilters:         rawFilters,
+		policies:           policies,
+		lastUpdatedAtNanos: mrs.lastUpdatedAtNanos,
+		lastUpdatedBy:      mrs.lastUpdatedBy,
 	}
 }
 
@@ -129,7 +129,7 @@ func (mrs *mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
 		Tombstoned:    mrs.tombstoned,
 		CutoverTime:   mrs.cutoverNanos,
 		TagFilters:    mrs.rawFilters,
-		LastUpdatedAt: mrs.lastUpdatedAt,
+		LastUpdatedAt: mrs.lastUpdatedAtNanos,
 		LastUpdatedBy: mrs.lastUpdatedBy,
 	}
 
