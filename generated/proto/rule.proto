@@ -29,8 +29,8 @@ message MappingRuleSnapshot {
   int64 cutover_time = 3;
   map<string,string> tag_filters = 4;
   repeated Policy policies = 5;
-  int64 timestamp = 6;
-  string author = 7;
+  int64 last_updated_at = 6;
+  string last_updated_by = 7;
 }
 
 message MappingRule {
@@ -50,8 +50,8 @@ message RollupRuleSnapshot {
   int64 cutover_time = 3;
   map<string,string> tag_filters = 4;
   repeated RollupTarget targets = 5;
-  int64 timestamp = 6;
-  string author = 7;
+  int64 last_updated_at = 6;
+  string last_updated_by = 7;
 }
 
 message RollupRule {

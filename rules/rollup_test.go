@@ -36,11 +36,11 @@ var (
 		Uuid: "12669817-13ae-40e6-ba2f-33087b262c68",
 		Snapshots: []*schema.RollupRuleSnapshot{
 			&schema.RollupRuleSnapshot{
-				Name:        "foo",
-				Tombstoned:  false,
-				CutoverTime: 12345,
-				Timestamp:   12345,
-				Author:      "someone-else",
+				Name:          "foo",
+				Tombstoned:    false,
+				CutoverTime:   12345,
+				LastUpdatedAt: 12345,
+				LastUpdatedBy: "someone-else",
 				TagFilters: map[string]string{
 					"tag1": "value1",
 					"tag2": "value2",
@@ -66,11 +66,11 @@ var (
 				},
 			},
 			&schema.RollupRuleSnapshot{
-				Name:        "bar",
-				Tombstoned:  true,
-				CutoverTime: 67890,
-				Timestamp:   12345,
-				Author:      "someone",
+				Name:          "bar",
+				Tombstoned:    true,
+				CutoverTime:   67890,
+				LastUpdatedAt: 12345,
+				LastUpdatedBy: "someone",
 				TagFilters: map[string]string{
 					"tag3": "value3",
 					"tag4": "value4",
@@ -388,11 +388,11 @@ func TestNewRollupRuleView(t *testing.T) {
 
 	p, _ := policy.ParsePolicy("10s:24h")
 	expected := &RollupRuleView{
-		ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
-		Name:         "foo",
-		CutoverNanos: 12345,
-		Timestamp:    12345,
-		Author:       "someone-else",
+		ID:            "12669817-13ae-40e6-ba2f-33087b262c68",
+		Name:          "foo",
+		CutoverNanos:  12345,
+		LastUpdatedAt: 12345,
+		LastUpdatedBy: "someone-else",
 		Filters: map[string]string{
 			"tag1": "value1",
 			"tag2": "value2",

@@ -1268,12 +1268,12 @@ func testRollupRules(t *testing.T) []*rollupRule {
 		uuid: "rollupRule5",
 		snapshots: []*rollupRuleSnapshot{
 			&rollupRuleSnapshot{
-				name:         "rollupRule5.snapshot1",
-				tombstoned:   false,
-				cutoverNanos: 24000,
-				filter:       filter2,
-				timestamp:    123456,
-				author:       "test",
+				name:          "rollupRule5.snapshot1",
+				tombstoned:    false,
+				cutoverNanos:  24000,
+				filter:        filter2,
+				lastUpdatedAt: 123456,
+				lastUpdatedBy: "test",
 				targets: []RollupTarget{
 					{
 						Name: b("rName4"),
@@ -1571,12 +1571,12 @@ func testMappingRulesConfig() []*schema.MappingRule {
 			Uuid: "mappingRule5",
 			Snapshots: []*schema.MappingRuleSnapshot{
 				&schema.MappingRuleSnapshot{
-					Name:        "mappingRule5.snapshot1",
-					Tombstoned:  false,
-					CutoverTime: 100000,
-					Timestamp:   123456,
-					Author:      "test",
-					TagFilters:  map[string]string{"mtagName1": "mtagValue1"},
+					Name:          "mappingRule5.snapshot1",
+					Tombstoned:    false,
+					CutoverTime:   100000,
+					LastUpdatedAt: 123456,
+					LastUpdatedBy: "test",
+					TagFilters:    map[string]string{"mtagName1": "mtagValue1"},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -2135,8 +2135,8 @@ func TestAddMappingRule(t *testing.T) {
 	require.Equal(t, updated.Name, view.Name)
 	require.Equal(t, updated.ID, mr.uuid)
 	require.Equal(t, updated.Filters, view.Filters)
-	require.Equal(t, updated.Timestamp, now)
-	require.Equal(t, updated.Author, testUser)
+	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedBy, testUser)
 }
 
 func TestAddMappingRuleDup(t *testing.T) {
@@ -2198,8 +2198,8 @@ func TestAddMappingRuleRevive(t *testing.T) {
 	require.Equal(t, updated.Name, "mappingRule5.snapshot1")
 	require.Equal(t, updated.ID, mr.uuid)
 	require.Equal(t, updated.Filters, newFilters)
-	require.Equal(t, updated.Timestamp, now)
-	require.Equal(t, updated.Author, testUser)
+	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedBy, testUser)
 }
 
 func TestUpdateMappingRule(t *testing.T) {
@@ -2239,8 +2239,8 @@ func TestUpdateMappingRule(t *testing.T) {
 	require.Equal(t, updated.Name, "foo")
 	require.Equal(t, updated.ID, mr.uuid)
 	require.Equal(t, updated.Filters, newFilters)
-	require.Equal(t, updated.Timestamp, now)
-	require.Equal(t, updated.Author, testUser)
+	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedBy, testUser)
 }
 
 func TestDeleteMappingRule(t *testing.T) {
@@ -2309,8 +2309,8 @@ func TestAddRollupRule(t *testing.T) {
 	require.Equal(t, updated.ID, rr.uuid)
 	require.Equal(t, updated.Targets, view.Targets)
 	require.Equal(t, updated.Filters, view.Filters)
-	require.Equal(t, updated.Timestamp, now)
-	require.Equal(t, updated.Author, testUser)
+	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedBy, testUser)
 }
 
 func TestAddRollupRuleDup(t *testing.T) {
@@ -2382,8 +2382,8 @@ func TestReviveRollupRule(t *testing.T) {
 	require.Equal(t, updated.ID, rr.uuid)
 	require.Equal(t, updated.Targets, view.Targets)
 	require.Equal(t, updated.Filters, view.Filters)
-	require.Equal(t, updated.Timestamp, now)
-	require.Equal(t, updated.Author, testUser)
+	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedBy, testUser)
 }
 
 func TestUpdateRollupRule(t *testing.T) {
@@ -2425,8 +2425,8 @@ func TestUpdateRollupRule(t *testing.T) {
 	require.Equal(t, updated.ID, rr.uuid)
 	require.Equal(t, updated.Targets, newTargets)
 	require.Equal(t, updated.Filters, newFilters)
-	require.Equal(t, updated.Timestamp, now)
-	require.Equal(t, updated.Author, testUser)
+	require.Equal(t, updated.LastUpdatedAt, now)
+	require.Equal(t, updated.LastUpdatedBy, testUser)
 
 	require.NoError(t, err)
 }

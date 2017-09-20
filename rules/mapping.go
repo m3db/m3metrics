@@ -39,14 +39,14 @@ var (
 // mappingRuleSnapshot defines a rule snapshot such that if a metric matches the
 // provided filters, it is aggregated and retained under the provided set of policies.
 type mappingRuleSnapshot struct {
-	name         string
-	tombstoned   bool
-	cutoverNanos int64
-	filter       filters.Filter
-	rawFilters   map[string]string
-	policies     []policy.Policy
-	timestamp    int64
-	author       string
+	name          string
+	tombstoned    bool
+	cutoverNanos  int64
+	filter        filters.Filter
+	rawFilters    map[string]string
+	policies      []policy.Policy
+	lastUpdatedAt int64
+	lastUpdatedBy string
 }
 
 func newMappingRuleSnapshot(
@@ -72,8 +72,8 @@ func newMappingRuleSnapshot(
 		r.TagFilters,
 		policies,
 		filter,
-		r.Timestamp,
-		r.Author,
+		r.LastUpdatedAt,
+		r.LastUpdatedBy,
 	), nil
 }
 
@@ -84,18 +84,18 @@ func newMappingRuleSnapshotFromFields(
 	tagFilters map[string]string,
 	policies []policy.Policy,
 	filter filters.Filter,
-	timestamp int64,
-	author string,
+	lastUpdatedAt int64,
+	lastUpdatedBy string,
 ) *mappingRuleSnapshot {
 	return &mappingRuleSnapshot{
-		name:         name,
-		tombstoned:   tombstoned,
-		cutoverNanos: cutoverNanos,
-		filter:       filter,
-		rawFilters:   tagFilters,
-		policies:     policies,
-		timestamp:    timestamp,
-		author:       author,
+		name:          name,
+		tombstoned:    tombstoned,
+		cutoverNanos:  cutoverNanos,
+		filter:        filter,
+		rawFilters:    tagFilters,
+		policies:      policies,
+		lastUpdatedAt: lastUpdatedAt,
+		lastUpdatedBy: lastUpdatedBy,
 	}
 }
 
@@ -111,26 +111,26 @@ func (mrs *mappingRuleSnapshot) clone() mappingRuleSnapshot {
 		filter = mrs.filter.Clone()
 	}
 	return mappingRuleSnapshot{
-		name:         mrs.name,
-		tombstoned:   mrs.tombstoned,
-		cutoverNanos: mrs.cutoverNanos,
-		filter:       filter,
-		rawFilters:   rawFilters,
-		policies:     policies,
-		timestamp:    mrs.timestamp,
-		author:       mrs.author,
+		name:          mrs.name,
+		tombstoned:    mrs.tombstoned,
+		cutoverNanos:  mrs.cutoverNanos,
+		filter:        filter,
+		rawFilters:    rawFilters,
+		policies:      policies,
+		lastUpdatedAt: mrs.lastUpdatedAt,
+		lastUpdatedBy: mrs.lastUpdatedBy,
 	}
 }
 
 // Schema returns the given MappingRuleSnapshot in protobuf form.
 func (mrs *mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
 	res := &schema.MappingRuleSnapshot{
-		Name:        mrs.name,
-		Tombstoned:  mrs.tombstoned,
-		CutoverTime: mrs.cutoverNanos,
-		TagFilters:  mrs.rawFilters,
-		Timestamp:   mrs.timestamp,
-		Author:      mrs.author,
+		Name:          mrs.name,
+		Tombstoned:    mrs.tombstoned,
+		CutoverTime:   mrs.cutoverNanos,
+		TagFilters:    mrs.rawFilters,
+		LastUpdatedAt: mrs.lastUpdatedAt,
+		LastUpdatedBy: mrs.lastUpdatedBy,
 	}
 
 	policies := make([]*schema.Policy, len(mrs.policies))
@@ -258,7 +258,7 @@ func (mc *mappingRule) addSnapshot(
 		policies,
 		nil,
 		meta.updatedAtNanos,
-		meta.author,
+		meta.updatedBy,
 	)
 	mc.snapshots = append(mc.snapshots, snapshot)
 	return nil
@@ -336,11 +336,7 @@ func (mc *mappingRule) history() ([]*MappingRuleView, error) {
 	views := make([]*MappingRuleView, len(mc.snapshots))
 	// Snapshots are stored oldest -> newest. History should start with newest.
 	for i := 0; i < len(mc.snapshots); i++ {
-<<<<<<< HEAD
 		mrs, err := mc.mappingRuleView(lastIdx - i)
-=======
-		mrs, err := mc.mappingRuleView(lastIdx - 1)
->>>>>>> slight code cleanup
 		if err != nil {
 			return nil, err
 		}
