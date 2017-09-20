@@ -312,3 +312,28 @@ func TestNewMappingRuleViewError(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, actual)
 }
+
+func TestMappingRuleHistory(t *testing.T) {
+	mr, err := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
+	require.NoError(t, err)
+
+	hist, err := mr.history()
+	require.NoError(t, err)
+	require.Equal(t, len(mr.snapshots), len(hist))
+	p1, _ := policy.ParsePolicy("1m:24h")
+	p2, _ := policy.ParsePolicy("5m:2d")
+	expected := &MappingRuleView{
+		ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
+		Name:         "bar",
+		CutoverNanos: 67890,
+
+		Filters: map[string]string{
+			"tag3": "value3",
+			"tag4": "value4",
+		},
+		Policies: []policy.Policy{p1, p2},
+	}
+
+	actual := hist[0]
+	require.Equal(t, expected, actual)
+}

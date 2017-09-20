@@ -409,3 +409,32 @@ func TestNewRollupRuleViewError(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, actual)
 }
+
+func TestNewRollupRuleHistory(t *testing.T) {
+	rr, err := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
+	require.NoError(t, err)
+	hist, err := rr.history()
+	require.NoError(t, err)
+
+	p1, _ := policy.ParsePolicy("1m:24h")
+	p2, _ := policy.ParsePolicy("5m:2d|Mean")
+	expected := &RollupRuleView{
+		ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
+		Name:         "bar",
+		CutoverNanos: 67890,
+		Filters: map[string]string{
+			"tag3": "value3",
+			"tag4": "value4",
+		},
+		Targets: []RollupTargetView{
+			RollupTargetView{
+				Name:     "rName1",
+				Tags:     []string{"rtagName1", "rtagName2"},
+				Policies: []policy.Policy{p1, p2},
+			},
+		},
+	}
+
+	actual := hist[0]
+	require.Equal(t, expected, actual)
+}
