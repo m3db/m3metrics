@@ -749,7 +749,6 @@ func (rs *ruleSet) UpdateMappingRule(mrv MappingRuleView, meta UpdateMetadata) e
 	if err != nil {
 		return err
 	}
-
 	m, err := rs.getMappingRuleByID(mrv.ID)
 	if err != nil {
 		return fmt.Errorf(ruleActionErrorFmt, "update", mrv.ID, err)
@@ -885,7 +884,7 @@ func (rs *ruleSet) Revive(meta UpdateMetadata) error {
 func (rs *ruleSet) updateMetadata(meta UpdateMetadata) {
 	rs.cutoverNanos = meta.cutoverNanos
 	rs.lastUpdatedAtNanos = meta.updatedAtNanos
-	rs.lastUpdatedBy = meta.updatedBy
+	rs.lastUpdatedBy = meta.author
 }
 
 func (rs ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
@@ -1073,13 +1072,13 @@ func NewRuleSetUpdateHelper(propagationDelay time.Duration) RuleSetUpdateHelper 
 type UpdateMetadata struct {
 	cutoverNanos   int64
 	updatedAtNanos int64
-	updatedBy      string
+	author         string
 }
 
 // NewUpdateMetadata creates a properly initialized UpdateMetadata object.
-func (r RuleSetUpdateHelper) NewUpdateMetadata(updateTime int64, updatedBy string) UpdateMetadata {
+func (r RuleSetUpdateHelper) NewUpdateMetadata(updateTime int64, author string) UpdateMetadata {
 	cutoverNanos := updateTime + int64(r.propagationDelay)
-	return UpdateMetadata{updatedAtNanos: updateTime, cutoverNanos: cutoverNanos, updatedBy: updatedBy}
+	return UpdateMetadata{updatedAtNanos: updateTime, cutoverNanos: cutoverNanos, author: author}
 }
 
 // RuleConflictError is returned when a rule modification is made that would conflict with the current state.

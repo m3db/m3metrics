@@ -1049,9 +1049,7 @@ func testMappingRules(t *testing.T) []*mappingRule {
 	}
 
 	mappingRule5 := &mappingRule{
-		uuid:               "mappingRule5",
-		lastUpdatedAtNanos: 1234,
-		lastUpdatedBy:      "foo",
+		uuid: "mappingRule5",
 		snapshots: []*mappingRuleSnapshot{
 			&mappingRuleSnapshot{
 				name:         "mappingRule5.snapshot1",
@@ -1267,15 +1265,15 @@ func testRollupRules(t *testing.T) []*rollupRule {
 	}
 
 	rollupRule5 := &rollupRule{
-		uuid:               "rollupRule5",
-		lastUpdatedAtNanos: 1234,
-		lastUpdatedBy:      "foo",
+		uuid: "rollupRule5",
 		snapshots: []*rollupRuleSnapshot{
 			&rollupRuleSnapshot{
 				name:         "rollupRule5.snapshot1",
 				tombstoned:   false,
 				cutoverNanos: 24000,
 				filter:       filter2,
+				timestamp:    123456,
+				author:       "test",
 				targets: []RollupTarget{
 					{
 						Name: b("rName4"),
@@ -1570,14 +1568,14 @@ func testMappingRulesConfig() []*schema.MappingRule {
 			},
 		},
 		&schema.MappingRule{
-			Uuid:          "mappingRule5",
-			LastUpdatedAt: 1234,
-			LastUpdatedBy: "foo",
+			Uuid: "mappingRule5",
 			Snapshots: []*schema.MappingRuleSnapshot{
 				&schema.MappingRuleSnapshot{
 					Name:        "mappingRule5.snapshot1",
 					Tombstoned:  false,
 					CutoverTime: 100000,
+					Timestamp:   123456,
+					Author:      "test",
 					TagFilters:  map[string]string{"mtagName1": "mtagValue1"},
 					Policies: []*schema.Policy{
 						&schema.Policy{
@@ -1937,9 +1935,7 @@ func testRollupRulesConfig() []*schema.RollupRule {
 			},
 		},
 		&schema.RollupRule{
-			Uuid:          "rollupRule5",
-			LastUpdatedAt: 1234,
-			LastUpdatedBy: "foo",
+			Uuid: "rollupRule5",
 			Snapshots: []*schema.RollupRuleSnapshot{
 				&schema.RollupRuleSnapshot{
 					Name:        "rollupRule5.snapshot1",
@@ -2080,15 +2076,13 @@ func TestMappingRules(t *testing.T) {
 	_, rs, _, err := initMutableTest()
 	require.NoError(t, err)
 
-	mr := rs.MappingRules()
-	for _, v := range rs.mappingRules {
-		require.Contains(t, mr, v.uuid)
-		if len(v.snapshots) > 0 {
-			lastIdx := len(v.snapshots) - 1
-			mrv, err := newMappingRuleView(v, lastIdx)
-			require.NoError(t, err)
-			require.Equal(t, mr[v.uuid][lastIdx], mrv)
-		}
+	mr, err := rs.MappingRules()
+	require.NoError(t, err)
+	for _, m := range rs.mappingRules {
+		require.Contains(t, mr, m.uuid)
+		mrv, err := m.mappingRuleView(len(m.snapshots) - 1)
+		require.NoError(t, err)
+		require.Equal(t, mr[m.uuid][0], mrv)
 	}
 
 	require.NotNil(t, mr)
@@ -2098,15 +2092,13 @@ func TestRollupRules(t *testing.T) {
 	_, rs, _, err := initMutableTest()
 	require.NoError(t, err)
 
-	rr := rs.RollupRules()
+	rr, err := rs.RollupRules()
+	require.NoError(t, err)
 	for _, r := range rs.rollupRules {
 		require.Contains(t, rr, r.uuid)
-		lastIdx := len(r.snapshots) - 1
-		if len(r.snapshots) > 0 {
-			rrv, err := newRollupRuleView(r, lastIdx)
-			require.NoError(t, err)
-			require.Equal(t, rr[r.uuid][lastIdx], rrv)
-		}
+		rrv, err := r.rollupRuleView(len(r.snapshots) - 1)
+		require.NoError(t, err)
+		require.Equal(t, rr[r.uuid][0], rrv)
 	}
 
 	require.NotNil(t, rr)
@@ -2135,15 +2127,16 @@ func TestAddMappingRule(t *testing.T) {
 	mr, err := rs.getMappingRuleByName("foo")
 	require.NoError(t, err)
 
-	mrs := mutable.MappingRules()
+	mrs, err := mutable.MappingRules()
+	require.NoError(t, err)
 	require.Contains(t, mrs, mr.uuid)
 
 	updated := mrs[mr.uuid][0]
 	require.Equal(t, updated.Name, view.Name)
 	require.Equal(t, updated.ID, mr.uuid)
 	require.Equal(t, updated.Filters, view.Filters)
-	require.Equal(t, updated.LastUpdatedAtNanos, now)
-	require.Equal(t, updated.LastUpdatedBy, testUser)
+	require.Equal(t, updated.Timestamp, now)
+	require.Equal(t, updated.Author, testUser)
 }
 
 func TestAddMappingRuleDup(t *testing.T) {
@@ -2197,15 +2190,16 @@ func TestAddMappingRuleRevive(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, mr.snapshots[len(mr.snapshots)-1].rawFilters, newFilters)
 
-	mrs := mutable.MappingRules()
+	mrs, err := mutable.MappingRules()
+	require.NoError(t, err)
 	require.Contains(t, mrs, mr.uuid)
-	updated := mrs[mr.uuid][2]
+	updated := mrs[mr.uuid][0]
 	require.NoError(t, err)
 	require.Equal(t, updated.Name, "mappingRule5.snapshot1")
 	require.Equal(t, updated.ID, mr.uuid)
 	require.Equal(t, updated.Filters, newFilters)
-	require.Equal(t, updated.LastUpdatedAtNanos, now)
-	require.Equal(t, updated.LastUpdatedBy, testUser)
+	require.Equal(t, updated.Timestamp, now)
+	require.Equal(t, updated.Author, testUser)
 }
 
 func TestUpdateMappingRule(t *testing.T) {
@@ -2218,7 +2212,8 @@ func TestUpdateMappingRule(t *testing.T) {
 	mr, err := rs.getMappingRuleByID("mappingRule5")
 	require.NoError(t, err)
 
-	mrs := rs.MappingRules()
+	mrs, err := rs.MappingRules()
+	require.NoError(t, err)
 	require.Contains(t, mrs, "mappingRule5")
 
 	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
@@ -2236,22 +2231,24 @@ func TestUpdateMappingRule(t *testing.T) {
 	r, err := rs.getMappingRuleByID(mr.uuid)
 	require.NoError(t, err)
 
-	mrs = mutableClone.MappingRules()
+	mrs, err = mutableClone.MappingRules()
+	require.NoError(t, err)
 	require.Contains(t, mrs, r.uuid)
-	updated := mrs[mr.uuid][1]
+	updated := mrs[mr.uuid][0]
 	require.NoError(t, err)
 	require.Equal(t, updated.Name, "foo")
 	require.Equal(t, updated.ID, mr.uuid)
 	require.Equal(t, updated.Filters, newFilters)
-	require.Equal(t, updated.LastUpdatedAtNanos, now)
-	require.Equal(t, updated.LastUpdatedBy, testUser)
+	require.Equal(t, updated.Timestamp, now)
+	require.Equal(t, updated.Author, testUser)
 }
 
 func TestDeleteMappingRule(t *testing.T) {
 	mutable, rs, helper, err := initMutableTest()
 	require.NoError(t, err)
 
-	mrs := rs.MappingRules()
+	mrs, err := rs.MappingRules()
+	require.NoError(t, err)
 	require.Contains(t, mrs, "mappingRule5")
 
 	m, err := rs.getMappingRuleByID("mappingRule5")
@@ -2265,7 +2262,8 @@ func TestDeleteMappingRule(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, m.Tombstoned())
 
-	mrs = rs.MappingRules()
+	mrs, err = rs.MappingRules()
+	require.NoError(t, err)
 	require.Contains(t, mrs, "mappingRule5")
 }
 
@@ -2302,7 +2300,8 @@ func TestAddRollupRule(t *testing.T) {
 	require.NotEmpty(t, rr.uuid)
 	require.NoError(t, err)
 
-	rrs := rs.RollupRules()
+	rrs, err := rs.RollupRules()
+	require.NoError(t, err)
 	require.Contains(t, rrs, rr.uuid)
 
 	updated := rrs[rr.uuid][0]
@@ -2310,8 +2309,8 @@ func TestAddRollupRule(t *testing.T) {
 	require.Equal(t, updated.ID, rr.uuid)
 	require.Equal(t, updated.Targets, view.Targets)
 	require.Equal(t, updated.Filters, view.Filters)
-	require.Equal(t, updated.LastUpdatedAtNanos, now)
-	require.Equal(t, updated.LastUpdatedBy, testUser)
+	require.Equal(t, updated.Timestamp, now)
+	require.Equal(t, updated.Author, testUser)
 }
 
 func TestAddRollupRuleDup(t *testing.T) {
@@ -2372,17 +2371,19 @@ func TestReviveRollupRule(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, hist, uuid)
 
-	rrs := rs.RollupRules()
+	rrs, err := rs.RollupRules()
+	require.NoError(t, err)
 	require.Contains(t, rrs, rr.uuid)
 
-	updated := rrs[rr.uuid][2]
+	updated := rrs[rr.uuid][0]
+
 	require.NoError(t, err)
 	require.Equal(t, updated.Name, view.Name)
 	require.Equal(t, updated.ID, rr.uuid)
 	require.Equal(t, updated.Targets, view.Targets)
 	require.Equal(t, updated.Filters, view.Filters)
-	require.Equal(t, updated.LastUpdatedAtNanos, now)
-	require.Equal(t, updated.LastUpdatedBy, testUser)
+	require.Equal(t, updated.Timestamp, now)
+	require.Equal(t, updated.Author, testUser)
 }
 
 func TestUpdateRollupRule(t *testing.T) {
@@ -2415,17 +2416,17 @@ func TestUpdateRollupRule(t *testing.T) {
 	r, err := rs.getRollupRuleByID(rr.uuid)
 	require.NoError(t, err)
 
-	rrs := rs.RollupRules()
+	rrs, err := rs.RollupRules()
 	require.Contains(t, rrs, r.uuid)
 
-	updated := rrs[r.uuid][1]
+	updated := rrs[r.uuid][0]
 	require.NoError(t, err)
 	require.Equal(t, updated.Name, "foo")
 	require.Equal(t, updated.ID, rr.uuid)
 	require.Equal(t, updated.Targets, newTargets)
 	require.Equal(t, updated.Filters, newFilters)
-	require.Equal(t, updated.LastUpdatedAtNanos, now)
-	require.Equal(t, updated.LastUpdatedBy, testUser)
+	require.Equal(t, updated.Timestamp, now)
+	require.Equal(t, updated.Author, testUser)
 
 	require.NoError(t, err)
 }
@@ -2463,7 +2464,8 @@ func TestDeleteRollupRule(t *testing.T) {
 	mutable, rs, helper, err := initMutableTest()
 	require.NoError(t, err)
 
-	rrs := rs.RollupRules()
+	rrs, err := rs.RollupRules()
+	require.NoError(t, err)
 	require.Contains(t, rrs, "rollupRule5")
 
 	rr, err := rs.getRollupRuleByID("rollupRule5")
@@ -2476,7 +2478,8 @@ func TestDeleteRollupRule(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, rr.Tombstoned())
 
-	rrs = rs.RollupRules()
+	rrs, err = rs.RollupRules()
+	require.NoError(t, err)
 	require.Contains(t, rrs, "rollupRule5")
 }
 

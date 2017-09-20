@@ -29,13 +29,13 @@ message MappingRuleSnapshot {
   int64 cutover_time = 3;
   map<string,string> tag_filters = 4;
   repeated Policy policies = 5;
+  int64 timestamp = 6;
+  string author = 7;
 }
 
 message MappingRule {
   string uuid = 1;
-  int64 last_updated_at = 2;
-  string last_updated_by = 3;
-  repeated MappingRuleSnapshot snapshots = 4;
+  repeated MappingRuleSnapshot snapshots = 2;
 }
 
 message RollupTarget {
@@ -50,13 +50,13 @@ message RollupRuleSnapshot {
   int64 cutover_time = 3;
   map<string,string> tag_filters = 4;
   repeated RollupTarget targets = 5;
+  int64 timestamp = 6;
+  string author = 7;
 }
 
 message RollupRule {
   string uuid = 1;
-  int64 last_updated_at = 2;
-  string last_updated_by = 3;
-  repeated RollupRuleSnapshot snapshots = 4;
+  repeated RollupRuleSnapshot snapshots = 2;
 }
 
 message RuleSet {
@@ -64,9 +64,9 @@ message RuleSet {
   string namespace = 2;
   int64 created_at = 3;
   int64 last_updated_at = 4;
-  string last_updated_by = 5;
-  bool tombstoned = 6;
-  int64 cutover_time = 7;
-  repeated MappingRule mapping_rules = 8;
-  repeated RollupRule rollup_rules = 9;
+  bool tombstoned = 5;
+  int64 cutover_time = 6;
+  repeated MappingRule mapping_rules = 7;
+  repeated RollupRule rollup_rules = 8;
+  string last_updated_by = 9;
 }

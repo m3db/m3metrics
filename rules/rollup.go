@@ -161,6 +161,8 @@ type rollupRuleSnapshot struct {
 	filter       filters.Filter
 	targets      []RollupTarget
 	rawFilters   map[string]string
+	timestamp    int64
+	author       string
 }
 
 func newRollupRuleSnapshot(
@@ -190,6 +192,8 @@ func newRollupRuleSnapshot(
 		r.TagFilters,
 		targets,
 		filter,
+		r.Timestamp,
+		r.Author,
 	), nil
 }
 
@@ -200,6 +204,8 @@ func newRollupRuleSnapshotFromFields(
 	tagFilters map[string]string,
 	targets []RollupTarget,
 	filter filters.Filter,
+	timestamp int64,
+	author string,
 ) *rollupRuleSnapshot {
 	return &rollupRuleSnapshot{
 		name:         name,
@@ -208,6 +214,8 @@ func newRollupRuleSnapshotFromFields(
 		filter:       filter,
 		targets:      targets,
 		rawFilters:   tagFilters,
+		timestamp:    timestamp,
+		author:       author,
 	}
 }
 
@@ -231,6 +239,8 @@ func (rrs *rollupRuleSnapshot) clone() rollupRuleSnapshot {
 		filter:       filter,
 		targets:      targets,
 		rawFilters:   rawFilters,
+		timestamp:    rrs.timestamp,
+		author:       rrs.author,
 	}
 }
 
@@ -241,6 +251,8 @@ func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 		Tombstoned:  rrs.tombstoned,
 		CutoverTime: rrs.cutoverNanos,
 		TagFilters:  rrs.rawFilters,
+		Timestamp:   rrs.timestamp,
+		Author:      rrs.author,
 	}
 
 	targets := make([]*schema.RollupTarget, len(rrs.targets))
@@ -293,10 +305,8 @@ func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
 
 // rollupRule stores rollup rule snapshots.
 type rollupRule struct {
-	uuid               string
-	lastUpdatedAtNanos int64
-	lastUpdatedBy      string
-	snapshots          []*rollupRuleSnapshot
+	uuid      string
+	snapshots []*rollupRuleSnapshot
 }
 
 func newRollupRule(
@@ -315,10 +325,8 @@ func newRollupRule(
 		snapshots = append(snapshots, rr)
 	}
 	return &rollupRule{
-		uuid:               rc.Uuid,
-		lastUpdatedAtNanos: rc.LastUpdatedAt,
-		lastUpdatedBy:      rc.LastUpdatedBy,
-		snapshots:          snapshots,
+		uuid:      rc.Uuid,
+		snapshots: snapshots,
 	}, nil
 }
 
@@ -342,11 +350,31 @@ func (rc rollupRule) clone() rollupRule {
 		snapshots[i] = &c
 	}
 	return rollupRule{
-		uuid:               rc.uuid,
-		lastUpdatedAtNanos: rc.lastUpdatedAtNanos,
-		lastUpdatedBy:      rc.lastUpdatedBy,
-		snapshots:          snapshots,
+		uuid:      rc.uuid,
+		snapshots: snapshots,
 	}
+}
+
+func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
+	if snapshotIdx < 0 || snapshotIdx > len(rc.snapshots) {
+		return nil, errBadRollupRuleSnapshotIdx
+	}
+
+	rrs := rc.snapshots[snapshotIdx].clone()
+	targets := make([]RollupTargetView, len(rrs.targets))
+	for i, t := range rrs.targets {
+		targets[i] = newRollupTargetView(t)
+	}
+
+	return &RollupRuleView{
+		ID:           rc.uuid,
+		Name:         rrs.name,
+		CutoverNanos: rrs.cutoverNanos,
+		Filters:      rrs.rawFilters,
+		Targets:      targets,
+		Timestamp:    rrs.timestamp,
+		Author:       rrs.author,
+	}, nil
 }
 
 // ActiveSnapshot returns the latest rule snapshot whose cutover time is earlier
@@ -367,10 +395,8 @@ func (rc *rollupRule) ActiveRule(timeNanos int64) *rollupRule {
 		return rc
 	}
 	return &rollupRule{
-		uuid:               rc.uuid,
-		lastUpdatedAtNanos: rc.lastUpdatedAtNanos,
-		lastUpdatedBy:      rc.lastUpdatedBy,
-		snapshots:          rc.snapshots[idx:]}
+		uuid:      rc.uuid,
+		snapshots: rc.snapshots[idx:]}
 }
 
 func (rc *rollupRule) activeIndex(timeNanos int64) int {
@@ -398,11 +424,6 @@ func (rc *rollupRule) Tombstoned() bool {
 	return latest.tombstoned
 }
 
-func (rc *rollupRule) updateMetadata(meta UpdateMetadata) {
-	rc.lastUpdatedAtNanos = meta.updatedAtNanos
-	rc.lastUpdatedBy = meta.updatedBy
-}
-
 func (rc *rollupRule) addSnapshot(
 	name string,
 	rawFilters map[string]string,
@@ -416,8 +437,9 @@ func (rc *rollupRule) addSnapshot(
 		rawFilters,
 		rollupTargets,
 		nil,
+		meta.updatedAtNanos,
+		meta.author,
 	)
-	rc.updateMetadata(meta)
 	rc.snapshots = append(rc.snapshots, snapshot)
 	return nil
 }
@@ -485,10 +507,8 @@ func (rc *rollupRule) Schema() (*schema.RollupRule, error) {
 	}
 
 	return &schema.RollupRule{
-		Uuid:          rc.uuid,
-		LastUpdatedAt: rc.lastUpdatedAtNanos,
-		LastUpdatedBy: rc.lastUpdatedBy,
-		Snapshots:     snapshots,
+		Uuid:      rc.uuid,
+		Snapshots: snapshots,
 	}, nil
 }
 

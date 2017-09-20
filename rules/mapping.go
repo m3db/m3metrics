@@ -45,6 +45,8 @@ type mappingRuleSnapshot struct {
 	filter       filters.Filter
 	rawFilters   map[string]string
 	policies     []policy.Policy
+	timestamp    int64
+	author       string
 }
 
 func newMappingRuleSnapshot(
@@ -70,6 +72,8 @@ func newMappingRuleSnapshot(
 		r.TagFilters,
 		policies,
 		filter,
+		r.Timestamp,
+		r.Author,
 	), nil
 }
 
@@ -80,6 +84,8 @@ func newMappingRuleSnapshotFromFields(
 	tagFilters map[string]string,
 	policies []policy.Policy,
 	filter filters.Filter,
+	timestamp int64,
+	author string,
 ) *mappingRuleSnapshot {
 	return &mappingRuleSnapshot{
 		name:         name,
@@ -88,6 +94,8 @@ func newMappingRuleSnapshotFromFields(
 		filter:       filter,
 		rawFilters:   tagFilters,
 		policies:     policies,
+		timestamp:    timestamp,
+		author:       author,
 	}
 }
 
@@ -109,6 +117,8 @@ func (mrs *mappingRuleSnapshot) clone() mappingRuleSnapshot {
 		filter:       filter,
 		rawFilters:   rawFilters,
 		policies:     policies,
+		timestamp:    mrs.timestamp,
+		author:       mrs.author,
 	}
 }
 
@@ -119,6 +129,8 @@ func (mrs *mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
 		Tombstoned:  mrs.tombstoned,
 		CutoverTime: mrs.cutoverNanos,
 		TagFilters:  mrs.rawFilters,
+		Timestamp:   mrs.timestamp,
+		Author:      mrs.author,
 	}
 
 	policies := make([]*schema.Policy, len(mrs.policies))
@@ -166,10 +178,8 @@ func (mc *mappingRule) mappingRuleView(snapshotIdx int) (*MappingRuleView, error
 
 // mappingRule stores mapping rule snapshots.
 type mappingRule struct {
-	uuid               string
-	lastUpdatedAtNanos int64
-	lastUpdatedBy      string
-	snapshots          []*mappingRuleSnapshot
+	uuid      string
+	snapshots []*mappingRuleSnapshot
 }
 
 func newMappingRule(
@@ -188,10 +198,8 @@ func newMappingRule(
 		snapshots = append(snapshots, mr)
 	}
 	return &mappingRule{
-		uuid:               mc.Uuid,
-		lastUpdatedAtNanos: mc.LastUpdatedAt,
-		lastUpdatedBy:      mc.LastUpdatedBy,
-		snapshots:          snapshots,
+		uuid:      mc.Uuid,
+		snapshots: snapshots,
 	}, nil
 }
 
@@ -215,10 +223,8 @@ func (mc *mappingRule) clone() mappingRule {
 		snapshots[i] = &c
 	}
 	return mappingRule{
-		uuid:               mc.uuid,
-		lastUpdatedAtNanos: mc.lastUpdatedAtNanos,
-		lastUpdatedBy:      mc.lastUpdatedBy,
-		snapshots:          snapshots,
+		uuid:      mc.uuid,
+		snapshots: snapshots,
 	}
 }
 
@@ -238,11 +244,6 @@ func (mc *mappingRule) Tombstoned() bool {
 	return latest.tombstoned
 }
 
-func (mc *mappingRule) updateMetadata(meta UpdateMetadata) {
-	mc.lastUpdatedAtNanos = meta.updatedAtNanos
-	mc.lastUpdatedBy = meta.updatedBy
-}
-
 func (mc *mappingRule) addSnapshot(
 	name string,
 	rawFilters map[string]string,
@@ -256,8 +257,9 @@ func (mc *mappingRule) addSnapshot(
 		rawFilters,
 		policies,
 		nil,
+		meta.updatedAtNanos,
+		meta.author,
 	)
-	mc.updateMetadata(meta)
 	mc.snapshots = append(mc.snapshots, snapshot)
 	return nil
 }
@@ -316,10 +318,8 @@ func (mc *mappingRule) ActiveRule(timeNanos int64) *mappingRule {
 		return mc
 	}
 	return &mappingRule{
-		uuid:               mc.uuid,
-		lastUpdatedAtNanos: mc.lastUpdatedAtNanos,
-		lastUpdatedBy:      mc.lastUpdatedBy,
-		snapshots:          mc.snapshots[idx:],
+		uuid:      mc.uuid,
+		snapshots: mc.snapshots[idx:],
 	}
 }
 
@@ -357,10 +357,8 @@ func (mc *mappingRule) Schema() (*schema.MappingRule, error) {
 	}
 
 	return &schema.MappingRule{
-		Uuid:          mc.uuid,
-		LastUpdatedAt: mc.lastUpdatedAtNanos,
-		LastUpdatedBy: mc.lastUpdatedBy,
-		Snapshots:     snapshots,
+		Uuid:      mc.uuid,
+		Snapshots: snapshots,
 	}, nil
 
 }
