@@ -261,6 +261,7 @@ func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 type RollupRuleView struct {
 	ID           string
 	Name         string
+	Tombstoned   bool
 	CutoverNanos int64
 	Filters      map[string]string
 	Targets      []RollupTargetView
@@ -280,6 +281,7 @@ func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
 	return &RollupRuleView{
 		ID:           rc.uuid,
 		Name:         rrs.name,
+		Tombstoned:   rrs.tombstoned,
 		CutoverNanos: rrs.cutoverNanos,
 		Filters:      rrs.rawFilters,
 		Targets:      targets,

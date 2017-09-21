@@ -139,6 +139,7 @@ func (mrs *mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
 type MappingRuleView struct {
 	ID           string
 	Name         string
+	Tombstoned   bool
 	CutoverNanos int64
 	Filters      map[string]string
 	Policies     []policy.Policy
@@ -153,6 +154,7 @@ func (mc *mappingRule) mappingRuleView(snapshotIdx int) (*MappingRuleView, error
 	return &MappingRuleView{
 		ID:           mc.uuid,
 		Name:         mrs.name,
+		Tombstoned:   mrs.tombstoned,
 		CutoverNanos: mrs.cutoverNanos,
 		Filters:      mrs.rawFilters,
 		Policies:     mrs.policies,
