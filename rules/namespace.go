@@ -32,6 +32,7 @@ var (
 	emptyNamespace         Namespace
 	emptyNamespaces        Namespaces
 
+	errBadNamespaceSnapshotIdx    = errors.New("namespace snapshot idx out of range")
 	errNilNamespaceSnapshotSchema = errors.New("nil namespace snapshot schema")
 	errNilNamespaceSchema         = errors.New("nil namespace schema")
 	errNilNamespacesSchema        = errors.New("nil namespaces schema")
@@ -97,6 +98,25 @@ func newNamespace(namespace *schema.Namespace) (Namespace, error) {
 	return Namespace{
 		name:      []byte(namespace.Name),
 		snapshots: snapshots,
+	}, nil
+}
+
+// NamespaceView is a human friendly representation of a namespace at a single point in time.
+type NamespaceView struct {
+	Name              string
+	ForRuleSetVersion int
+	Tombstoned        bool
+}
+
+func (n Namespace) namespaceView(snapshotIdx int) (*NamespaceView, error) {
+	if snapshotIdx < 0 || snapshotIdx > len(n.snapshots) {
+		return nil, errBadNamespaceSnapshotIdx
+	}
+	s := n.snapshots[snapshotIdx]
+	return &NamespaceView{
+		Name:              string(n.name),
+		ForRuleSetVersion: s.forRuleSetVersion,
+		Tombstoned:        s.tombstoned,
 	}, nil
 }
 
@@ -189,6 +209,27 @@ func NewNamespaces(version int, namespaces *schema.Namespaces) (Namespaces, erro
 	return Namespaces{
 		version:    version,
 		namespaces: nss,
+	}, nil
+}
+
+// NamespacesView is a representation of all the namespaces at a point in time.
+type NamespacesView struct {
+	Version    int
+	Namespaces []*NamespaceView
+}
+
+func (nss Namespaces) namespacesView() (*NamespacesView, error) {
+	namespaces := make([]*NamespaceView, len(nss.namespaces))
+	for i, n := range nss.namespaces {
+		ns, err := n.namespaceView(len(n.snapshots) - 1)
+		if err != nil {
+			return nil, err
+		}
+		namespaces[i] = ns
+	}
+	return &NamespacesView{
+		Version:    nss.version,
+		Namespaces: namespaces,
 	}, nil
 }
 

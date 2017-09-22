@@ -513,3 +513,84 @@ func TestNamespaceClone(t *testing.T) {
 	nsClone.snapshots = append(nsClone.snapshots, nsClone.snapshots[0])
 	require.NotEqual(t, *ns, nsClone)
 }
+
+func TestNamespacesView(t *testing.T) {
+	testNss := &schema.Namespaces{
+		Namespaces: []*schema.Namespace{
+			&schema.Namespace{
+				Name: "foo",
+				Snapshots: []*schema.NamespaceSnapshot{
+					&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: true},
+					&schema.NamespaceSnapshot{ForRulesetVersion: 2, Tombstoned: false},
+				},
+			},
+			&schema.Namespace{
+				Name: "bar",
+				Snapshots: []*schema.NamespaceSnapshot{
+					&schema.NamespaceSnapshot{ForRulesetVersion: 1, Tombstoned: true},
+					&schema.NamespaceSnapshot{ForRulesetVersion: 3, Tombstoned: false},
+				},
+			},
+		},
+	}
+
+	nss, err := NewNamespaces(1, testNss)
+	require.NoError(t, err)
+
+	expected := &NamespacesView{
+		Version: 1,
+		Namespaces: []*NamespaceView{
+			&NamespaceView{
+				Name:              "foo",
+				ForRuleSetVersion: 2,
+				Tombstoned:        false,
+			},
+			&NamespaceView{
+				Name:              "bar",
+				ForRuleSetVersion: 3,
+				Tombstoned:        false,
+			},
+		},
+	}
+
+	actual, err := nss.namespacesView()
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+}
+
+func TestNamespaceView(t *testing.T) {
+	n := Namespace{
+		name: b("test"),
+		snapshots: []NamespaceSnapshot{
+			NamespaceSnapshot{forRuleSetVersion: 3, tombstoned: false},
+			NamespaceSnapshot{forRuleSetVersion: 4, tombstoned: true},
+		},
+	}
+
+	expected := &NamespaceView{
+		Name:              "test",
+		ForRuleSetVersion: 4,
+		Tombstoned:        true,
+	}
+
+	actual, err := n.namespaceView(1)
+	require.NoError(t, err)
+	require.Equal(t, actual, expected)
+}
+
+func TestNamespaceViewError(t *testing.T) {
+	n := Namespace{
+		name: b("test"),
+		snapshots: []NamespaceSnapshot{
+			NamespaceSnapshot{forRuleSetVersion: 3, tombstoned: false},
+			NamespaceSnapshot{forRuleSetVersion: 4, tombstoned: true},
+		},
+	}
+
+	badIdx := []int{30, -2}
+	for _, i := range badIdx {
+		actual, err := n.namespaceView(i)
+		require.Error(t, err)
+		require.Nil(t, actual)
+	}
+}
