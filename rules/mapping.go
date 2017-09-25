@@ -32,9 +32,9 @@ import (
 )
 
 var (
-	errBadMappingRuleSnapshotIdx    = errors.New("mapping rule snapshot index out of range")
-	errNilMappingRuleSnapshotSchema = errors.New("nil mapping rule snapshot schema")
-	errNilMappingRuleSchema         = errors.New("nil mapping rule schema")
+	errMappingRuleSnapshotIdxOutOfRange = errors.New("mapping rule snapshot index out of range")
+	errNilMappingRuleSnapshotSchema     = errors.New("nil mapping rule snapshot schema")
+	errNilMappingRuleSchema             = errors.New("nil mapping rule schema")
 )
 
 // mappingRuleSnapshot defines a rule snapshot such that if a metric matches the
@@ -146,8 +146,8 @@ type MappingRuleView struct {
 }
 
 func (mc *mappingRule) mappingRuleView(snapshotIdx int) (*MappingRuleView, error) {
-	if snapshotIdx < 0 || snapshotIdx > len(mc.snapshots) {
-		return nil, errBadMappingRuleSnapshotIdx
+	if snapshotIdx < 0 || snapshotIdx >= len(mc.snapshots) {
+		return nil, errMappingRuleSnapshotIdxOutOfRange
 	}
 
 	mrs := mc.snapshots[snapshotIdx].clone()

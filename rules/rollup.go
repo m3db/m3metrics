@@ -36,10 +36,10 @@ import (
 var (
 	emptyRollupTarget RollupTarget
 
-	errBadRollupRuleSnapshotIdx    = errors.New("rollup rule snapshot index out of range")
-	errNilRollupTargetSchema       = errors.New("nil rollup target schema")
-	errNilRollupRuleSnapshotSchema = errors.New("nil rollup rule snapshot schema")
-	errNilRollupRuleSchema         = errors.New("nil rollup rule schema")
+	errRollupRuleSnapshotIdxOutOfRange = errors.New("rollup rule snapshot index out of range")
+	errNilRollupTargetSchema           = errors.New("nil rollup target schema")
+	errNilRollupRuleSnapshotSchema     = errors.New("nil rollup rule snapshot schema")
+	errNilRollupRuleSchema             = errors.New("nil rollup rule schema")
 )
 
 // RollupTarget dictates how to roll up metrics. Metrics associated with a rollup
@@ -268,8 +268,8 @@ type RollupRuleView struct {
 }
 
 func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
-	if snapshotIdx < 0 || snapshotIdx > len(rc.snapshots) {
-		return nil, errBadRollupRuleSnapshotIdx
+	if snapshotIdx < 0 || snapshotIdx >= len(rc.snapshots) {
+		return nil, errRollupRuleSnapshotIdxOutOfRange
 	}
 
 	rrs := rc.snapshots[snapshotIdx].clone()

@@ -308,9 +308,12 @@ func TestNewMappingRuleViewError(t *testing.T) {
 	mr, err := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
 	require.NoError(t, err)
 
-	actual, err := mr.mappingRuleView(20)
-	require.Error(t, err)
-	require.Nil(t, actual)
+	badIdx := []int{-2, 2, 30}
+	for _, i := range badIdx {
+		actual, err := mr.mappingRuleView(i)
+		require.Error(t, err)
+		require.Nil(t, actual)
+	}
 }
 
 func TestMappingRuleHistory(t *testing.T) {

@@ -32,16 +32,16 @@ var (
 	emptyNamespace         Namespace
 	emptyNamespaces        Namespaces
 
-	errBadNamespaceSnapshotIdx    = errors.New("namespace snapshot idx out of range")
-	errNilNamespaceSnapshotSchema = errors.New("nil namespace snapshot schema")
-	errNilNamespaceSchema         = errors.New("nil namespace schema")
-	errNilNamespacesSchema        = errors.New("nil namespaces schema")
-	errNilNamespaceSnapshot       = errors.New("nil namespace snapshot")
-	errMultipleNamespaceMatches   = errors.New("more than one namespace match found")
-	errNamespaceNotFound          = errors.New("namespace not found")
-	errNamespaceNotTombstoned     = errors.New("not tombstoned")
-	errNamespaceTombstoned        = errors.New("already tombstoned")
-	errNoNamespaceSnapshots       = errors.New("no snapshots")
+	errNamespaceSnapshotIdxOutOfRange = errors.New("namespace snapshot idx out of range")
+	errNilNamespaceSnapshotSchema     = errors.New("nil namespace snapshot schema")
+	errNilNamespaceSchema             = errors.New("nil namespace schema")
+	errNilNamespacesSchema            = errors.New("nil namespaces schema")
+	errNilNamespaceSnapshot           = errors.New("nil namespace snapshot")
+	errMultipleNamespaceMatches       = errors.New("more than one namespace match found")
+	errNamespaceNotFound              = errors.New("namespace not found")
+	errNamespaceNotTombstoned         = errors.New("not tombstoned")
+	errNamespaceTombstoned            = errors.New("already tombstoned")
+	errNoNamespaceSnapshots           = errors.New("no snapshots")
 
 	namespaceActionErrorFmt = "cannot %s namespace %s. %v"
 )
@@ -109,8 +109,8 @@ type NamespaceView struct {
 }
 
 func (n Namespace) namespaceView(snapshotIdx int) (*NamespaceView, error) {
-	if snapshotIdx < 0 || snapshotIdx > len(n.snapshots) {
-		return nil, errBadNamespaceSnapshotIdx
+	if snapshotIdx < 0 || snapshotIdx >= len(n.snapshots) {
+		return nil, errNamespaceSnapshotIdxOutOfRange
 	}
 	s := n.snapshots[snapshotIdx]
 	return &NamespaceView{

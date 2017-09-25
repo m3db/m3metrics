@@ -405,9 +405,12 @@ func TestNewRollupRuleView(t *testing.T) {
 func TestNewRollupRuleViewError(t *testing.T) {
 	rr, err := newRollupRule(testRollupRuleSchema, testTagsFilterOptions())
 	require.NoError(t, err)
-	actual, err := rr.rollupRuleView(20)
-	require.Error(t, err)
-	require.Nil(t, actual)
+	badIdx := []int{-2, 2, 30}
+	for _, i := range badIdx {
+		actual, err := rr.rollupRuleView(i)
+		require.Error(t, err)
+		require.Nil(t, actual)
+	}
 }
 
 func TestNewRollupRuleHistory(t *testing.T) {

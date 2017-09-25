@@ -587,7 +587,7 @@ func TestNamespaceViewError(t *testing.T) {
 		},
 	}
 
-	badIdx := []int{30, -2}
+	badIdx := []int{-2, 2, 30}
 	for _, i := range badIdx {
 		actual, err := n.namespaceView(i)
 		require.Error(t, err)
