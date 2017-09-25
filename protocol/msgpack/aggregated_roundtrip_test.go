@@ -50,11 +50,6 @@ var (
 		TimeNanos: time.Now().UnixNano(),
 		Value:     123.45,
 	}
-	testMetric2 = aggregated.Metric{
-		ID:        id.RawID("bar"),
-		TimeNanos: time.Now().UnixNano(),
-		Value:     678.90,
-	}
 	testPolicy = policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour)
 )
 
@@ -81,11 +76,6 @@ func testAggregatedEncode(encoder AggregatedEncoder, m interface{}, p policy.Sto
 	case aggregated.ChunkedMetric:
 		return encoder.EncodeChunkedMetricWithStoragePolicy(aggregated.ChunkedMetricWithStoragePolicy{
 			ChunkedMetric: m,
-			StoragePolicy: p,
-		})
-	case aggregated.RawMetric:
-		return encoder.EncodeRawMetricWithStoragePolicy(aggregated.RawMetricWithStoragePolicy{
-			RawMetric:     m,
 			StoragePolicy: p,
 		})
 	default:
@@ -194,13 +184,6 @@ func TestAggregatedEncodeDecodeChunkedMetricWithPolicy(t *testing.T) {
 	})
 }
 
-func TestAggregatedEncodeDecodeRawMetricWithPolicy(t *testing.T) {
-	validateAggregatedRoundtrip(t, metricWithPolicy{
-		metric: toRawMetric(t, testMetric),
-		policy: testPolicy,
-	})
-}
-
 func TestAggregatedEncodeDecodeStress(t *testing.T) {
 	var (
 		numIter    = 10
@@ -212,19 +195,14 @@ func TestAggregatedEncodeDecodeStress(t *testing.T) {
 	for i := 0; i < numIter; i++ {
 		var inputs []metricWithPolicy
 		for j := 0; j < numMetrics; j++ {
-			if j%3 == 0 {
+			if j%2 == 0 {
 				inputs = append(inputs, metricWithPolicy{
 					metric: testMetric,
 					policy: testPolicy,
 				})
-			} else if j%3 == 1 {
-				inputs = append(inputs, metricWithPolicy{
-					metric: testChunkedMetric,
-					policy: testPolicy,
-				})
 			} else {
 				inputs = append(inputs, metricWithPolicy{
-					metric: toRawMetric(t, testMetric2),
+					metric: testChunkedMetric,
 					policy: testPolicy,
 				})
 			}

@@ -93,14 +93,6 @@ func TestAggregatedEncodeChunkedMetricWithPolicy(t *testing.T) {
 	require.Equal(t, expected, *results)
 }
 
-func TestAggregatedEncodeRawMetricWithPolicy(t *testing.T) {
-	encoder, results := testCapturingAggregatedEncoder()
-	rawMetric := toRawMetric(t, testMetric)
-	require.NoError(t, testAggregatedEncode(encoder, rawMetric, testPolicy))
-	expected := expectedResultsForAggregatedMetricWithPolicy(t, rawMetric, testPolicy)
-	require.Equal(t, expected, *results)
-}
-
 func TestAggregatedEncodeError(t *testing.T) {
 	// Intentionally return an error when encoding varint.
 	encoder := testAggregatedEncoder().(*aggregatedEncoder)
