@@ -430,10 +430,10 @@ func TestNewRollupRuleHistory(t *testing.T) {
 	p2, _ := policy.ParsePolicy("5m:2d|Mean")
 	expected := []*RollupRuleView{
 		&RollupRuleView{
-			ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
-			Name:         "bar",
-			CutoverNanos: 67890,
-			Tombstoned:   true,
+			ID:                 "12669817-13ae-40e6-ba2f-33087b262c68",
+			Name:               "bar",
+			CutoverNanos:       67890,
+			Tombstoned:         true,
 			LastUpdatedAtNanos: 67890,
 			LastUpdatedBy:      "someone",
 			Filters: map[string]string{
@@ -445,13 +445,16 @@ func TestNewRollupRuleHistory(t *testing.T) {
 					Name:     "rName1",
 					Tags:     []string{"rtagName1", "rtagName2"},
 					Policies: []policy.Policy{p1, p2},
-			"tag4": "value4",
+				},
+			},
 		},
 		&RollupRuleView{
-			ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
-			Name:         "foo",
-			CutoverNanos: 12345,
-			Tombstoned:   false,
+			ID:                 "12669817-13ae-40e6-ba2f-33087b262c68",
+			Name:               "foo",
+			CutoverNanos:       12345,
+			Tombstoned:         false,
+			LastUpdatedAtNanos: 12345,
+			LastUpdatedBy:      "someone-else",
 			Filters: map[string]string{
 				"tag1": "value1",
 				"tag2": "value2",

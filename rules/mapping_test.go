@@ -285,50 +285,6 @@ func TestMappingRuleSnapshotClone(t *testing.T) {
 	require.NotEqual(t, s1.policies, s1Clone.policies)
 }
 
-<<<<<<< HEAD
-func TestNewMappingRuleView(t *testing.T) {
-	mr, err := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
-	require.NoError(t, err)
-
-<<<<<<< HEAD
-	actual, err := mr.mappingRuleView(0)
-=======
-	actual, err := mr.mappingRuleView(len(mr.snapshots) - 1)
->>>>>>> Addressing comments:
-	require.NoError(t, err)
-
-	p1, _ := policy.ParsePolicy("1m:24h")
-	p2, _ := policy.ParsePolicy("5m:2d")
-	expected := &MappingRuleView{
-		ID:                 "12669817-13ae-40e6-ba2f-33087b262c68",
-		Name:               "bar",
-		CutoverNanos:       67890,
-		Tombstoned:         true,
-		LastUpdatedAtNanos: 1234,
-		LastUpdatedBy:      "someone",
-		Filters: map[string]string{
-			"tag3": "value3",
-			"tag4": "value4",
-		},
-		Policies: []policy.Policy{p1, p2},
-	}
-	require.Equal(t, expected, actual)
-}
-
-func TestNewMappingRuleViewError(t *testing.T) {
-	mr, err := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
-	require.NoError(t, err)
-
-	badIdx := []int{-2, 2, 30}
-	for _, i := range badIdx {
-		actual, err := mr.mappingRuleView(i)
-		require.Error(t, err)
-		require.Nil(t, actual)
-	}
-}
-
-=======
->>>>>>> Rebase + Fallout
 func TestMappingRuleHistory(t *testing.T) {
 	mr, err := newMappingRule(testMappingRuleSchema, testTagsFilterOptions())
 	require.NoError(t, err)
@@ -339,7 +295,6 @@ func TestMappingRuleHistory(t *testing.T) {
 	p0, _ := policy.ParsePolicy("10s:24h|P999")
 	p1, _ := policy.ParsePolicy("1m:24h")
 	p2, _ := policy.ParsePolicy("5m:2d")
-<<<<<<< HEAD
 
 	expectedViews := []*MappingRuleView{
 		&MappingRuleView{
@@ -351,7 +306,9 @@ func TestMappingRuleHistory(t *testing.T) {
 				"tag3": "value3",
 				"tag4": "value4",
 			},
-			Policies: []policy.Policy{p1, p2},
+			Policies:           []policy.Policy{p1, p2},
+			LastUpdatedAtNanos: 1234,
+			LastUpdatedBy:      "someone",
 		},
 		&MappingRuleView{
 			ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
@@ -362,21 +319,10 @@ func TestMappingRuleHistory(t *testing.T) {
 				"tag1": "value1",
 				"tag2": "value2",
 			},
-			Policies: []policy.Policy{p0},
+			Policies:           []policy.Policy{p0},
+			LastUpdatedAtNanos: 1234,
+			LastUpdatedBy:      "someone",
 		},
-=======
-	expected := &MappingRuleView{
-		ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
-		Name:         "bar",
-		CutoverNanos: 67890,
-		Filters: map[string]string{
-			"tag3": "value3",
-			"tag4": "value4",
-		},
-		Policies:           []policy.Policy{p1, p2},
-		LastUpdatedAtNanos: 1234,
-		LastUpdatedBy:      "someone",
->>>>>>> Rebase + Fallout
 	}
 
 	require.Equal(t, expectedViews, hist)
