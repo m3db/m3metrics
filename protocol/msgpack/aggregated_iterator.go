@@ -37,7 +37,7 @@ type aggregatedIterator struct {
 	iteratorPool        AggregatedIteratorPool
 	metric              aggregated.RawMetric
 	storagePolicy       policy.StoragePolicy
-	encodedAt           int64
+	encodedAtNanos      int64
 }
 
 // NewAggregatedIterator creates a new aggregated iterator.
@@ -62,7 +62,7 @@ func (it *aggregatedIterator) Reset(reader io.Reader) {
 }
 
 func (it *aggregatedIterator) Value() (aggregated.RawMetric, policy.StoragePolicy, int64) {
-	return it.metric, it.storagePolicy, it.encodedAt
+	return it.metric, it.storagePolicy, it.encodedAtNanos
 }
 
 func (it *aggregatedIterator) Next() bool {
@@ -128,7 +128,7 @@ func (it *aggregatedIterator) decodeRawMetricWithStoragePolicy() {
 	}
 	it.metric.Reset(it.decodeRawMetric())
 	it.storagePolicy = it.decodeStoragePolicy()
-	it.encodedAt = 0
+	it.encodedAtNanos = 0
 	it.skip(numActualFields - numExpectedFields)
 }
 
@@ -139,7 +139,7 @@ func (it *aggregatedIterator) decodeRawMetricWithStoragePolicyAndEncodeTime() {
 	}
 	it.metric.Reset(it.decodeRawMetric())
 	it.storagePolicy = it.decodeStoragePolicy()
-	it.encodedAt = it.decodeVarint()
+	it.encodedAtNanos = it.decodeVarint()
 	it.skip(numActualFields - numExpectedFields)
 }
 
