@@ -188,11 +188,11 @@ func newRollupRuleSnapshot(
 	return newRollupRuleSnapshotFromFields(
 		r.Name,
 		r.Tombstoned,
-		r.CutoverTime,
+		r.CutoverTimeNanos,
 		r.TagFilters,
 		targets,
 		filter,
-		r.LastUpdatedAt,
+		r.LastUpdatedAtNanos,
 		r.LastUpdatedBy,
 	), nil
 }
@@ -247,12 +247,12 @@ func (rrs *rollupRuleSnapshot) clone() rollupRuleSnapshot {
 // Schema returns the given MappingRuleSnapshot in protobuf form.
 func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 	res := &schema.RollupRuleSnapshot{
-		Name:          rrs.name,
-		Tombstoned:    rrs.tombstoned,
-		CutoverTime:   rrs.cutoverNanos,
-		TagFilters:    rrs.rawFilters,
-		LastUpdatedAt: rrs.lastUpdatedAtNanos,
-		LastUpdatedBy: rrs.lastUpdatedBy,
+		Name:               rrs.name,
+		Tombstoned:         rrs.tombstoned,
+		CutoverTimeNanos:   rrs.cutoverNanos,
+		TagFilters:         rrs.rawFilters,
+		LastUpdatedAtNanos: rrs.lastUpdatedAtNanos,
+		LastUpdatedBy:      rrs.lastUpdatedBy,
 	}
 
 	targets := make([]*schema.RollupTarget, len(rrs.targets))

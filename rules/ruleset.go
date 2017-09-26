@@ -557,11 +557,11 @@ func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSe
 		uuid:               rs.Uuid,
 		version:            version,
 		namespace:          []byte(rs.Namespace),
-		createdAtNanos:     rs.CreatedAt,
-		lastUpdatedAtNanos: rs.LastUpdatedAt,
+		createdAtNanos:     rs.CreatedAtNanos,
+		lastUpdatedAtNanos: rs.LastUpdatedAtNanos,
 		lastUpdatedBy:      rs.LastUpdatedBy,
 		tombstoned:         rs.Tombstoned,
-		cutoverNanos:       rs.CutoverTime,
+		cutoverNanos:       rs.CutoverTimeNanos,
 		mappingRules:       mappingRules,
 		rollupRules:        rollupRules,
 		tagsFilterOpts:     tagsFilterOpts,
@@ -619,13 +619,13 @@ func (rs *ruleSet) ToMutableRuleSet() MutableRuleSet {
 // Schema returns the protobuf representation of a ruleset.
 func (rs *ruleSet) Schema() (*schema.RuleSet, error) {
 	res := &schema.RuleSet{
-		Uuid:          rs.uuid,
-		Namespace:     string(rs.namespace),
-		CreatedAt:     rs.createdAtNanos,
-		LastUpdatedAt: rs.lastUpdatedAtNanos,
-		LastUpdatedBy: rs.lastUpdatedBy,
-		Tombstoned:    rs.tombstoned,
-		CutoverTime:   rs.cutoverNanos,
+		Uuid:               rs.uuid,
+		Namespace:          string(rs.namespace),
+		CreatedAtNanos:     rs.createdAtNanos,
+		LastUpdatedAtNanos: rs.lastUpdatedAtNanos,
+		LastUpdatedBy:      rs.lastUpdatedBy,
+		Tombstoned:         rs.tombstoned,
+		CutoverTimeNanos:   rs.cutoverNanos,
 	}
 
 	mappingRules := make([]*schema.MappingRule, len(rs.mappingRules))

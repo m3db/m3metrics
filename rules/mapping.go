@@ -68,11 +68,11 @@ func newMappingRuleSnapshot(
 	return newMappingRuleSnapshotFromFields(
 		r.Name,
 		r.Tombstoned,
-		r.CutoverTime,
+		r.CutoverTimeNanos,
 		r.TagFilters,
 		policies,
 		filter,
-		r.LastUpdatedAt,
+		r.LastUpdatedAtNanos,
 		r.LastUpdatedBy,
 	), nil
 }
@@ -125,12 +125,12 @@ func (mrs *mappingRuleSnapshot) clone() mappingRuleSnapshot {
 // Schema returns the given MappingRuleSnapshot in protobuf form.
 func (mrs *mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
 	res := &schema.MappingRuleSnapshot{
-		Name:          mrs.name,
-		Tombstoned:    mrs.tombstoned,
-		CutoverTime:   mrs.cutoverNanos,
-		TagFilters:    mrs.rawFilters,
-		LastUpdatedAt: mrs.lastUpdatedAtNanos,
-		LastUpdatedBy: mrs.lastUpdatedBy,
+		Name:               mrs.name,
+		Tombstoned:         mrs.tombstoned,
+		CutoverTimeNanos:   mrs.cutoverNanos,
+		TagFilters:         mrs.rawFilters,
+		LastUpdatedAtNanos: mrs.lastUpdatedAtNanos,
+		LastUpdatedBy:      mrs.lastUpdatedBy,
 	}
 
 	policies := make([]*schema.Policy, len(mrs.policies))

@@ -36,11 +36,11 @@ var (
 		Uuid: "12669817-13ae-40e6-ba2f-33087b262c68",
 		Snapshots: []*schema.RollupRuleSnapshot{
 			&schema.RollupRuleSnapshot{
-				Name:          "foo",
-				Tombstoned:    false,
-				CutoverTime:   12345,
-				LastUpdatedAt: 12345,
-				LastUpdatedBy: "someone-else",
+				Name:               "foo",
+				Tombstoned:         false,
+				CutoverTimeNanos:   12345,
+				LastUpdatedAtNanos: 12345,
+				LastUpdatedBy:      "someone-else",
 				TagFilters: map[string]string{
 					"tag1": "value1",
 					"tag2": "value2",
@@ -66,11 +66,11 @@ var (
 				},
 			},
 			&schema.RollupRuleSnapshot{
-				Name:          "bar",
-				Tombstoned:    true,
-				CutoverTime:   67890,
-				LastUpdatedAt: 67890,
-				LastUpdatedBy: "someone",
+				Name:               "bar",
+				Tombstoned:         true,
+				CutoverTimeNanos:   67890,
+				LastUpdatedAtNanos: 67890,
+				LastUpdatedBy:      "someone",
 				TagFilters: map[string]string{
 					"tag3": "value3",
 					"tag4": "value4",
