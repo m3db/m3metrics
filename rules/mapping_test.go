@@ -38,7 +38,7 @@ var (
 			&schema.MappingRuleSnapshot{
 				Name:               "foo",
 				Tombstoned:         false,
-				CutoverTimeNanos:   12345,
+				CutoverNanos:       12345,
 				LastUpdatedAtNanos: 1234,
 				LastUpdatedBy:      "someone",
 				TagFilters: map[string]string{
@@ -65,7 +65,7 @@ var (
 			&schema.MappingRuleSnapshot{
 				Name:               "bar",
 				Tombstoned:         true,
-				CutoverTimeNanos:   67890,
+				CutoverNanos:       67890,
 				LastUpdatedAtNanos: 1234,
 				LastUpdatedBy:      "someone",
 				TagFilters: map[string]string{

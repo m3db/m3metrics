@@ -38,7 +38,7 @@ var (
 			&schema.RollupRuleSnapshot{
 				Name:               "foo",
 				Tombstoned:         false,
-				CutoverTimeNanos:   12345,
+				CutoverNanos:       12345,
 				LastUpdatedAtNanos: 12345,
 				LastUpdatedBy:      "someone-else",
 				TagFilters: map[string]string{
@@ -68,7 +68,7 @@ var (
 			&schema.RollupRuleSnapshot{
 				Name:               "bar",
 				Tombstoned:         true,
-				CutoverTimeNanos:   67890,
+				CutoverNanos:       67890,
 				LastUpdatedAtNanos: 67890,
 				LastUpdatedBy:      "someone",
 				TagFilters: map[string]string{

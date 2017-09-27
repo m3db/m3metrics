@@ -26,7 +26,7 @@ import "policy.proto";
 message MappingRuleSnapshot {
   string name = 1;
   bool tombstoned = 2;
-  int64 cutover_time_nanos = 3;
+  int64 cutover_nanos = 3;
   map<string,string> tag_filters = 4;
   repeated Policy policies = 5;
   int64 last_updated_at_nanos = 6;
@@ -47,7 +47,7 @@ message RollupTarget {
 message RollupRuleSnapshot {
   string name = 1;
   bool tombstoned = 2;
-  int64 cutover_time_nanos = 3;
+  int64 cutover_nanos = 3;
   map<string,string> tag_filters = 4;
   repeated RollupTarget targets = 5;
   int64 last_updated_at_nanos = 6;
@@ -65,7 +65,7 @@ message RuleSet {
   int64 created_at_nanos = 3;
   int64 last_updated_at_nanos = 4;
   bool tombstoned = 5;
-  int64 cutover_time_nanos = 6;
+  int64 cutover_nanos = 6;
   repeated MappingRule mapping_rules = 7;
   repeated RollupRule rollup_rules = 8;
   string last_updated_by = 9;

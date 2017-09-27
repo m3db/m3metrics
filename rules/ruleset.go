@@ -561,7 +561,7 @@ func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSe
 		lastUpdatedAtNanos: rs.LastUpdatedAtNanos,
 		lastUpdatedBy:      rs.LastUpdatedBy,
 		tombstoned:         rs.Tombstoned,
-		cutoverNanos:       rs.CutoverTimeNanos,
+		cutoverNanos:       rs.CutoverNanos,
 		mappingRules:       mappingRules,
 		rollupRules:        rollupRules,
 		tagsFilterOpts:     tagsFilterOpts,
@@ -625,7 +625,7 @@ func (rs *ruleSet) Schema() (*schema.RuleSet, error) {
 		LastUpdatedAtNanos: rs.lastUpdatedAtNanos,
 		LastUpdatedBy:      rs.lastUpdatedBy,
 		Tombstoned:         rs.tombstoned,
-		CutoverTimeNanos:   rs.cutoverNanos,
+		CutoverNanos:       rs.cutoverNanos,
 	}
 
 	mappingRules := make([]*schema.MappingRule, len(rs.mappingRules))

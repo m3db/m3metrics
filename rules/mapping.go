@@ -27,6 +27,7 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
+
 	"github.com/pborman/uuid"
 )
 
@@ -68,7 +69,7 @@ func newMappingRuleSnapshot(
 	return newMappingRuleSnapshotFromFields(
 		r.Name,
 		r.Tombstoned,
-		r.CutoverTimeNanos,
+		r.CutoverNanos,
 		r.TagFilters,
 		policies,
 		filter,
@@ -127,7 +128,7 @@ func (mrs *mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
 	res := &schema.MappingRuleSnapshot{
 		Name:               mrs.name,
 		Tombstoned:         mrs.tombstoned,
-		CutoverTimeNanos:   mrs.cutoverNanos,
+		CutoverNanos:       mrs.cutoverNanos,
 		TagFilters:         mrs.rawFilters,
 		LastUpdatedAtNanos: mrs.lastUpdatedAtNanos,
 		LastUpdatedBy:      mrs.lastUpdatedBy,

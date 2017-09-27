@@ -29,6 +29,7 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
+
 	"github.com/pborman/uuid"
 )
 
@@ -188,7 +189,7 @@ func newRollupRuleSnapshot(
 	return newRollupRuleSnapshotFromFields(
 		r.Name,
 		r.Tombstoned,
-		r.CutoverTimeNanos,
+		r.CutoverNanos,
 		r.TagFilters,
 		targets,
 		filter,
@@ -249,7 +250,7 @@ func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 	res := &schema.RollupRuleSnapshot{
 		Name:               rrs.name,
 		Tombstoned:         rrs.tombstoned,
-		CutoverTimeNanos:   rrs.cutoverNanos,
+		CutoverNanos:       rrs.cutoverNanos,
 		TagFilters:         rrs.rawFilters,
 		LastUpdatedAtNanos: rrs.lastUpdatedAtNanos,
 		LastUpdatedBy:      rrs.lastUpdatedBy,
