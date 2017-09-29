@@ -6,7 +6,7 @@ import:
   - pool
   - time
 - package: github.com/m3db/m3cluster
-  version: 1cfab57b2af81bded219b3112cc35debc3ed33d6
+  version: d9fd14a38efe2eaf43b9a52350055fbd2dac06ec
   subpackages:
   - kv
   - kv/mem

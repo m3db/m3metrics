@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3cluster/kv"
+
 	"github.com/golang/mock/gomock"
 	"github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/kv/mem"
@@ -37,7 +39,10 @@ import (
 func TestConfigurationNewNamespaces(t *testing.T) {
 	cfg := Configuration{
 		InitWatchTimeout: time.Second,
-		RulesKVNamespace: "RulesKVNamespace",
+		KVConfig: kv.Configuration{
+			Namespace:   "RulesKVNamespace",
+			Environment: "RulesKVEnvironment",
+		},
 		NamespacesKey:    "NamespacesKey",
 		NamespaceTag:     "NamespaceTag",
 		DefaultNamespace: "DefaultNamespace",
@@ -51,7 +56,7 @@ func TestConfigurationNewNamespaces(t *testing.T) {
 	m := client.NewMockClient(ctrl)
 
 	mem := mem.NewStore()
-	m.EXPECT().Store(cfg.RulesKVNamespace).Return(mem, nil)
+	m.EXPECT().Store(kv.NewOptions().SetEnvironment("RulesKVEnvironment").SetNamespace("RulesKVNamespace")).Return(mem, nil)
 
 	opts, err := cfg.NewOptions(m, clock.NewOptions(), instrument.NewOptions())
 	require.NoError(t, err)
