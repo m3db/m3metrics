@@ -24,10 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3cluster/kv"
-
 	"github.com/golang/mock/gomock"
 	"github.com/m3db/m3cluster/client"
+	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/rules"
 	"github.com/m3db/m3x/clock"
