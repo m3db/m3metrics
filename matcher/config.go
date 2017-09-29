@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3cluster/client"
+	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/metric/id/m3"
@@ -38,6 +39,7 @@ import (
 type Configuration struct {
 	InitWatchTimeout      time.Duration                `yaml:"initWatchTimeout"`
 	RulesKVNamespace      string                       `yaml:"rulesKVNamespace" validate:"nonzero"`
+	RulesKVEnvironment    string                       `yaml:"rulesKVEnvironment" validate:"nonzero"`
 	NamespacesKey         string                       `yaml:"namespacesKey" validate:"nonzero"`
 	RuleSetKeyFmt         string                       `yaml:"ruleSetKeyFmt" validate:"nonzero"`
 	NamespaceTag          string                       `yaml:"namespaceTag" validate:"nonzero"`
@@ -85,7 +87,11 @@ func (cfg *Configuration) NewOptions(
 	instrumentOpts instrument.Options,
 ) (Options, error) {
 	// Configure rules kv store.
-	rulesStore, err := kvCluster.Store(cfg.RulesKVNamespace)
+	rulesStore, err := kvCluster.Store(
+		kv.NewOptions().
+			SetNamespace(cfg.RulesKVNamespace).
+			SetEnvironment(cfg.RulesKVEnvironment),
+	)
 	if err != nil {
 		return nil, err
 	}
