@@ -38,7 +38,7 @@ import (
 func TestConfigurationNewNamespaces(t *testing.T) {
 	cfg := Configuration{
 		InitWatchTimeout: time.Second,
-		KVConfig: kv.Configuration{
+		RulesKVConfig: kv.Configuration{
 			Namespace:   "RulesKVNamespace",
 			Environment: "RulesKVEnvironment",
 		},
