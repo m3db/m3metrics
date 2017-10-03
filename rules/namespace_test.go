@@ -344,7 +344,8 @@ func TestNamespaceAdd(t *testing.T) {
 	require.NoError(t, err)
 	nssClone := nss.Clone()
 
-	err = nssClone.AddNamespace("bar")
+	revived, err := nssClone.AddNamespace("bar")
+	require.False(t, revived)
 	require.Equal(t, nss.namespaces[0], nssClone.namespaces[0])
 	// require.False(t, &nss.namespaces[0] == &nssClone.namespaces[0])
 	require.False(t, &nss.namespaces[0].snapshots[0] == &nssClone.namespaces[0].snapshots[0])
@@ -374,8 +375,9 @@ func TestNamespaceAddDup(t *testing.T) {
 	nss, err := NewNamespaces(1, testNss)
 	require.NoError(t, err)
 
-	err = nss.AddNamespace("foo")
+	revived, err := nss.AddNamespace("foo")
 	require.Error(t, err)
+	require.False(t, revived)
 }
 
 func TestNamespaceRevive(t *testing.T) {
@@ -402,8 +404,9 @@ func TestNamespaceRevive(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ns.Tombstoned())
 
-	err = nss.AddNamespace("foo")
+	revived, err := nss.AddNamespace("foo")
 	require.NoError(t, err)
+	require.True(t, revived)
 
 	ns, err = nss.Namespace("foo")
 	require.NoError(t, err)

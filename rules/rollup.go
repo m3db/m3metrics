@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
@@ -302,6 +303,49 @@ func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
 		LastUpdatedAtNanos: rrs.lastUpdatedAtNanos,
 		LastUpdatedBy:      rrs.lastUpdatedBy,
 	}, nil
+}
+
+func (rrv RollupRuleView) checkFilters() error {
+	for k, v := range rrv.Filters {
+		count := 0
+		for _, c := range v {
+			// each filter may have upto 1 wilcard character.
+			if c == wildcardSymbol {
+				count++
+				if count == 2 {
+					return newValidationError(fmt.Sprintf("tag filters may have at most 1 wildcard. %s:%s", k, v))
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (rrv RollupRuleView) validatePolicies() error {
+	typeFilter, exists := rrv.Filters[typeTag]
+	isTimer := exists && typeFilter == "timer"
+
+	for _, t := range rrv.Targets {
+		for _, p := range t.Policies {
+			// only timers are allowed to have custom aggregation policies.
+			if isTimer {
+				if p.AggregationID != policy.DefaultAggregationID {
+					return newValidationError(fmt.Sprintf("non timer types may not have custom aggregations: %v", p))
+				}
+
+				if p.Resolution().Window > time.Minute {
+					return newValidationError(fmt.Sprintf("maximum timer resolution is 1 minute: %v", p))
+				}
+			}
+
+			// r2 does not support sub second rollups at this time.
+			if p.Resolution().Window < time.Second {
+				return newValidationError(fmt.Sprintf("sub second resolutions/retentions are not supported: %v", p))
+			}
+		}
+	}
+
+	return nil
 }
 
 // rollupRule stores rollup rule snapshots.
