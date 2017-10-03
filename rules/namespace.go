@@ -294,10 +294,10 @@ func (nss *Namespaces) Namespace(name string) (*Namespace, error) {
 }
 
 // AddNamespace adds a new namespace to the namespaces structure and persists it
-func (nss *Namespaces) AddNamespace(nsName string) error {
+func (nss *Namespaces) AddNamespace(nsName string) (bool, error) {
 	existing, err := nss.Namespace(nsName)
 	if err != nil && err != errNamespaceNotFound {
-		return fmt.Errorf(namespaceActionErrorFmt, "add", nsName, err)
+		return false, fmt.Errorf(namespaceActionErrorFmt, "add", nsName, err)
 	}
 
 	// Brand new namespace
@@ -313,15 +313,15 @@ func (nss *Namespaces) AddNamespace(nsName string) error {
 		}
 
 		nss.namespaces = append(nss.namespaces, ns)
-		return nil
+		return false, nil
 	}
 
 	// Revive the namespace
 	if err = existing.revive(); err != nil {
-		return fmt.Errorf(namespaceActionErrorFmt, "revive", nsName, err)
+		return false, fmt.Errorf(namespaceActionErrorFmt, "revive", nsName, err)
 	}
 
-	return nil
+	return true, nil
 }
 
 // DeleteNamespace tombstones the given namespace mapping it to the given RuleSet version + 1
