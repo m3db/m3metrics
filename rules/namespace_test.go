@@ -553,7 +553,7 @@ func TestNamespacesView(t *testing.T) {
 		},
 	}
 
-	actual, err := nss.namespacesView()
+	actual, err := nss.NamespacesView()
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
 }
@@ -573,7 +573,7 @@ func TestNamespaceView(t *testing.T) {
 		Tombstoned:        true,
 	}
 
-	actual, err := n.namespaceView(1)
+	actual, err := n.NamespaceView(1)
 	require.NoError(t, err)
 	require.Equal(t, actual, expected)
 }
@@ -589,7 +589,7 @@ func TestNamespaceViewError(t *testing.T) {
 
 	badIdx := []int{-2, 2, 30}
 	for _, i := range badIdx {
-		actual, err := n.namespaceView(i)
+		actual, err := n.NamespaceView(i)
 		require.Error(t, err)
 		require.Nil(t, actual)
 	}
