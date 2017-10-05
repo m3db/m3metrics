@@ -108,7 +108,8 @@ type NamespaceView struct {
 	Tombstoned        bool
 }
 
-func (n Namespace) namespaceView(snapshotIdx int) (*NamespaceView, error) {
+// NamespaceView returns the view representation of a namespace object
+func (n Namespace) NamespaceView(snapshotIdx int) (*NamespaceView, error) {
 	if snapshotIdx < 0 || snapshotIdx >= len(n.snapshots) {
 		return nil, errNamespaceSnapshotIndexOutOfRange
 	}
@@ -218,10 +219,11 @@ type NamespacesView struct {
 	Namespaces []*NamespaceView
 }
 
-func (nss Namespaces) namespacesView() (*NamespacesView, error) {
+// NamespacesView returns a view representation of a given Namespaces object
+func (nss Namespaces) NamespacesView() (*NamespacesView, error) {
 	namespaces := make([]*NamespaceView, len(nss.namespaces))
 	for i, n := range nss.namespaces {
-		ns, err := n.namespaceView(len(n.snapshots) - 1)
+		ns, err := n.NamespaceView(len(n.snapshots) - 1)
 		if err != nil {
 			return nil, err
 		}
