@@ -108,7 +108,7 @@ type NamespaceView struct {
 	Tombstoned        bool
 }
 
-// NamespaceView returns the view representation of a namespace object
+// NamespaceView returns the view representation of a namespace object.
 func (n Namespace) NamespaceView(snapshotIdx int) (*NamespaceView, error) {
 	if snapshotIdx < 0 || snapshotIdx >= len(n.snapshots) {
 		return nil, errNamespaceSnapshotIndexOutOfRange
@@ -219,7 +219,7 @@ type NamespacesView struct {
 	Namespaces []*NamespaceView
 }
 
-// NamespacesView returns a view representation of a given Namespaces object
+// NamespacesView returns a view representation of a given Namespaces object.
 func (nss Namespaces) NamespacesView() (*NamespacesView, error) {
 	namespaces := make([]*NamespaceView, len(nss.namespaces))
 	for i, n := range nss.namespaces {
@@ -293,7 +293,10 @@ func (nss *Namespaces) Namespace(name string) (*Namespace, error) {
 	return res, nil
 }
 
-// AddNamespace adds a new namespace to the namespaces structure and persists it
+// AddNamespace adds a new namespace to the namespaces structure and persists it.
+// This function returns a boolean indicating whether or not the namespace was revived.
+// The revived flag should be used to decided if the corresponding" ruleset should also
+// be revived.
 func (nss *Namespaces) AddNamespace(nsName string) (bool, error) {
 	existing, err := nss.Namespace(nsName)
 	if err != nil && err != errNamespaceNotFound {

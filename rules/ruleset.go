@@ -1091,7 +1091,7 @@ func (e RuleConflictError) Error() string { return e.msg }
 
 func (rs ruleSet) validateMappingRuleUpdate(mrv MappingRuleView) error {
 	for _, m := range rs.mappingRules {
-		// Ignore tombstoned
+		// Ignore tombstoned.
 		if m.Tombstoned() {
 			continue
 		}
@@ -1112,7 +1112,7 @@ func (rs ruleSet) validateMappingRuleUpdate(mrv MappingRuleView) error {
 
 func (rs ruleSet) validateRollupRuleUpdate(rrv RollupRuleView) error {
 	for _, r := range rs.rollupRules {
-		// Ignore tombstoned
+		// Ignore tombstoned.
 		if r.Tombstoned() {
 			continue
 		}
