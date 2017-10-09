@@ -574,7 +574,7 @@ func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSe
 func NewEmptyRuleSet(namespaceName string, meta UpdateMetadata) MutableRuleSet {
 	rs := &ruleSet{
 		uuid:         uuid.NewUUID().String(),
-		version:      1,
+		version:      0,
 		namespace:    []byte(namespaceName),
 		tombstoned:   false,
 		mappingRules: make([]*mappingRule, 0),
