@@ -1082,6 +1082,59 @@ func (r RuleSetUpdateHelper) NewUpdateMetadata(updateTime int64, updatedBy strin
 	return UpdateMetadata{updatedAtNanos: updateTime, cutoverNanos: cutoverNanos, updatedBy: updatedBy}
 }
 
+// CurrentRuleSet represents the current state of a rule set. A rule with all the latest snapshots
+// of its ruleset.
+type CurrentRuleSet struct {
+	Namespace    string
+	Version      int
+	CutoverNanos int64
+	MappingRules []*MappingRuleView
+	RollupRules  []*RollupRuleView
+}
+
+// NewCurrentRuleSet generates the current view of the given ruleset.
+func NewCurrentRuleSet(r RuleSet) (*CurrentRuleSet, error) {
+	mrs, err := r.MappingRules()
+	if err != nil {
+		return nil, err
+	}
+
+	rrs, err := r.RollupRules()
+	if err != nil {
+		return nil, err
+	}
+
+	return &CurrentRuleSet{
+		Namespace:    string(r.Namespace()),
+		Version:      r.Version(),
+		CutoverNanos: r.CutoverNanos(),
+		MappingRules: newMappingRules(mrs),
+		RollupRules:  newRollupRules(rrs),
+	}, nil
+}
+
+func newMappingRules(mrs MappingRules) []*MappingRuleView {
+	var result []*MappingRuleView
+	for _, m := range mrs {
+		if len(m) > 0 && !m[0].Tombstoned {
+			// views included in m are sorted latest first.
+			result = append(result, m[0])
+		}
+	}
+	return result
+}
+
+func newRollupRules(rrs RollupRules) []*RollupRuleView {
+	var result []*RollupRuleView
+	for _, r := range rrs {
+		if len(r) > 0 && !r[0].Tombstoned {
+			// views included in m are sorted latest first.
+			result = append(result, r[0])
+		}
+	}
+	return result
+}
+
 // RuleConflictError is returned when a rule modification is made that would conflict with the current state.
 type RuleConflictError struct {
 	ConflictRuleUUID string
