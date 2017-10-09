@@ -1089,13 +1089,6 @@ type RuleConflictError struct {
 
 func (e RuleConflictError) Error() string { return e.msg }
 
-// ValidationError is returned when a rule modification would lead to an invalid rule state.
-type ValidationError string
-
-func (e ValidationError) Error() string { return string(e) }
-
-func newValidationError(msg string) error { return ValidationError(msg) }
-
 func (rs ruleSet) validateMappingRuleUpdate(mrv MappingRuleView) error {
 	for _, m := range rs.mappingRules {
 		// Ignore tombstoned
