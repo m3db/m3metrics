@@ -47,9 +47,6 @@ var (
 	errNoSuchRule         = errors.New("no such rule exists")
 	errNotTombstoned      = errors.New("not tombstoned")
 	errNoRuleSnapshots    = errors.New("no snapshots")
-	errNoTypeFilter       = errors.New("filter must include `type`")
-	errWildType           = errors.New("type filter cannot be a wildcard")
-	errTooManyWildcards   = errors.New("filter may have upto one wildcard")
 	ruleActionErrorFmt    = "cannot %s rule %s. %v"
 	ruleSetActionErrorFmt = "cannot %s ruleset %s. %v"
 )
