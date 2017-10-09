@@ -37,9 +37,7 @@ import (
 )
 
 const (
-	timeNanosMax   = int64(math.MaxInt64)
-	typeTag        = "type"
-	wildcardSymbol = '*'
+	timeNanosMax = int64(math.MaxInt64)
 )
 
 var (
@@ -47,9 +45,6 @@ var (
 	errNoSuchRule         = errors.New("no such rule exists")
 	errNotTombstoned      = errors.New("not tombstoned")
 	errNoRuleSnapshots    = errors.New("no snapshots")
-	errNoTypeFilter       = errors.New("filter must include `type`")
-	errWildType           = errors.New("type filter cannot be a wildcard")
-	errTooManyWildcards   = errors.New("filter may have upto one wildcard")
 	ruleActionErrorFmt    = "cannot %s rule %s. %v"
 	ruleSetActionErrorFmt = "cannot %s ruleset %s. %v"
 )
@@ -1102,14 +1097,6 @@ func (e ValidationError) Error() string { return string(e) }
 func newValidationError(msg string) error { return ValidationError(msg) }
 
 func (rs ruleSet) validateMappingRuleUpdate(mrv MappingRuleView) error {
-	if err := mrv.validatePolicies(); err != nil {
-		return newValidationError(fmt.Sprintf("Invalid policy: %s", err.Error()))
-	}
-
-	if err := mrv.checkFilters(); err != nil {
-		return newValidationError(fmt.Sprintf("Invalid filters: %s", err.Error()))
-	}
-
 	for _, m := range rs.mappingRules {
 		// Ignore tombstoned
 		if m.Tombstoned() {
@@ -1131,14 +1118,6 @@ func (rs ruleSet) validateMappingRuleUpdate(mrv MappingRuleView) error {
 }
 
 func (rs ruleSet) validateRollupRuleUpdate(rrv RollupRuleView) error {
-	if err := rrv.validatePolicies(); err != nil {
-		return newValidationError(fmt.Sprintf("Invalid policy: %s", err.Error()))
-	}
-
-	if err := rrv.checkFilters(); err != nil {
-		return newValidationError(fmt.Sprintf("Invalid filters: %s", err.Error()))
-	}
-
 	for _, r := range rs.rollupRules {
 		// Ignore tombstoned
 		if r.Tombstoned() {

@@ -23,7 +23,6 @@ package rules
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
@@ -176,46 +175,6 @@ func (mc *mappingRule) mappingRuleView(snapshotIdx int) (*MappingRuleView, error
 		LastUpdatedAtNanos: mrs.lastUpdatedAtNanos,
 		LastUpdatedBy:      mrs.lastUpdatedBy,
 	}, nil
-}
-
-func (mrv MappingRuleView) checkFilters() error {
-	for k, v := range mrv.Filters {
-		count := 0
-		for _, c := range v {
-			// each filter may have upto 1 wilcard character.
-			if c == wildcardSymbol {
-				count++
-				if count == 2 {
-					return newValidationError(fmt.Sprintf("tag filters may have at most 1 wildcard. %s:%s", k, v))
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func (mrv MappingRuleView) validatePolicies() error {
-	typeFilter, exists := mrv.Filters[typeTag]
-	isTimer := exists && typeFilter == "timer"
-
-	for _, p := range mrv.Policies {
-		// only timers are allowed to have custom aggregation policies.
-		if isTimer {
-			if p.AggregationID != policy.DefaultAggregationID {
-				return newValidationError(fmt.Sprintf("non timer types may not have custom aggregations: %v", p))
-			}
-
-			if p.Resolution().Window > time.Minute {
-				return newValidationError(fmt.Sprintf("maximum timer resolution is 1 minute: %v", p))
-			}
-		}
-
-		// r2 does not support sub second rollups at this time.
-		if p.Resolution().Window < time.Second {
-			return newValidationError(fmt.Sprintf("sub second resolutions/retentions are not supported: %v", p))
-		}
-	}
-	return nil
 }
 
 // mappingRule stores mapping rule snapshots.
