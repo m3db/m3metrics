@@ -97,7 +97,7 @@ func (v *validator) validateMappingRules(rules MappingRules) error {
 		// Validate that the policies are valid.
 		t := v.opts.MetricTypeFn()(view.Filters)
 		for _, p := range view.Policies {
-			if err := v.validatePolicy(p, t); err != nil {
+			if err := v.validatePolicy(t, p); err != nil {
 				return err
 			}
 		}
@@ -134,7 +134,7 @@ func (v *validator) validateRollupRules(rules RollupRules) error {
 		t := v.opts.MetricTypeFn()(view.Filters)
 		for _, target := range view.Targets {
 			for _, p := range target.Policies {
-				if err := v.validatePolicy(p, t); err != nil {
+				if err := v.validatePolicy(t, p); err != nil {
 					return err
 				}
 			}
@@ -153,22 +153,24 @@ func (v *validator) validateFilters(f map[string]string) error {
 	return nil
 }
 
-func (v *validator) validatePolicy(p policy.Policy, t metric.Type) error {
-	// Validate policy resolution.
-	resolution := p.Resolution().Window
-	if minResolution := v.opts.MinPolicyResolutionFor(t); resolution < minResolution {
-		return fmt.Errorf("policy resolution %v is smaller than the minimum resolution supported (%v) for metric type %v", resolution, minResolution, t)
-	}
-	if maxResolution := v.opts.MaxPolicyResolutionFor(t); resolution > maxResolution {
-		return fmt.Errorf("policy resolution %v is larger than the maximum resolution supported (%v) for metric type %v", resolution, maxResolution, t)
+func (v *validator) validatePolicy(t metric.Type, p policy.Policy) error {
+	// Validate storage policy.
+	if !v.opts.IsAllowedStoragePolicyFor(t, p.StoragePolicy) {
+		return fmt.Errorf("storage policy %v is not allowed for metric type %v", p.StoragePolicy, t)
 	}
 
 	// Validate aggregation function.
 	if isDefaultAggFn := p.AggregationID.IsDefault(); isDefaultAggFn {
 		return nil
 	}
-	if customAggFnEnabled := v.opts.CustomAggregationFunctionEnabledFor(t); !customAggFnEnabled {
-		return fmt.Errorf("policy %v contains unsupported custom aggregation function %v for metric type %v", p, p.AggregationID, t)
+	aggTypes, err := p.AggregationID.AggregationTypes()
+	if err != nil {
+		return err
+	}
+	for _, aggType := range aggTypes {
+		if !v.opts.IsAllowedCustomAggregationTypeFor(t, aggType) {
+			return fmt.Errorf("aggregation type %v is not allowed for metric type %v", aggType, t)
+		}
 	}
 
 	return nil

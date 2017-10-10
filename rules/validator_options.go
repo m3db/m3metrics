@@ -21,15 +21,8 @@
 package rules
 
 import (
-	"time"
-
 	"github.com/m3db/m3metrics/metric"
-)
-
-const (
-	defaultDefaultCustomAggFunctionsEnabled = false
-	defaultDefaultMinPolicyResolution       = time.Second
-	defaultDefaultMaxPolicyResolution       = time.Hour
+	"github.com/m3db/m3metrics/policy"
 )
 
 // MetricTypeFn determines the metric type based on a set of tag based filters.
@@ -37,25 +30,19 @@ type MetricTypeFn func(tagFilters map[string]string) metric.Type
 
 // ValidatorOptions provide a set of options for the validator.
 type ValidatorOptions interface {
-	// SetDefaultCustomAggregationFunctionEnabled sets whether custom aggregation functions
-	// are enabled by default.
-	SetDefaultCustomAggregationFunctionEnabled(value bool) ValidatorOptions
+	// SetDefaultAllowedStoragePolicies sets the default list of allowed storage policies.
+	SetDefaultAllowedStoragePolicies(value []policy.StoragePolicy) ValidatorOptions
 
-	// DefaultCustomAggregationFunctionEnabled returns whether custom aggregation functions
-	// are enabled by default.
-	DefaultCustomAggregationFunctionEnabled() bool
+	// SetDefaultAllowedCustomAggregationTypes sets the default list of allowed custom
+	// aggregation types.
+	SetDefaultAllowedCustomAggregationTypes(value policy.AggregationTypes) ValidatorOptions
 
-	// SetDefaultMinPolicyResolution sets the default minimum policy resolution.
-	SetDefaultMinPolicyResolution(value time.Duration) ValidatorOptions
+	// SetAllowedStoragePoliciesFor sets the list of allowed storage policies for a given metric type.
+	SetAllowedStoragePoliciesFor(t metric.Type, policies []policy.StoragePolicy) ValidatorOptions
 
-	// DefaultMinPolicyResolution returns the default minimum policy resolution.
-	DefaultMinPolicyResolution() time.Duration
-
-	// SetDefaultMaxPolicyResolution sets the default maximum policy resolution.
-	SetDefaultMaxPolicyResolution(value time.Duration) ValidatorOptions
-
-	// DefaultMaxPolicyResolution returns the default maximum policy resolution.
-	DefaultMaxPolicyResolution() time.Duration
+	// SetAllowedCustomAggregationTypesFor sets the list of allowed custom aggregation
+	// types for a given metric type.
+	SetAllowedCustomAggregationTypesFor(t metric.Type, aggTypes policy.AggregationTypes) ValidatorOptions
 
 	// SetMetricTypeFn sets the metric type function.
 	SetMetricTypeFn(value MetricTypeFn) ValidatorOptions
@@ -63,76 +50,56 @@ type ValidatorOptions interface {
 	// MetricTypeFn returns the metric type function.
 	MetricTypeFn() MetricTypeFn
 
-	// SetCustomAggregationFunctionEnabledFor sets whether custom aggregation functions
-	// are enabled for a given metric type.
-	SetCustomAggregationFunctionEnabledFor(t metric.Type, value bool) ValidatorOptions
+	// IsAllowedStoragePolicyFor determines whether a given storage policy is allowed for the
+	// given metric type.
+	IsAllowedStoragePolicyFor(t metric.Type, p policy.StoragePolicy) bool
 
-	// CustomAggregationFunctionEnabledFor returns whether custom aggregation functions
-	// are enabled for a given metric type.
-	CustomAggregationFunctionEnabledFor(t metric.Type) bool
-
-	// SetMinPolicyResolutionFor sets the minimum policy resolution for a given metric type.
-	SetMinPolicyResolutionFor(t metric.Type, value time.Duration) ValidatorOptions
-
-	// MinPolicyResolutionFor returns the minimum policy resolution for a given metric type.
-	MinPolicyResolutionFor(t metric.Type) time.Duration
-
-	// SetMaxPolicyResolutionFor sets the maximum policy resolution for a given metric type.
-	SetMaxPolicyResolutionFor(t metric.Type, value time.Duration) ValidatorOptions
-
-	// MaxPolicyResolutionFor returns the maximum policy resolution for a given metric type.
-	MaxPolicyResolutionFor(t metric.Type) time.Duration
+	// IsAllowedCustomAggregationTypeFor determines whether a given aggregation type is allowed for
+	// the given metric type.
+	IsAllowedCustomAggregationTypeFor(t metric.Type, aggType policy.AggregationType) bool
 }
 
 type validationMetadata struct {
-	customAggFunctionsEnabled bool
-	minPolicyResolution       time.Duration
-	maxPolicyResolution       time.Duration
+	allowedStoragePolicies map[policy.StoragePolicy]struct{}
+	allowedCustomAggTypes  map[policy.AggregationType]struct{}
 }
 
 type validatorOptions struct {
-	defaultCustomAggFunctionsEnabled bool
-	defaultMinPolicyResolution       time.Duration
-	defaultMaxPolicyResolution       time.Duration
-	metricTypeFn                     MetricTypeFn
-	metadatasByType                  map[metric.Type]validationMetadata
+	defaultAllowedStoragePolicies        map[policy.StoragePolicy]struct{}
+	defaultAllowedCustomAggregationTypes map[policy.AggregationType]struct{}
+	metricTypeFn                         MetricTypeFn
+	metadatasByType                      map[metric.Type]validationMetadata
 }
 
 // NewValidatorOptions create a new set of validator options.
 func NewValidatorOptions() ValidatorOptions {
 	return &validatorOptions{
-		defaultCustomAggFunctionsEnabled: defaultDefaultCustomAggFunctionsEnabled,
-		defaultMinPolicyResolution:       defaultDefaultMinPolicyResolution,
-		defaultMaxPolicyResolution:       defaultDefaultMaxPolicyResolution,
-		metadatasByType:                  make(map[metric.Type]validationMetadata),
+		metadatasByType: make(map[metric.Type]validationMetadata),
 	}
 }
 
-func (o *validatorOptions) SetDefaultCustomAggregationFunctionEnabled(value bool) ValidatorOptions {
-	o.defaultCustomAggFunctionsEnabled = value
+func (o *validatorOptions) SetDefaultAllowedStoragePolicies(value []policy.StoragePolicy) ValidatorOptions {
+	o.defaultAllowedStoragePolicies = toStoragePolicySet(value)
 	return o
 }
 
-func (o *validatorOptions) DefaultCustomAggregationFunctionEnabled() bool {
-	return o.defaultCustomAggFunctionsEnabled
-}
-
-func (o *validatorOptions) SetDefaultMinPolicyResolution(value time.Duration) ValidatorOptions {
-	o.defaultMinPolicyResolution = value
+func (o *validatorOptions) SetDefaultAllowedCustomAggregationTypes(value policy.AggregationTypes) ValidatorOptions {
+	o.defaultAllowedCustomAggregationTypes = toAggregationTypeSet(value)
 	return o
 }
 
-func (o *validatorOptions) DefaultMinPolicyResolution() time.Duration {
-	return o.defaultMinPolicyResolution
-}
-
-func (o *validatorOptions) SetDefaultMaxPolicyResolution(value time.Duration) ValidatorOptions {
-	o.defaultMaxPolicyResolution = value
+func (o *validatorOptions) SetAllowedStoragePoliciesFor(t metric.Type, policies []policy.StoragePolicy) ValidatorOptions {
+	metadata := o.findOrCreateMetadata(t)
+	metadata.allowedStoragePolicies = toStoragePolicySet(policies)
+	o.metadatasByType[t] = metadata
 	return o
 }
 
-func (o *validatorOptions) DefaultMaxPolicyResolution() time.Duration {
-	return o.defaultMaxPolicyResolution
+func (o *validatorOptions) SetAllowedCustomAggregationTypesFor(t metric.Type, aggTypes policy.AggregationTypes) ValidatorOptions {
+	metadata := o.findOrCreateMetadata(t)
+	metadata.allowedCustomAggTypes = toAggregationTypeSet(aggTypes)
+	o.metadatasByType[t] = metadata
+	return o
 }
 
 func (o *validatorOptions) SetMetricTypeFn(value MetricTypeFn) ValidatorOptions {
@@ -144,46 +111,22 @@ func (o *validatorOptions) MetricTypeFn() MetricTypeFn {
 	return o.metricTypeFn
 }
 
-func (o *validatorOptions) SetCustomAggregationFunctionEnabledFor(t metric.Type, value bool) ValidatorOptions {
-	metadata := o.findOrCreateMetadata(t)
-	metadata.customAggFunctionsEnabled = value
-	o.metadatasByType[t] = metadata
-	return o
-}
-
-func (o *validatorOptions) CustomAggregationFunctionEnabledFor(t metric.Type) bool {
+func (o *validatorOptions) IsAllowedStoragePolicyFor(t metric.Type, p policy.StoragePolicy) bool {
 	if metadata, exists := o.metadatasByType[t]; exists {
-		return metadata.customAggFunctionsEnabled
+		_, found := metadata.allowedStoragePolicies[p]
+		return found
 	}
-	return o.defaultCustomAggFunctionsEnabled
+	_, found := o.defaultAllowedStoragePolicies[p]
+	return found
 }
 
-func (o *validatorOptions) SetMinPolicyResolutionFor(t metric.Type, value time.Duration) ValidatorOptions {
-	metadata := o.findOrCreateMetadata(t)
-	metadata.minPolicyResolution = value
-	o.metadatasByType[t] = metadata
-	return o
-}
-
-func (o *validatorOptions) MinPolicyResolutionFor(t metric.Type) time.Duration {
+func (o *validatorOptions) IsAllowedCustomAggregationTypeFor(t metric.Type, aggType policy.AggregationType) bool {
 	if metadata, exists := o.metadatasByType[t]; exists {
-		return metadata.minPolicyResolution
+		_, found := metadata.allowedCustomAggTypes[aggType]
+		return found
 	}
-	return o.defaultMinPolicyResolution
-}
-
-func (o *validatorOptions) SetMaxPolicyResolutionFor(t metric.Type, value time.Duration) ValidatorOptions {
-	metadata := o.findOrCreateMetadata(t)
-	metadata.maxPolicyResolution = value
-	o.metadatasByType[t] = metadata
-	return o
-}
-
-func (o *validatorOptions) MaxPolicyResolutionFor(t metric.Type) time.Duration {
-	if metadata, exists := o.metadatasByType[t]; exists {
-		return metadata.maxPolicyResolution
-	}
-	return o.defaultMaxPolicyResolution
+	_, found := o.defaultAllowedCustomAggregationTypes[aggType]
+	return found
 }
 
 func (o *validatorOptions) findOrCreateMetadata(t metric.Type) validationMetadata {
@@ -191,8 +134,23 @@ func (o *validatorOptions) findOrCreateMetadata(t metric.Type) validationMetadat
 		return metadata
 	}
 	return validationMetadata{
-		customAggFunctionsEnabled: o.defaultCustomAggFunctionsEnabled,
-		minPolicyResolution:       o.defaultMinPolicyResolution,
-		maxPolicyResolution:       o.defaultMaxPolicyResolution,
+		allowedStoragePolicies: o.defaultAllowedStoragePolicies,
+		allowedCustomAggTypes:  o.defaultAllowedCustomAggregationTypes,
 	}
+}
+
+func toStoragePolicySet(policies []policy.StoragePolicy) map[policy.StoragePolicy]struct{} {
+	m := make(map[policy.StoragePolicy]struct{}, len(policies))
+	for _, p := range policies {
+		m[p] = struct{}{}
+	}
+	return m
+}
+
+func toAggregationTypeSet(aggTypes policy.AggregationTypes) map[policy.AggregationType]struct{} {
+	m := make(map[policy.AggregationType]struct{}, len(aggTypes))
+	for _, t := range aggTypes {
+		m[t] = struct{}{}
+	}
+	return m
 }

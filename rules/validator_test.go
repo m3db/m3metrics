@@ -26,6 +26,7 @@ import (
 
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/metric"
+	"github.com/m3db/m3metrics/policy"
 
 	"github.com/stretchr/testify/require"
 )
@@ -65,26 +66,30 @@ func TestValidatorValidateMappingRuleInvalidFilter(t *testing.T) {
 	require.Error(t, rs.Validate(validator))
 }
 
-func TestValidatorValidateMappingRulePolicyResolution(t *testing.T) {
+func TestValidatorValidateMappingRulePolicy(t *testing.T) {
+	testStoragePolicies := []policy.StoragePolicy{
+		policy.MustParseStoragePolicy("10s:1d"),
+	}
 	ruleSet := testRuleSetWithMappingRules(t, testPolicyResolutionMappingRulesConfig())
+
 	inputs := []struct {
 		opts      ValidatorOptions
 		expectErr bool
 	}{
 		{
-			// The resolution of the policy is within bounds.
+			// By default policy is allowed.
 			opts:      testValidatorOptions(),
+			expectErr: true,
+		},
+		{
+			// Policy is allowed through the default list of policies.
+			opts:      testValidatorOptions().SetDefaultAllowedStoragePolicies(testStoragePolicies),
 			expectErr: false,
 		},
 		{
-			// The resolution of the policy is smaller than minimum.
-			opts:      testValidatorOptions().SetMinPolicyResolutionFor(metric.TimerType, time.Minute),
-			expectErr: true,
-		},
-		{
-			// The resolution of the policy is larger than maximum.
-			opts:      testValidatorOptions().SetMaxPolicyResolutionFor(metric.TimerType, time.Second),
-			expectErr: true,
+			// Policy is allowed through the list of policies allowed for timers.
+			opts:      testValidatorOptions().SetAllowedStoragePoliciesFor(metric.TimerType, testStoragePolicies),
+			expectErr: false,
 		},
 	}
 
@@ -98,25 +103,26 @@ func TestValidatorValidateMappingRulePolicyResolution(t *testing.T) {
 	}
 }
 
-func TestValidatorValidateMappingRuleCustomAggregationFunction(t *testing.T) {
-	ruleSet := testRuleSetWithMappingRules(t, testCustomAggregationFunctionMappingRulesConfig())
+func TestValidatorValidateMappingRuleCustomAggregationTypes(t *testing.T) {
+	testAggregationTypes := []policy.AggregationType{policy.Count, policy.Max}
+	ruleSet := testRuleSetWithMappingRules(t, testCustomAggregationTypeMappingRulesConfig())
 	inputs := []struct {
 		opts      ValidatorOptions
 		expectErr bool
 	}{
 		{
-			// The resolution of the policy is within bounds.
+			// By default no custom aggregation type is allowed.
 			opts:      testValidatorOptions(),
 			expectErr: true,
 		},
 		{
-			// The resolution of the policy is smaller than minimum.
-			opts:      testValidatorOptions().SetCustomAggregationFunctionEnabledFor(metric.TimerType, false),
-			expectErr: true,
+			// Aggregation type is allowed through the default list of custom aggregation types.
+			opts:      testValidatorOptions().SetDefaultAllowedCustomAggregationTypes(testAggregationTypes),
+			expectErr: false,
 		},
 		{
-			// The resolution of the policy is larger than maximum.
-			opts:      testValidatorOptions().SetCustomAggregationFunctionEnabledFor(metric.TimerType, true),
+			// Aggregation type is allowed through the list of custom aggregation types for timers.
+			opts:      testValidatorOptions().SetAllowedCustomAggregationTypesFor(metric.TimerType, testAggregationTypes),
 			expectErr: false,
 		},
 	}
@@ -159,26 +165,30 @@ func TestValidatorValidateRollupRuleInvalidFilter(t *testing.T) {
 	require.Error(t, rs.Validate(validator))
 }
 
-func TestValidatorValidateRollupRulePolicyResolution(t *testing.T) {
+func TestValidatorValidateRollupRulePolicy(t *testing.T) {
+	testStoragePolicies := []policy.StoragePolicy{
+		policy.MustParseStoragePolicy("10s:1d"),
+	}
 	ruleSet := testRuleSetWithRollupRules(t, testPolicyResolutionRollupRulesConfig())
+
 	inputs := []struct {
 		opts      ValidatorOptions
 		expectErr bool
 	}{
 		{
-			// The resolution of the policy is within bounds.
+			// By default policy is allowed.
 			opts:      testValidatorOptions(),
+			expectErr: true,
+		},
+		{
+			// Policy is allowed through the default list of policies.
+			opts:      testValidatorOptions().SetDefaultAllowedStoragePolicies(testStoragePolicies),
 			expectErr: false,
 		},
 		{
-			// The resolution of the policy is smaller than minimum.
-			opts:      testValidatorOptions().SetMinPolicyResolutionFor(metric.TimerType, time.Minute),
-			expectErr: true,
-		},
-		{
-			// The resolution of the policy is larger than maximum.
-			opts:      testValidatorOptions().SetMaxPolicyResolutionFor(metric.TimerType, time.Second),
-			expectErr: true,
+			// Policy is allowed through the list of policies allowed for timers.
+			opts:      testValidatorOptions().SetAllowedStoragePoliciesFor(metric.TimerType, testStoragePolicies),
+			expectErr: false,
 		},
 	}
 
@@ -192,25 +202,26 @@ func TestValidatorValidateRollupRulePolicyResolution(t *testing.T) {
 	}
 }
 
-func TestValidatorValidateRollupRuleCustomAggregationFunction(t *testing.T) {
-	ruleSet := testRuleSetWithRollupRules(t, testCustomAggregationFunctionRollupRulesConfig())
+func TestValidatorValidateRollupRuleCustomAggregationTypes(t *testing.T) {
+	testAggregationTypes := []policy.AggregationType{policy.Count, policy.Max}
+	ruleSet := testRuleSetWithRollupRules(t, testCustomAggregationTypeRollupRulesConfig())
 	inputs := []struct {
 		opts      ValidatorOptions
 		expectErr bool
 	}{
 		{
-			// The resolution of the policy is within bounds.
+			// By default no custom aggregation type is allowed.
 			opts:      testValidatorOptions(),
 			expectErr: true,
 		},
 		{
-			// The resolution of the policy is smaller than minimum.
-			opts:      testValidatorOptions().SetCustomAggregationFunctionEnabledFor(metric.TimerType, false),
-			expectErr: true,
+			// Aggregation type is allowed through the default list of custom aggregation types.
+			opts:      testValidatorOptions().SetDefaultAllowedCustomAggregationTypes(testAggregationTypes),
+			expectErr: false,
 		},
 		{
-			// The resolution of the policy is larger than maximum.
-			opts:      testValidatorOptions().SetCustomAggregationFunctionEnabledFor(metric.TimerType, true),
+			// Aggregation type is allowed through the list of custom aggregation types for timers.
+			opts:      testValidatorOptions().SetAllowedCustomAggregationTypesFor(metric.TimerType, testAggregationTypes),
 			expectErr: false,
 		},
 	}
@@ -301,7 +312,7 @@ func testPolicyResolutionMappingRulesConfig() []*schema.MappingRule {
 	}
 }
 
-func testCustomAggregationFunctionMappingRulesConfig() []*schema.MappingRule {
+func testCustomAggregationTypeMappingRulesConfig() []*schema.MappingRule {
 	return []*schema.MappingRule{
 		&schema.MappingRule{
 			Uuid: "mappingRule1",
@@ -320,7 +331,7 @@ func testCustomAggregationFunctionMappingRulesConfig() []*schema.MappingRule {
 									Precision:  int64(time.Second),
 								},
 								Retention: &schema.Retention{
-									Period: int64(24 * time.Hour),
+									Period: int64(6 * time.Hour),
 								},
 							},
 							AggregationTypes: []schema.AggregationType{
@@ -417,7 +428,7 @@ func testPolicyResolutionRollupRulesConfig() []*schema.RollupRule {
 	}
 }
 
-func testCustomAggregationFunctionRollupRulesConfig() []*schema.RollupRule {
+func testCustomAggregationTypeRollupRulesConfig() []*schema.RollupRule {
 	return []*schema.RollupRule{
 		&schema.RollupRule{
 			Uuid: "rollupRule1",
@@ -440,12 +451,12 @@ func testCustomAggregationFunctionRollupRulesConfig() []*schema.RollupRule {
 											Precision:  int64(time.Second),
 										},
 										Retention: &schema.Retention{
-											Period: int64(24 * time.Hour),
+											Period: int64(6 * time.Hour),
 										},
 									},
 									AggregationTypes: []schema.AggregationType{
 										schema.AggregationType_COUNT,
-										schema.AggregationType_LAST,
+										schema.AggregationType_MAX,
 									},
 								},
 							},
@@ -472,10 +483,12 @@ func testRuleSetWithRollupRules(t *testing.T, rrs []*schema.RollupRule) RuleSet 
 }
 
 func testValidatorOptions() ValidatorOptions {
+	testStoragePolicies := []policy.StoragePolicy{
+		policy.MustParseStoragePolicy("10s:6h"),
+	}
 	return NewValidatorOptions().
-		SetDefaultCustomAggregationFunctionEnabled(false).
-		SetDefaultMinPolicyResolution(time.Second).
-		SetDefaultMaxPolicyResolution(time.Hour).
+		SetDefaultAllowedStoragePolicies(testStoragePolicies).
+		SetDefaultAllowedCustomAggregationTypes(nil).
 		SetMetricTypeFn(testMetricTypeFn())
 }
 
