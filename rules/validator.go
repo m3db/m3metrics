@@ -66,11 +66,7 @@ func (v *validator) Validate(rs RuleSet) error {
 	if err != nil {
 		return err
 	}
-	if err := v.validateRollupRules(rollupRules); err != nil {
-		return err
-	}
-
-	return nil
+	return v.validateRollupRules(rollupRules)
 }
 
 func (v *validator) validateMappingRules(rules MappingRules) error {
