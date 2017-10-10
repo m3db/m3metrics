@@ -43,6 +43,7 @@ const (
 
 var (
 	errNilRuleSetSchema   = errors.New("nil rule set schema")
+	errNilValidator       = errors.New("no validator provided")
 	errNoSuchRule         = errors.New("no such rule exists")
 	errNotTombstoned      = errors.New("not tombstoned")
 	errNoRuleSnapshots    = errors.New("no snapshots")
@@ -479,6 +480,9 @@ type RuleSet interface {
 	// of each rule in the ruleset.
 	Latest() (*RuleSetSnapshot, error)
 
+	// Validate validates this ruleset.
+	Validate(validator Validator) error
+
 	// ToMutableRuleSet returns a mutable version of this ruleset.
 	ToMutableRuleSet() MutableRuleSet
 }
@@ -696,6 +700,13 @@ func (rs *ruleSet) Latest() (*RuleSetSnapshot, error) {
 		MappingRules: mrs,
 		RollupRules:  rrs,
 	}, nil
+}
+
+func (rs *ruleSet) Validate(validator Validator) error {
+	if validator == nil {
+		return errNilValidator
+	}
+	return validator.Validate(rs)
 }
 
 func (rs *ruleSet) Clone() MutableRuleSet {
@@ -1144,14 +1155,6 @@ type RuleSetSnapshot struct {
 	RollupRules  []*RollupRuleView
 }
 
-// RuleConflictError is returned when a rule modification is made that would conflict with the current state.
-type RuleConflictError struct {
-	ConflictRuleUUID string
-	msg              string
-}
-
-func (e RuleConflictError) Error() string { return e.msg }
-
 func (rs ruleSet) validateMappingRuleUpdate(mrv MappingRuleView) error {
 	for _, m := range rs.mappingRules {
 		// Ignore tombstoned.
@@ -1166,7 +1169,7 @@ func (rs ruleSet) validateMappingRuleUpdate(mrv MappingRuleView) error {
 
 		// If the rule getting updated keeps its name, that is fine.
 		if n == mrv.Name && m.uuid != mrv.ID {
-			return RuleConflictError{msg: fmt.Sprintf("Rule with name: %s already exists", n), ConflictRuleUUID: m.uuid}
+			return NewRuleConflictError(fmt.Sprintf("Rule with name: %s already exists", n))
 		}
 	}
 
@@ -1187,7 +1190,7 @@ func (rs ruleSet) validateRollupRuleUpdate(rrv RollupRuleView) error {
 
 		// If the rule getting updated keeps its name, that is fine.
 		if n == rrv.Name && r.uuid != rrv.ID {
-			return RuleConflictError{msg: fmt.Sprintf("Rule with name: %s already exists", n), ConflictRuleUUID: r.uuid}
+			return NewRuleConflictError(fmt.Sprintf("Rule with name: %s already exists", n))
 		}
 
 		// We've already checked that some snapshots exist by checking the name.
@@ -1195,7 +1198,7 @@ func (rs ruleSet) validateRollupRuleUpdate(rrv RollupRuleView) error {
 		for _, t1 := range latestSnapshot.targets {
 			for _, t2 := range rrv.Targets {
 				if t1.sameTransform(t2.rollupTarget()) {
-					return RuleConflictError{msg: fmt.Sprintf("Same rollup transformation: %s: %v already exists", t1.Name, t1.Tags), ConflictRuleUUID: r.uuid}
+					return NewRuleConflictError(fmt.Sprintf("Same rollup transformation: %s: %v already exists", t1.Name, t1.Tags))
 				}
 			}
 		}
