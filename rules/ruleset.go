@@ -967,31 +967,31 @@ func (rs *ruleSet) getRollupRuleByID(id string) (*rollupRule, error) {
 	return nil, errNoSuchRule
 }
 
-func (rs *ruleSet) latestMappingRules() ([]*MappingRuleView, error) {
+func (rs *ruleSet) latestMappingRules() (map[string]*MappingRuleView, error) {
 	mrs, err := rs.MappingRules()
 	if err != nil {
 		return nil, err
 	}
-	result := make([]*MappingRuleView, 0, len(mrs))
+	result := make(map[string]*MappingRuleView, len(mrs))
 	for _, m := range mrs {
 		if len(m) > 0 && !m[0].Tombstoned {
 			// views included in m are sorted latest first.
-			result = append(result, m[0])
+			result[m[0].ID] = m[0]
 		}
 	}
 	return result, nil
 }
 
-func (rs *ruleSet) latestRollupRules() ([]*RollupRuleView, error) {
+func (rs *ruleSet) latestRollupRules() (map[string]*RollupRuleView, error) {
 	rrs, err := rs.RollupRules()
 	if err != nil {
 		return nil, err
 	}
-	result := make([]*RollupRuleView, 0, len(rrs))
+	result := make(map[string]*RollupRuleView, len(rrs))
 	for _, r := range rrs {
 		if len(r) > 0 && !r[0].Tombstoned {
 			// views included in m are sorted latest first.
-			result = append(result, r[0])
+			result[r[0].ID] = r[0]
 		}
 	}
 	return result, nil
@@ -1151,8 +1151,8 @@ type RuleSetSnapshot struct {
 	Namespace    string
 	Version      int
 	CutoverNanos int64
-	MappingRules []*MappingRuleView
-	RollupRules  []*RollupRuleView
+	MappingRules map[string]*MappingRuleView
+	RollupRules  map[string]*RollupRuleView
 }
 
 func (rs ruleSet) validateMappingRuleUpdate(mrv MappingRuleView) error {

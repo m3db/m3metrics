@@ -21,17 +21,11 @@
 package rules
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/policy"
-)
-
-var (
-	errEmptyMappingRuleViewList = errors.New("empty mapping rule view list")
-	errEmptyRollupRuleViewList  = errors.New("empty rollup rule view list")
 )
 
 // Validator validates a ruleset.
@@ -50,42 +44,27 @@ func NewValidator(opts ValidatorOptions) Validator {
 }
 
 func (v *validator) Validate(rs RuleSet) error {
+	// Only the latest (a.k.a. the first) view needs to be validated
+	// because that is the view that may be invalid due to latest update.
 	latest, err := rs.Latest()
-
-	// Validate mapping rules.
-	mappingRules, err := rs.MappingRules()
 	if err != nil {
-		return err
+		return NewValidationError(fmt.Sprintf("could not get the latest ruleset snapshot: %v", err))
 	}
-	if err := v.validateMappingRules(mappingRules); err != nil {
-		return err
+	if err := v.validateMappingRules(latest.MappingRules); err != nil {
+		return NewValidationError(fmt.Sprintf("could not validate mapping rules: %v", err))
 	}
-
-	// Validate rollup rules.
-	rollupRules, err := rs.RollupRules()
-	if err != nil {
-		return err
+	if err := v.validateRollupRules(latest.RollupRules); err != nil {
+		return NewValidationError(fmt.Sprintf("could not validate rollup rules: %v", err))
 	}
-	return v.validateRollupRules(rollupRules)
+	return nil
 }
 
-func (v *validator) validateMappingRules(rules MappingRules) error {
+func (v *validator) validateMappingRules(rules map[string]*MappingRuleView) error {
 	namesSeen := make(map[string]struct{}, len(rules))
-	for _, views := range rules {
-		if len(views) == 0 {
-			return errEmptyMappingRuleViewList
-		}
-		// Only the latest (a.k.a. the first) view needs to be validated
-		// because that is the view that may be invalid due to latest update.
-		view := views[0]
-		if view.Tombstoned {
-			continue
-		}
-
+	for _, view := range rules {
 		// Validate that no rules with the same name exist.
 		if _, exists := namesSeen[view.Name]; exists {
-			msg := fmt.Sprintf("mapping rule %s already exists", view.Name)
-			return RuleConflictError{msg: msg, ConflictRuleUUID: view.ID}
+			return NewRuleConflictError(fmt.Sprintf("mapping rule %s already exists", view.Name))
 		}
 		namesSeen[view.Name] = struct{}{}
 
@@ -105,23 +84,12 @@ func (v *validator) validateMappingRules(rules MappingRules) error {
 	return nil
 }
 
-func (v *validator) validateRollupRules(rules RollupRules) error {
+func (v *validator) validateRollupRules(rules map[string]*RollupRuleView) error {
 	namesSeen := make(map[string]struct{}, len(rules))
-	for _, views := range rules {
-		if len(views) == 0 {
-			return errEmptyRollupRuleViewList
-		}
-		// Only the latest (a.k.a. the first) view needs to be validated
-		// because that is the view that may be invalid due to latest update.
-		view := views[0]
-		if view.Tombstoned {
-			continue
-		}
-
+	for _, view := range rules {
 		// Validate that no rules with the same name exist.
 		if _, exists := namesSeen[view.Name]; exists {
-			msg := fmt.Sprintf("rollup rule %s already exists", view.Name)
-			return RuleConflictError{msg: msg, ConflictRuleUUID: view.ID}
+			return NewRuleConflictError(fmt.Sprintf("rollup rule %s already exists", view.Name))
 		}
 		namesSeen[view.Name] = struct{}{}
 
