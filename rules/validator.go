@@ -44,24 +44,28 @@ func NewValidator(opts ValidatorOptions) Validator {
 }
 
 func (v *validator) Validate(rs RuleSet) error {
-	// Only the latest (a.k.a. the first) view needs to be validated
-	// because that is the view that may be invalid due to latest update.
-	latest, err := rs.Latest()
-	if err != nil {
-		return NewValidationError(fmt.Sprintf("could not get the latest ruleset snapshot: %v", err))
-	}
-	if err := v.validateMappingRules(latest.MappingRules); err != nil {
-		return NewValidationError(fmt.Sprintf("could not validate mapping rules: %v", err))
-	}
-	if err := v.validateRollupRules(latest.RollupRules); err != nil {
-		return NewValidationError(fmt.Sprintf("could not validate rollup rules: %v", err))
+	if err := v.validate(rs); err != nil {
+		return v.wrapError(err)
 	}
 	return nil
 }
 
-func (v *validator) validateMappingRules(rules map[string]*MappingRuleView) error {
-	namesSeen := make(map[string]struct{}, len(rules))
-	for _, view := range rules {
+func (v *validator) validate(rs RuleSet) error {
+	// Only the latest (a.k.a. the first) view needs to be validated
+	// because that is the view that may be invalid due to latest update.
+	latest, err := rs.Latest()
+	if err != nil {
+		return fmt.Errorf("could not get the latest ruleset snapshot: %v", err)
+	}
+	if err := v.validateMappingRules(latest.MappingRules); err != nil {
+		return err
+	}
+	return v.validateRollupRules(latest.RollupRules)
+}
+
+func (v *validator) validateMappingRules(mrv map[string]*MappingRuleView) error {
+	namesSeen := make(map[string]struct{}, len(mrv))
+	for _, view := range mrv {
 		// Validate that no rules with the same name exist.
 		if _, exists := namesSeen[view.Name]; exists {
 			return NewRuleConflictError(fmt.Sprintf("mapping rule %s already exists", view.Name))
@@ -84,9 +88,9 @@ func (v *validator) validateMappingRules(rules map[string]*MappingRuleView) erro
 	return nil
 }
 
-func (v *validator) validateRollupRules(rules map[string]*RollupRuleView) error {
-	namesSeen := make(map[string]struct{}, len(rules))
-	for _, view := range rules {
+func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
+	namesSeen := make(map[string]struct{}, len(rrv))
+	for _, view := range rrv {
 		// Validate that no rules with the same name exist.
 		if _, exists := namesSeen[view.Name]; exists {
 			return NewRuleConflictError(fmt.Sprintf("rollup rule %s already exists", view.Name))
@@ -106,6 +110,24 @@ func (v *validator) validateRollupRules(rules map[string]*RollupRuleView) error 
 					return err
 				}
 			}
+		}
+	}
+
+	// Validate that there are no conflictiing rollup targets.
+	return v.validateRollupTargets(rrv)
+}
+
+func (v *validator) validateRollupTargets(rrv map[string]*RollupRuleView) error {
+	seen := make([]RollupTarget, 0, len(rrv))
+	for _, view := range rrv {
+		for _, target := range view.Targets {
+			current := target.rollupTarget()
+			for _, seenTarget := range seen {
+				if current.sameTransform(seenTarget) {
+					return NewRuleConflictError(fmt.Sprintf("rollup target with name %s and tags %s already exists", current.Name, current.Tags))
+				}
+			}
+			seen = append(seen, current)
 		}
 	}
 	return nil
@@ -142,4 +164,18 @@ func (v *validator) validatePolicy(t metric.Type, p policy.Policy) error {
 	}
 
 	return nil
+}
+
+func (v *validator) wrapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch err.(type) {
+	// Do not wrap error for these error types so caller can take actions based on the correct
+	// error type.
+	case RuleConflictError:
+		return err
+	default:
+		return NewValidationError(err.Error())
+	}
 }

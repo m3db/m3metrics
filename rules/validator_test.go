@@ -41,7 +41,10 @@ const (
 func TestValidatorValidateDuplicateMappingRules(t *testing.T) {
 	ruleSet := testRuleSetWithMappingRules(t, testDuplicateMappingRulesConfig())
 	validator := NewValidator(testValidatorOptions())
-	require.Error(t, ruleSet.Validate(validator))
+	err := ruleSet.Validate(validator)
+	require.Error(t, err)
+	_, ok := err.(RuleConflictError)
+	require.True(t, ok)
 }
 
 func TestValidatorValidateNoDuplicateMappingRulesWithTombstone(t *testing.T) {
@@ -140,7 +143,10 @@ func TestValidatorValidateMappingRuleCustomAggregationTypes(t *testing.T) {
 func TestValidatorValidateDuplicateRollupRules(t *testing.T) {
 	ruleSet := testRuleSetWithRollupRules(t, testDuplicateRollupRulesConfig())
 	validator := NewValidator(testValidatorOptions())
-	require.Error(t, ruleSet.Validate(validator))
+	err := ruleSet.Validate(validator)
+	require.Error(t, err)
+	_, ok := err.(RuleConflictError)
+	require.True(t, ok)
 }
 
 func TestValidatorValidateNoDuplicateRollupRulesWithTombstone(t *testing.T) {
@@ -234,6 +240,16 @@ func TestValidatorValidateRollupRuleCustomAggregationTypes(t *testing.T) {
 			require.NoError(t, ruleSet.Validate(validator))
 		}
 	}
+}
+
+func TestValidatorValidateRollupRuleConflictingTargets(t *testing.T) {
+	ruleSet := testRuleSetWithRollupRules(t, testConflictingTargetsRollupRulesConfig())
+	opts := testValidatorOptions()
+	validator := NewValidator(opts)
+	err := ruleSet.Validate(validator)
+	require.Error(t, err)
+	_, ok := err.(RuleConflictError)
+	require.True(t, ok)
 }
 
 func testDuplicateMappingRulesConfig() []*schema.MappingRule {
@@ -457,6 +473,73 @@ func testCustomAggregationTypeRollupRulesConfig() []*schema.RollupRule {
 									AggregationTypes: []schema.AggregationType{
 										schema.AggregationType_COUNT,
 										schema.AggregationType_MAX,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func testConflictingTargetsRollupRulesConfig() []*schema.RollupRule {
+	return []*schema.RollupRule{
+		&schema.RollupRule{
+			Uuid: "rollupRule1",
+			Snapshots: []*schema.RollupRuleSnapshot{
+				&schema.RollupRuleSnapshot{
+					Name:       "snapshot1",
+					Tombstoned: false,
+					TagFilters: map[string]string{
+						testTypeTag: testTimerType,
+					},
+					Targets: []*schema.RollupTarget{
+						&schema.RollupTarget{
+							Name: "rName1",
+							Tags: []string{"rtagName1", "rtagName2"},
+							Policies: []*schema.Policy{
+								&schema.Policy{
+									StoragePolicy: &schema.StoragePolicy{
+										Resolution: &schema.Resolution{
+											WindowSize: int64(10 * time.Second),
+											Precision:  int64(time.Second),
+										},
+										Retention: &schema.Retention{
+											Period: int64(6 * time.Hour),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		&schema.RollupRule{
+			Uuid: "rollupRule2",
+			Snapshots: []*schema.RollupRuleSnapshot{
+				&schema.RollupRuleSnapshot{
+					Name:       "snapshot2",
+					Tombstoned: false,
+					TagFilters: map[string]string{
+						testTypeTag: testTimerType,
+					},
+					Targets: []*schema.RollupTarget{
+						&schema.RollupTarget{
+							Name: "rName1",
+							Tags: []string{"rtagName1", "rtagName2"},
+							Policies: []*schema.Policy{
+								&schema.Policy{
+									StoragePolicy: &schema.StoragePolicy{
+										Resolution: &schema.Resolution{
+											WindowSize: int64(10 * time.Second),
+											Precision:  int64(time.Second),
+										},
+										Retention: &schema.Retention{
+											Period: int64(6 * time.Hour),
+										},
 									},
 								},
 							},
