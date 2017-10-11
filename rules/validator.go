@@ -89,7 +89,10 @@ func (v *validator) validateMappingRules(mrv map[string]*MappingRuleView) error 
 }
 
 func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
-	namesSeen := make(map[string]struct{}, len(rrv))
+	var (
+		namesSeen   = make(map[string]struct{}, len(rrv))
+		targetsSeen = make([]RollupTarget, 0, len(rrv))
+	)
 	for _, view := range rrv {
 		// Validate that no rules with the same name exist.
 		if _, exists := namesSeen[view.Name]; exists {
@@ -111,25 +114,19 @@ func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
 				}
 			}
 		}
-	}
 
-	// Validate that there are no conflictiing rollup targets.
-	return v.validateRollupTargets(rrv)
-}
-
-func (v *validator) validateRollupTargets(rrv map[string]*RollupRuleView) error {
-	seen := make([]RollupTarget, 0, len(rrv))
-	for _, view := range rrv {
+		// Validate that there are no conflicting rollup targets.
 		for _, target := range view.Targets {
 			current := target.rollupTarget()
-			for _, seenTarget := range seen {
+			for _, seenTarget := range targetsSeen {
 				if current.sameTransform(seenTarget) {
 					return NewRuleConflictError(fmt.Sprintf("rollup target with name %s and tags %s already exists", current.Name, current.Tags))
 				}
 			}
-			seen = append(seen, current)
+			targetsSeen = append(targetsSeen, current)
 		}
 	}
+
 	return nil
 }
 
