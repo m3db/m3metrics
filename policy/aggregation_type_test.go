@@ -90,15 +90,11 @@ func TestAggregationTypesUnmarshalYAML(t *testing.T) {
 			expected: AggregationTypes{Min},
 		},
 		{
-			str:      "Mean,Max,P99,P9999",
+			str:      "Mean|Max|P99|P9999",
 			expected: AggregationTypes{Mean, Max, P99, P9999},
 		},
 		{
-			str:         "Min,Max,P99,P9999,P100",
-			expectedErr: true,
-		},
-		{
-			str:         "Min,Max,P99,P9999,P100",
+			str:         "Min|Max|P99|P9999|P100",
 			expectedErr: true,
 		},
 		{
@@ -138,7 +134,7 @@ func TestParseAggregationTypes(t *testing.T) {
 			expected: AggregationTypes{Min},
 		},
 		{
-			str:      "Min,Max",
+			str:      "Min|Max",
 			expected: AggregationTypes{Min, Max},
 		},
 	}

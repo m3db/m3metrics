@@ -69,7 +69,7 @@ const (
 	// The AggregationIDLen will be 1 when MaxAggregationTypeID <= 63.
 	AggregationIDLen = (MaxAggregationTypeID)/64 + 1
 
-	aggregationTypesSeparator = ","
+	aggregationTypesSeparator = "|"
 )
 
 var (

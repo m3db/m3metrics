@@ -38,8 +38,8 @@ func TestPolicyString(t *testing.T) {
 		expected string
 	}{
 		{p: NewPolicy(NewStoragePolicy(10*time.Second, xtime.Second, time.Hour), DefaultAggregationID), expected: "10s@1s:1h0m0s"},
-		{p: NewPolicy(NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour), mustCompress(Mean, P999)), expected: "1m0s@1m:12h0m0s|Mean,P999"},
-		{p: NewPolicy(NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour), mustCompress(Mean)), expected: "1m0s@1m:12h0m0s|Mean"},
+		{p: NewPolicy(NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour), mustCompress(Mean, P999)), expected: "1m0s@1m:12h0m0s-Mean|P999"},
+		{p: NewPolicy(NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour), mustCompress(Mean)), expected: "1m0s@1m:12h0m0s-Mean"},
 	}
 	for _, input := range inputs {
 		require.Equal(t, input.expected, input.p.String())
@@ -56,19 +56,19 @@ func TestPolicyUnmarshalYAML(t *testing.T) {
 			expected: NewPolicy(NewStoragePolicy(time.Second, xtime.Second, time.Hour), DefaultAggregationID),
 		},
 		{
-			str:      "10s:1d|Mean",
+			str:      "10s:1d-Mean",
 			expected: NewPolicy(NewStoragePolicy(10*time.Second, xtime.Second, 24*time.Hour), mustCompress(Mean)),
 		},
 		{
-			str:      "60s:24h|Mean,Count",
+			str:      "60s:24h-Mean|Count",
 			expected: NewPolicy(NewStoragePolicy(time.Minute, xtime.Minute, 24*time.Hour), mustCompress(Mean, Count)),
 		},
 		{
-			str:      "1m:1d|Count,Mean",
+			str:      "1m:1d-Count|Mean",
 			expected: NewPolicy(NewStoragePolicy(time.Minute, xtime.Minute, 24*time.Hour), mustCompress(Mean, Count)),
 		},
 		{
-			str:      "1s@1s:1h|P999,P9999",
+			str:      "1s@1s:1h-P999|P9999",
 			expected: NewPolicy(NewStoragePolicy(time.Second, xtime.Second, time.Hour), mustCompress(P999, P9999)),
 		},
 	}
@@ -83,12 +83,12 @@ func TestPolicyUnmarshalYAMLErrors(t *testing.T) {
 	inputs := []string{
 		"|",
 		"|Mean",
-		"1s:1h|",
-		"1s:1h||",
-		"1s:1h|P99|",
-		"1s:1h|P",
-		"1s:1h|Meann",
-		"1s:1h|Mean,",
+		"1s:1h-",
+		"1s:1h--",
+		"1s:1h-P99-",
+		"1s:1h-P",
+		"1s:1h-Meann",
+		"1s:1h-Mean,",
 	}
 	for _, input := range inputs {
 		var p Policy
@@ -158,7 +158,7 @@ func TestParsePolicyIntoSchema(t *testing.T) {
 			},
 		},
 		{
-			str: "1s:1h|Mean",
+			str: "1s:1h-Mean",
 			expected: &schema.Policy{
 				StoragePolicy: &schema.StoragePolicy{
 					Resolution: &schema.Resolution{
@@ -173,7 +173,7 @@ func TestParsePolicyIntoSchema(t *testing.T) {
 			},
 		},
 		{
-			str: "60s:24h|Mean,Count",
+			str: "60s:24h-Mean|Count",
 			expected: &schema.Policy{
 				StoragePolicy: &schema.StoragePolicy{
 					Resolution: &schema.Resolution{
@@ -188,7 +188,7 @@ func TestParsePolicyIntoSchema(t *testing.T) {
 			},
 		},
 		{
-			str: "1m:1d|Count,Mean",
+			str: "1m:1d-Count|Mean",
 			expected: &schema.Policy{
 				StoragePolicy: &schema.StoragePolicy{
 					Resolution: &schema.Resolution{
@@ -203,7 +203,7 @@ func TestParsePolicyIntoSchema(t *testing.T) {
 			},
 		},
 		{
-			str: "1m@1s:1h|P999,P9999",
+			str: "1m@1s:1h-P999|P9999",
 			expected: &schema.Policy{
 				StoragePolicy: &schema.StoragePolicy{
 					Resolution: &schema.Resolution{
