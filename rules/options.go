@@ -23,6 +23,7 @@ package rules
 import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/metric/id"
+	"github.com/m3db/m3metrics/policy"
 )
 
 // Options provide a set of options for rule matching.
@@ -44,17 +45,26 @@ type Options interface {
 
 	// IsRollupIDFn returns the function that determines whether an id is a rollup id.
 	IsRollupIDFn() id.MatchIDFn
+
+	// SetPolicyOptions sets the policy options.
+	SetPolicyOptions(v policy.Options) Options
+
+	// PolicyOptions returns the policy options.
+	PolicyOptions() policy.Options
 }
 
 type options struct {
 	tagsFilterOpts filters.TagsFilterOptions
 	newRollupIDFn  id.NewIDFn
 	isRollupIDFn   id.MatchIDFn
+	pOpts          policy.Options
 }
 
 // NewOptions creates a new set of options.
 func NewOptions() Options {
-	return &options{}
+	return &options{
+		pOpts: policy.NewOptions(),
+	}
 }
 
 func (o *options) SetTagsFilterOptions(value filters.TagsFilterOptions) Options {
@@ -85,4 +95,14 @@ func (o *options) SetIsRollupIDFn(value id.MatchIDFn) Options {
 
 func (o *options) IsRollupIDFn() id.MatchIDFn {
 	return o.isRollupIDFn
+}
+
+func (o *options) SetPolicyOptions(value policy.Options) Options {
+	opts := *o
+	opts.pOpts = value
+	return &opts
+}
+
+func (o *options) PolicyOptions() policy.Options {
+	return o.pOpts
 }

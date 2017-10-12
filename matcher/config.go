@@ -29,6 +29,7 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/metric/id/m3"
+	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules"
 	"github.com/m3db/m3x/clock"
 	"github.com/m3db/m3x/instrument"
@@ -46,7 +47,7 @@ type Configuration struct {
 	NameTagKey            string                       `yaml:"nameTagKey" validate:"nonzero"`
 	MatchRangePast        *time.Duration               `yaml:"matchRangePast"`
 	SortedTagIteratorPool pool.ObjectPoolConfiguration `yaml:"sortedTagIteratorPool"`
-	MatchMode             rules.MatchMode              `yaml:"matchMode"`
+	Policy                policy.Configuration         `yaml:"policy"`
 }
 
 // NewNamespaces creates a matcher.Namespaces.
@@ -116,7 +117,8 @@ func (cfg *Configuration) NewOptions(
 	ruleSetOpts := rules.NewOptions().
 		SetTagsFilterOptions(tagsFilterOptions).
 		SetNewRollupIDFn(m3.NewRollupID).
-		SetIsRollupIDFn(isRollupIDFn)
+		SetIsRollupIDFn(isRollupIDFn).
+		SetPolicyOptions(cfg.Policy.NewOptions())
 
 	// Configure ruleset key function.
 	ruleSetKeyFn := func(namespace []byte) string {
@@ -131,8 +133,7 @@ func (cfg *Configuration) NewOptions(
 		SetNamespacesKey(cfg.NamespacesKey).
 		SetRuleSetKeyFn(ruleSetKeyFn).
 		SetNamespaceTag([]byte(cfg.NamespaceTag)).
-		SetDefaultNamespace([]byte(cfg.DefaultNamespace)).
-		SetMatchMode(cfg.MatchMode)
+		SetDefaultNamespace([]byte(cfg.DefaultNamespace))
 
 	if cfg.InitWatchTimeout != 0 {
 		opts = opts.SetInitWatchTimeout(cfg.InitWatchTimeout)

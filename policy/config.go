@@ -18,29 +18,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package matcher
+package policy
 
-import "github.com/m3db/m3metrics/rules"
+// Configuration contains configuration.
+type Configuration struct {
+	// Default aggregation types for counter metrics.
+	CounterAggregationTypes *AggregationTypes `yaml:"counterAggregationTypes" validate:"nonzero"`
 
-// Source is a datasource providing match results.
-type Source interface {
-	// ForwardMatch returns the match result for a given id within time range
-	// [fromNanos, toNanos).
-	ForwardMatch(id []byte, fromNanos, toNanos int64) rules.MatchResult
+	// Default aggregation types for timer metrics.
+	TimerAggregationTypes *AggregationTypes `yaml:"timerAggregationTypes" validate:"nonzero"`
+
+	// Default aggregation types for gauge metrics.
+	GaugeAggregationTypes *AggregationTypes `yaml:"gaugeAggregationTypes" validate:"nonzero"`
 }
 
-// Cache caches the rule matching result associated with metrics.
-type Cache interface {
-	// ForwardMatch returns the rule matching result associated with a metric id
-	// between [fromNanos, toNanos).
-	ForwardMatch(namespace, id []byte, fromNanos, toNanos int64) rules.MatchResult
-
-	// Register sets the result source for a given namespace.
-	Register(namespace []byte, source Source)
-
-	// Unregister deletes the cached results for a given namespace.
-	Unregister(namespace []byte)
-
-	// Close closes the cache.
-	Close() error
+// NewOptions creates a new Option.
+func (c Configuration) NewOptions() Options {
+	opts := NewOptions()
+	if c.CounterAggregationTypes != nil {
+		opts = opts.SetDefaultCounterAggregationTypes(*c.CounterAggregationTypes)
+	}
+	if c.GaugeAggregationTypes != nil {
+		opts = opts.SetDefaultGaugeAggregationTypes(*c.GaugeAggregationTypes)
+	}
+	if c.TimerAggregationTypes != nil {
+		opts = opts.SetDefaultTimerAggregationTypes(*c.TimerAggregationTypes)
+	}
+	return opts
 }
