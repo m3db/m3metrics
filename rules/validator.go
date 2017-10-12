@@ -83,7 +83,7 @@ func (v *validator) validateMappingRules(mrv map[string]*MappingRuleView) error 
 			return err
 		}
 		if len(types) == 0 {
-			return fmt.Errorf("mapping rule %s does not match any allowed metric types", view.Name)
+			return fmt.Errorf("mapping rule %s does not match any allowed metric types, filter=%v", view.Name, view.Filters)
 		}
 
 		// Validate that the policies are valid.
@@ -121,7 +121,7 @@ func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
 			return err
 		}
 		if len(types) == 0 {
-			return fmt.Errorf("rollup rule %s does not match any allowed metric types", view.Name)
+			return fmt.Errorf("rollup rule %s does not match any allowed metric types, filter=%v", view.Name, view.Filters)
 		}
 
 		// Validate that the policies are valid.
