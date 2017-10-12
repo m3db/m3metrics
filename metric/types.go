@@ -36,8 +36,8 @@ const (
 	GaugeType
 )
 
-// ValidTypes is a list of valid types.
-var ValidTypes = []Type{
+// validTypes is a list of valid types.
+var validTypes = []Type{
 	CounterType,
 	TimerType,
 	GaugeType,
@@ -62,14 +62,14 @@ func (t *Type) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&str); err != nil {
 		return err
 	}
-	validTypes := make([]string, 0, len(ValidTypes))
-	for _, valid := range ValidTypes {
+	validTypeStrs := make([]string, 0, len(validTypes))
+	for _, valid := range validTypes {
 		if str == string(valid) {
 			*t = valid
 			return nil
 		}
-		validTypes = append(validTypes, string(valid))
+		validTypeStrs = append(validTypeStrs, string(valid))
 	}
 	return fmt.Errorf("invalid metric type '%s' valid types are: %s",
-		str, strings.Join(validTypes, ", "))
+		str, strings.Join(validTypeStrs, ", "))
 }
