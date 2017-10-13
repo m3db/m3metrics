@@ -20,29 +20,29 @@
 
 package policy
 
-// Configuration contains configuration.
-type Configuration struct {
+// AggregationTypesConfiguration contains configuration for aggregation types.
+type AggregationTypesConfiguration struct {
 	// Default aggregation types for counter metrics.
-	CounterAggregationTypes *AggregationTypes `yaml:"counterAggregationTypes" validate:"nonzero"`
+	DefaultCounterAggregationTypes *AggregationTypes `yaml:"defaultCounterAggregationTypes"`
 
 	// Default aggregation types for timer metrics.
-	TimerAggregationTypes *AggregationTypes `yaml:"timerAggregationTypes" validate:"nonzero"`
+	DefaultTimerAggregationTypes *AggregationTypes `yaml:"defaultTimerAggregationTypes"`
 
 	// Default aggregation types for gauge metrics.
-	GaugeAggregationTypes *AggregationTypes `yaml:"gaugeAggregationTypes" validate:"nonzero"`
+	DefaultGaugeAggregationTypes *AggregationTypes `yaml:"defaultGaugeAggregationTypes"`
 }
 
 // NewOptions creates a new Option.
-func (c Configuration) NewOptions() Options {
-	opts := NewOptions()
-	if c.CounterAggregationTypes != nil {
-		opts = opts.SetDefaultCounterAggregationTypes(*c.CounterAggregationTypes)
+func (c AggregationTypesConfiguration) NewOptions() AggregationTypesOptions {
+	opts := NewAggregationTypesOptions()
+	if c.DefaultCounterAggregationTypes != nil {
+		opts = opts.SetDefaultCounterAggregationTypes(*c.DefaultCounterAggregationTypes)
 	}
-	if c.GaugeAggregationTypes != nil {
-		opts = opts.SetDefaultGaugeAggregationTypes(*c.GaugeAggregationTypes)
+	if c.DefaultGaugeAggregationTypes != nil {
+		opts = opts.SetDefaultGaugeAggregationTypes(*c.DefaultGaugeAggregationTypes)
 	}
-	if c.TimerAggregationTypes != nil {
-		opts = opts.SetDefaultTimerAggregationTypes(*c.TimerAggregationTypes)
+	if c.DefaultTimerAggregationTypes != nil {
+		opts = opts.SetDefaultTimerAggregationTypes(*c.DefaultTimerAggregationTypes)
 	}
 	return opts
 }

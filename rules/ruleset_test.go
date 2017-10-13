@@ -195,7 +195,7 @@ func TestActiveRuleSetForwardMappingPoliciesForNonRollupID(t *testing.T) {
 		testTagsFilterOptions(),
 		mockNewID,
 		nil,
-		policy.NewOptions(),
+		policy.NewAggregationTypesOptions(),
 	)
 	expectedCutovers := []int64{10000, 15000, 20000, 22000, 24000, 30000, 34000, 35000, 100000}
 	require.Equal(t, expectedCutovers, as.cutoverTimesAsc)
@@ -399,7 +399,7 @@ func TestActiveRuleSetReverseMappingPoliciesForNonRollupID(t *testing.T) {
 		testTagsFilterOptions(),
 		mockNewID,
 		func([]byte, []byte) bool { return false },
-		policy.NewOptions(),
+		policy.NewAggregationTypesOptions(),
 	)
 	expectedCutovers := []int64{10000, 15000, 20000, 22000, 24000, 30000, 34000, 35000, 100000}
 	require.Equal(t, expectedCutovers, as.cutoverTimesAsc)
@@ -534,7 +534,7 @@ func TestActiveRuleSetReverseMappingPoliciesForRollupID(t *testing.T) {
 		testTagsFilterOptions(),
 		mockNewID,
 		func([]byte, []byte) bool { return true },
-		policy.NewOptions(),
+		policy.NewAggregationTypesOptions(),
 	)
 	expectedCutovers := []int64{10000, 15000, 20000, 22000, 24000, 30000, 34000, 35000, 38000, 100000, 120000}
 	require.Equal(t, expectedCutovers, as.cutoverTimesAsc)
@@ -713,7 +713,7 @@ func TestActiveRuleSetRollupResults(t *testing.T) {
 		testTagsFilterOptions(),
 		mockNewID,
 		nil,
-		policy.NewOptions(),
+		policy.NewAggregationTypesOptions(),
 	)
 	expectedCutovers := []int64{10000, 15000, 20000, 22000, 24000, 30000, 34000, 35000, 38000, 100000, 120000}
 	require.Equal(t, expectedCutovers, as.cutoverTimesAsc)

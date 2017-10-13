@@ -20,25 +20,33 @@
 
 package policy
 
-// Options provides a set of options for
-type Options interface {
-	// SetDefaultCounterAggregationTypes sets the counter aggregation types.
-	SetDefaultCounterAggregationTypes(value AggregationTypes) Options
+import (
+	"github.com/m3db/m3metrics/metric"
+)
 
-	// DefaultCounterAggregationTypes returns the aggregation types for counters.
+// AggregationTypesOptions provides a set of options for aggregation types.
+type AggregationTypesOptions interface {
+	// SetDefaultCounterAggregationTypes sets the default aggregation types for counters.
+	SetDefaultCounterAggregationTypes(value AggregationTypes) AggregationTypesOptions
+
+	// DefaultCounterAggregationTypes returns the default aggregation types for counters.
 	DefaultCounterAggregationTypes() AggregationTypes
 
-	// SetDefaultTimerAggregationTypes sets the timer aggregation types.
-	SetDefaultTimerAggregationTypes(value AggregationTypes) Options
+	// SetDefaultTimerAggregationTypes sets the default aggregation types for timers.
+	SetDefaultTimerAggregationTypes(value AggregationTypes) AggregationTypesOptions
 
-	// DefaultTimerAggregationTypes returns the aggregation types for timers.
+	// DefaultTimerAggregationTypes returns the default aggregation types for timers.
 	DefaultTimerAggregationTypes() AggregationTypes
 
-	// SetDefaultGaugeAggregationTypes sets the gauge aggregation types.
-	SetDefaultGaugeAggregationTypes(value AggregationTypes) Options
+	// SetDefaultGaugeAggregationTypes sets the default aggregation types for gauges.
+	SetDefaultGaugeAggregationTypes(value AggregationTypes) AggregationTypesOptions
 
-	// DefaultGaugeAggregationTypes returns the aggregation types for gauges.
+	// DefaultGaugeAggregationTypes returns the default aggregation types for gauges.
 	DefaultGaugeAggregationTypes() AggregationTypes
+
+	// IsContainedInDefaultAggregationTypes checks if the given aggregation type is
+	// contained in the default aggregation types for the metric type.
+	IsContainedInDefaultAggregationTypes(at AggregationType, mt metric.Type) bool
 }
 
 var (
@@ -69,8 +77,8 @@ type options struct {
 	defaultGaugeAggregationTypes   AggregationTypes
 }
 
-// NewOptions returns a default Options.
-func NewOptions() Options {
+// NewAggregationTypesOptions returns a default Options.
+func NewAggregationTypesOptions() AggregationTypesOptions {
 	return &options{
 		defaultCounterAggregationTypes: defaultDefaultCounterAggregationTypes,
 		defaultGaugeAggregationTypes:   defaultDefaultGaugeAggregationTypes,
@@ -78,7 +86,7 @@ func NewOptions() Options {
 	}
 }
 
-func (o *options) SetDefaultCounterAggregationTypes(aggTypes AggregationTypes) Options {
+func (o *options) SetDefaultCounterAggregationTypes(aggTypes AggregationTypes) AggregationTypesOptions {
 	opts := *o
 	opts.defaultCounterAggregationTypes = aggTypes
 	return &opts
@@ -88,7 +96,7 @@ func (o *options) DefaultCounterAggregationTypes() AggregationTypes {
 	return o.defaultCounterAggregationTypes
 }
 
-func (o *options) SetDefaultTimerAggregationTypes(aggTypes AggregationTypes) Options {
+func (o *options) SetDefaultTimerAggregationTypes(aggTypes AggregationTypes) AggregationTypesOptions {
 	opts := *o
 	opts.defaultTimerAggregationTypes = aggTypes
 	return &opts
@@ -98,7 +106,7 @@ func (o *options) DefaultTimerAggregationTypes() AggregationTypes {
 	return o.defaultTimerAggregationTypes
 }
 
-func (o *options) SetDefaultGaugeAggregationTypes(aggTypes AggregationTypes) Options {
+func (o *options) SetDefaultGaugeAggregationTypes(aggTypes AggregationTypes) AggregationTypesOptions {
 	opts := *o
 	opts.defaultGaugeAggregationTypes = aggTypes
 	return &opts
@@ -106,4 +114,18 @@ func (o *options) SetDefaultGaugeAggregationTypes(aggTypes AggregationTypes) Opt
 
 func (o *options) DefaultGaugeAggregationTypes() AggregationTypes {
 	return o.defaultGaugeAggregationTypes
+}
+
+func (o *options) IsContainedInDefaultAggregationTypes(at AggregationType, mt metric.Type) bool {
+	var aggTypes AggregationTypes
+	switch mt {
+	case metric.CounterType:
+		aggTypes = o.DefaultCounterAggregationTypes()
+	case metric.GaugeType:
+		aggTypes = o.DefaultGaugeAggregationTypes()
+	case metric.TimerType:
+		aggTypes = o.DefaultTimerAggregationTypes()
+	}
+
+	return aggTypes.Contains(at)
 }

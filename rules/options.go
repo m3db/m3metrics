@@ -46,24 +46,24 @@ type Options interface {
 	// IsRollupIDFn returns the function that determines whether an id is a rollup id.
 	IsRollupIDFn() id.MatchIDFn
 
-	// SetPolicyOptions sets the policy options.
-	SetPolicyOptions(v policy.Options) Options
+	// SetAggregationTypesOptions sets the aggregation types options.
+	SetAggregationTypesOptions(v policy.AggregationTypesOptions) Options
 
-	// PolicyOptions returns the policy options.
-	PolicyOptions() policy.Options
+	// PolicyOptions returns the aggregation types options.
+	AggregationTypesOptions() policy.AggregationTypesOptions
 }
 
 type options struct {
 	tagsFilterOpts filters.TagsFilterOptions
 	newRollupIDFn  id.NewIDFn
 	isRollupIDFn   id.MatchIDFn
-	pOpts          policy.Options
+	aggOpts        policy.AggregationTypesOptions
 }
 
 // NewOptions creates a new set of options.
 func NewOptions() Options {
 	return &options{
-		pOpts: policy.NewOptions(),
+		aggOpts: policy.NewAggregationTypesOptions(),
 	}
 }
 
@@ -97,12 +97,12 @@ func (o *options) IsRollupIDFn() id.MatchIDFn {
 	return o.isRollupIDFn
 }
 
-func (o *options) SetPolicyOptions(value policy.Options) Options {
+func (o *options) SetAggregationTypesOptions(value policy.AggregationTypesOptions) Options {
 	opts := *o
-	opts.pOpts = value
+	opts.aggOpts = value
 	return &opts
 }
 
-func (o *options) PolicyOptions() policy.Options {
-	return o.pOpts
+func (o *options) AggregationTypesOptions() policy.AggregationTypesOptions {
+	return o.aggOpts
 }

@@ -38,16 +38,16 @@ import (
 
 // Configuration is config used to create a Matcher.
 type Configuration struct {
-	InitWatchTimeout      time.Duration                `yaml:"initWatchTimeout"`
-	RulesKVConfig         kv.Configuration             `yaml:"rulesKVConfig"`
-	NamespacesKey         string                       `yaml:"namespacesKey" validate:"nonzero"`
-	RuleSetKeyFmt         string                       `yaml:"ruleSetKeyFmt" validate:"nonzero"`
-	NamespaceTag          string                       `yaml:"namespaceTag" validate:"nonzero"`
-	DefaultNamespace      string                       `yaml:"defaultNamespace" validate:"nonzero"`
-	NameTagKey            string                       `yaml:"nameTagKey" validate:"nonzero"`
-	MatchRangePast        *time.Duration               `yaml:"matchRangePast"`
-	SortedTagIteratorPool pool.ObjectPoolConfiguration `yaml:"sortedTagIteratorPool"`
-	Policy                policy.Configuration         `yaml:"policy"`
+	InitWatchTimeout      time.Duration                        `yaml:"initWatchTimeout"`
+	RulesKVConfig         kv.Configuration                     `yaml:"rulesKVConfig"`
+	NamespacesKey         string                               `yaml:"namespacesKey" validate:"nonzero"`
+	RuleSetKeyFmt         string                               `yaml:"ruleSetKeyFmt" validate:"nonzero"`
+	NamespaceTag          string                               `yaml:"namespaceTag" validate:"nonzero"`
+	DefaultNamespace      string                               `yaml:"defaultNamespace" validate:"nonzero"`
+	NameTagKey            string                               `yaml:"nameTagKey" validate:"nonzero"`
+	MatchRangePast        *time.Duration                       `yaml:"matchRangePast"`
+	SortedTagIteratorPool pool.ObjectPoolConfiguration         `yaml:"sortedTagIteratorPool"`
+	AggregationTypes      policy.AggregationTypesConfiguration `yaml:"aggregationTypes"`
 }
 
 // NewNamespaces creates a matcher.Namespaces.
@@ -118,7 +118,7 @@ func (cfg *Configuration) NewOptions(
 		SetTagsFilterOptions(tagsFilterOptions).
 		SetNewRollupIDFn(m3.NewRollupID).
 		SetIsRollupIDFn(isRollupIDFn).
-		SetPolicyOptions(cfg.Policy.NewOptions())
+		SetAggregationTypesOptions(cfg.AggregationTypes.NewOptions())
 
 	// Configure ruleset key function.
 	ruleSetKeyFn := func(namespace []byte) string {

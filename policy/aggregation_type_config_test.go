@@ -27,13 +27,13 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-func TestConfig(t *testing.T) {
+func TestAggregationTypesConfiguration(t *testing.T) {
 	str := `
-gaugeAggregationTypes: Max
-timerAggregationTypes: P50,P99,P9999
+defaultGaugeAggregationTypes: Max
+defaultTimerAggregationTypes: P50,P99,P9999
 `
 
-	var cfg Configuration
+	var cfg AggregationTypesConfiguration
 	require.NoError(t, yaml.Unmarshal([]byte(str), &cfg))
 	opts := cfg.NewOptions()
 	require.Equal(t, defaultDefaultCounterAggregationTypes, opts.DefaultCounterAggregationTypes())

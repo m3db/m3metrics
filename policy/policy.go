@@ -180,7 +180,7 @@ func NewPoliciesFromSchema(policies []*schema.Policy) ([]Policy, error) {
 	return res, nil
 }
 
-// IsDefaultPolicies checks if the policies is default.
+// IsDefaultPolicies checks if the policies are the default policies.
 func IsDefaultPolicies(ps []Policy) bool {
 	return len(ps) == 0
 }

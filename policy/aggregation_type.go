@@ -463,8 +463,9 @@ func (id AggregationID) Contains(aggType AggregationType) bool {
 	if !aggType.IsValid() {
 		return false
 	}
-
-	return (id[int(aggType)/64] & (1 << (uint(aggType) % 64))) > 0
+	idx := int(aggType) >> 6
+	offset := uint(aggType) & 0x3F
+	return (id[idx] & (1 << offset)) > 0
 }
 
 // AggregationTypes returns the aggregation types defined by the id.

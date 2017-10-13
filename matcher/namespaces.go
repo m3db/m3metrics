@@ -57,7 +57,7 @@ type Namespaces interface {
 	ForwardMatch(namespace, id []byte, fromNanos, toNanos int64) rules.MatchResult
 
 	// ReverseMatch reverse matches the matching policies for a given id in a given namespace
-	// between [fromNanos, toNanos), with aware of the metric type and aggregation type for the given id.
+	// between [fromNanos, toNanos), taking into account the metric type and aggregation type for the given id.
 	ReverseMatch(namespace, id []byte, fromNanos, toNanos int64, mt metric.Type, at policy.AggregationType) rules.MatchResult
 
 	// Close closes the namespaces.
