@@ -71,7 +71,7 @@ const (
 
 	aggregationTypesSeparator = ","
 
-	// aggregation id uses an array of int64 to represent aggregation types
+	// aggregation id uses an array of int64 to represent aggregation types.
 	aggIDBitShift = 6
 	aggIDBitMask  = 63
 )
@@ -85,7 +85,7 @@ var (
 	// DefaultAggregationID is a default AggregationID.
 	DefaultAggregationID AggregationID
 
-	// ValidAggregationTypes is the list of all the valid aggregation types
+	// ValidAggregationTypes is the list of all the valid aggregation types.
 	ValidAggregationTypes = map[AggregationType]struct{}{
 		Last:   emptyStruct,
 		Min:    emptyStruct,
