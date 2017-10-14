@@ -70,7 +70,7 @@ type activeRuleSet struct {
 	tagFilterOpts   filters.TagsFilterOptions
 	newRollupIDFn   metricID.NewIDFn
 	isRollupIDFn    metricID.MatchIDFn
-	aggOpts         policy.AggregationTypesOptions
+	aggTypeOpts     policy.AggregationTypesOptions
 }
 
 func newActiveRuleSet(
@@ -108,7 +108,7 @@ func newActiveRuleSet(
 		tagFilterOpts:   tagFilterOpts,
 		newRollupIDFn:   newRollupIDFn,
 		isRollupIDFn:    isRollupIDFn,
-		aggOpts:         aggOpts,
+		aggTypeOpts:     aggOpts,
 	}
 }
 
@@ -239,7 +239,7 @@ func (as *activeRuleSet) reverseMappingsForRollupID(
 				copy(policies, target.Policies)
 				resolved := resolvePolicies(policies)
 				// Filter the each policy by the aggregation type.
-				filtered, _ := filterPoliciesWithAggregationTypes(resolved, mt, at, as.aggOpts)
+				filtered, _ := filterPoliciesWithAggregationTypes(resolved, mt, at, as.aggTypeOpts)
 				if len(filtered) == 0 {
 					return policy.DefaultStagedPolicies, false
 				}
@@ -260,7 +260,7 @@ func (as *activeRuleSet) reverseMappingsForNonRollupID(
 	policies, cutoverNanos := as.mappingsForNonRollupID(id, timeNanos)
 	// NB(cw) aggregation types filter must be applied after the policy list is resolved.
 	// Because policies like [1m:40h|P90,P99; 1m:20h|P50] will be resolved to [1m:40h|P50,P90,P99].
-	filtered, isDefault := filterPoliciesWithAggregationTypes(policies, mt, at, as.aggOpts)
+	filtered, isDefault := filterPoliciesWithAggregationTypes(policies, mt, at, as.aggTypeOpts)
 	if cutoverNanos == 0 && isDefault {
 		return policy.DefaultStagedPolicies, true
 	}

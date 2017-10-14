@@ -57,13 +57,13 @@ type options struct {
 	tagsFilterOpts filters.TagsFilterOptions
 	newRollupIDFn  id.NewIDFn
 	isRollupIDFn   id.MatchIDFn
-	aggOpts        policy.AggregationTypesOptions
+	aggTypesOpts   policy.AggregationTypesOptions
 }
 
 // NewOptions creates a new set of options.
 func NewOptions() Options {
 	return &options{
-		aggOpts: policy.NewAggregationTypesOptions(),
+		aggTypesOpts: policy.NewAggregationTypesOptions(),
 	}
 }
 
@@ -99,10 +99,10 @@ func (o *options) IsRollupIDFn() id.MatchIDFn {
 
 func (o *options) SetAggregationTypesOptions(value policy.AggregationTypesOptions) Options {
 	opts := *o
-	opts.aggOpts = value
+	opts.aggTypesOpts = value
 	return &opts
 }
 
 func (o *options) AggregationTypesOptions() policy.AggregationTypesOptions {
-	return o.aggOpts
+	return o.aggTypesOpts
 }

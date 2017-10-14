@@ -70,6 +70,10 @@ const (
 	AggregationIDLen = (MaxAggregationTypeID)/64 + 1
 
 	aggregationTypesSeparator = ","
+
+	// aggregation id uses an array of int64 to represent aggregation types
+	aggIDBitShift = 6
+	aggIDBitMask  = 63
 )
 
 var (
@@ -463,8 +467,8 @@ func (id AggregationID) Contains(aggType AggregationType) bool {
 	if !aggType.IsValid() {
 		return false
 	}
-	idx := int(aggType) >> 6
-	offset := uint(aggType) & 0x3F
+	idx := int(aggType) >> aggIDBitShift   // aggType / 64
+	offset := uint(aggType) & aggIDBitMask // aggType % 64
 	return (id[idx] & (1 << offset)) > 0
 }
 
