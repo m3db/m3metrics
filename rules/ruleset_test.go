@@ -2562,6 +2562,7 @@ func TestDeleteMappingRule(t *testing.T) {
 	m, err = rs.getMappingRuleByID("mappingRule5")
 	require.NoError(t, err)
 	require.True(t, m.Tombstoned())
+	require.Nil(t, m.snapshots[len(m.snapshots)-1].policies)
 
 	mrs, err = rs.MappingRules()
 	require.NoError(t, err)
@@ -2745,6 +2746,7 @@ func TestDeleteRollupRule(t *testing.T) {
 	rr, err = rs.getRollupRuleByName("rollupRule5.snapshot1")
 	require.NoError(t, err)
 	require.True(t, rr.Tombstoned())
+	require.Nil(t, rr.snapshots[len(rr.snapshots)-1].targets)
 
 	rrs, err = rs.RollupRules()
 	require.NoError(t, err)
