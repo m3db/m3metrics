@@ -296,10 +296,7 @@ func (o *options) Validate() error {
 	if err := o.validateUniqSuffixForMetricType(o.timerSuffixes, metric.TimerType); err != nil {
 		return err
 	}
-	if err := o.validateUniqSuffixForMetricType(o.gaugeSuffixes, metric.GaugeType); err != nil {
-		return err
-	}
-	return nil
+	return o.validateUniqSuffixForMetricType(o.gaugeSuffixes, metric.GaugeType)
 }
 
 func (o *options) validateUniqSuffixForMetricType(suffixes [][]byte, t metric.Type) error {
