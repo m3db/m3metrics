@@ -64,13 +64,13 @@ type AggregationTypesConfiguration struct {
 	MedianSuffix *string `yaml:"medianSuffix"`
 
 	// Counter suffix overrides.
-	CounterSuffixOverrides map[AggregationType]string `yaml:"counterSuffixOverride"`
+	CounterSuffixOverrides map[AggregationType]string `yaml:"counterSuffixOverrides"`
 
 	// Timer suffix overrides.
-	TimerSuffixOverrides map[AggregationType]string `yaml:"timerSuffixOverride"`
+	TimerSuffixOverrides map[AggregationType]string `yaml:"timerSuffixOverrides"`
 
 	// Gauge suffix overrides.
-	GaugeSuffixOverrides map[AggregationType]string `yaml:"gaugeSuffixOverride"`
+	GaugeSuffixOverrides map[AggregationType]string `yaml:"gaugeSuffixOverrides"`
 
 	// Pool of aggregation types.
 	AggregationTypesPool pool.ObjectPoolConfiguration `yaml:"aggregationTypesPool"`

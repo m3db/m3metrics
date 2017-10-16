@@ -33,9 +33,9 @@ func TestAggregationTypesConfiguration(t *testing.T) {
 defaultGaugeAggregationTypes: Max
 defaultTimerAggregationTypes: P50,P99,P9999
 meanSuffix: .testMean
-gaugeSuffixOverride:
+gaugeSuffixOverrides:
   Last: ""
-counterSuffixOverride:
+counterSuffixOverrides:
   Sum: ""
 `
 
