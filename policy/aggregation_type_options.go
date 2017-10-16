@@ -21,6 +21,8 @@
 package policy
 
 import (
+	"bytes"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -33,6 +35,9 @@ type QuantileSuffixFn func(quantile float64) []byte
 
 // AggregationTypesOptions provides a set of options for aggregation types.
 type AggregationTypesOptions interface {
+	// Validate checks if the options are valid.
+	Validate() error
+
 	// Read-Write methods.
 
 	// SetDefaultCounterAggregationTypes sets the default aggregation types for counters.
@@ -159,14 +164,14 @@ type AggregationTypesOptions interface {
 	// Suffix returns the suffix for the aggregation type for gauges.
 	SuffixForGauge(value AggregationType) []byte
 
-	// AggregationTypeWithSuffixForCounter returns the aggregation type with the given suffix for counters.
-	AggregationTypeWithSuffixForCounter(value []byte) AggregationType
+	// AggregationTypeForCounter returns the aggregation type with the given suffix for counters.
+	AggregationTypeForCounter(value []byte) AggregationType
 
-	// AggregationTypeWithSuffixForTimer returns the aggregation type with the given suffix for timers.
-	AggregationTypeWithSuffixForTimer(value []byte) AggregationType
+	// AggregationTypeForTimer returns the aggregation type with the given suffix for timers.
+	AggregationTypeForTimer(value []byte) AggregationType
 
-	// AggregationTypeWithSuffixForGauge returns the aggregation type with the given suffix for gauges.
-	AggregationTypeWithSuffixForGauge(value []byte) AggregationType
+	// AggregationTypeForGauge returns the aggregation type with the given suffix for gauges.
+	AggregationTypeForGauge(value []byte) AggregationType
 
 	// TimerQuantiles returns the quantiles for timers.
 	TimerQuantiles() []float64
@@ -197,15 +202,16 @@ var (
 		Last,
 	}
 
-	defaultAggregationLastSuffix   = []byte(".last")
-	defaultAggregationSumSuffix    = []byte(".sum")
-	defaultAggregationSumSqSuffix  = []byte(".sum_sq")
-	defaultAggregationMeanSuffix   = []byte(".mean")
-	defaultAggregationMinSuffix    = []byte(".lower")
-	defaultAggregationMaxSuffix    = []byte(".upper")
-	defaultAggregationCountSuffix  = []byte(".count")
-	defaultAggregationStdevSuffix  = []byte(".stdev")
-	defaultAggregationMedianSuffix = []byte(".median")
+	defaultUnknownSuffix = []byte(".unknown")
+	defaultLastSuffix    = []byte(".last")
+	defaultSumSuffix     = []byte(".sum")
+	defaultSumSqSuffix   = []byte(".sum_sq")
+	defaultMeanSuffix    = []byte(".mean")
+	defaultMinSuffix     = []byte(".lower")
+	defaultMaxSuffix     = []byte(".upper")
+	defaultCountSuffix   = []byte(".count")
+	defaultStdevSuffix   = []byte(".stdev")
+	defaultMedianSuffix  = []byte(".median")
 
 	defaultCounterSuffixOverride = map[AggregationType][]byte{
 		Sum: nil,
@@ -254,15 +260,15 @@ func NewAggregationTypesOptions() AggregationTypesOptions {
 		defaultCounterAggregationTypes: defaultDefaultCounterAggregationTypes,
 		defaultGaugeAggregationTypes:   defaultDefaultGaugeAggregationTypes,
 		defaultTimerAggregationTypes:   defaultDefaultTimerAggregationTypes,
-		lastSuffix:                     defaultAggregationLastSuffix,
-		minSuffix:                      defaultAggregationMinSuffix,
-		maxSuffix:                      defaultAggregationMaxSuffix,
-		meanSuffix:                     defaultAggregationMeanSuffix,
-		medianSuffix:                   defaultAggregationMedianSuffix,
-		countSuffix:                    defaultAggregationCountSuffix,
-		sumSuffix:                      defaultAggregationSumSuffix,
-		sumSqSuffix:                    defaultAggregationSumSqSuffix,
-		stdevSuffix:                    defaultAggregationStdevSuffix,
+		lastSuffix:                     defaultLastSuffix,
+		minSuffix:                      defaultMinSuffix,
+		maxSuffix:                      defaultMaxSuffix,
+		meanSuffix:                     defaultMeanSuffix,
+		medianSuffix:                   defaultMedianSuffix,
+		countSuffix:                    defaultCountSuffix,
+		sumSuffix:                      defaultSumSuffix,
+		sumSqSuffix:                    defaultSumSqSuffix,
+		stdevSuffix:                    defaultStdevSuffix,
 		timerQuantileSuffixFn:          defaultTimerQuantileSuffixFn,
 		counterSuffixOverride:          defaultCounterSuffixOverride,
 		timerSuffixOverride:            defaultTimerSuffixOverride,
@@ -281,6 +287,32 @@ func (o *options) initPools() {
 
 	o.quantilesPool = pool.NewFloatsPool(nil, nil)
 	o.quantilesPool.Init()
+}
+
+func (o *options) Validate() error {
+	if err := o.validateUniqSuffixForMetricType(o.counterSuffixes, metric.CounterType); err != nil {
+		return err
+	}
+	if err := o.validateUniqSuffixForMetricType(o.timerSuffixes, metric.TimerType); err != nil {
+		return err
+	}
+	if err := o.validateUniqSuffixForMetricType(o.gaugeSuffixes, metric.GaugeType); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (o *options) validateUniqSuffixForMetricType(suffixes [][]byte, t metric.Type) error {
+	m := make(map[string]int, len(suffixes))
+	for aggType, suffix := range suffixes {
+		s := string(suffix)
+		if existAggType, ok := m[s]; ok {
+			return fmt.Errorf("invalid options, found duplicated suffix: '%s' for aggregation type %v and %v for metric type: %s",
+				s, AggregationType(aggType), AggregationType(existAggType), t.String())
+		}
+		m[string(suffix)] = aggType
+	}
+	return nil
 }
 
 func (o *options) SetDefaultCounterAggregationTypes(aggTypes AggregationTypes) AggregationTypesOptions {
@@ -492,15 +524,15 @@ func (o *options) SuffixForGauge(aggType AggregationType) []byte {
 	return o.gaugeSuffixes[aggType.ID()]
 }
 
-func (o *options) AggregationTypeWithSuffixForCounter(value []byte) AggregationType {
+func (o *options) AggregationTypeForCounter(value []byte) AggregationType {
 	return aggregationTypeWithSuffix(value, o.counterSuffixes)
 }
 
-func (o *options) AggregationTypeWithSuffixForTimer(value []byte) AggregationType {
+func (o *options) AggregationTypeForTimer(value []byte) AggregationType {
 	return aggregationTypeWithSuffix(value, o.timerSuffixes)
 }
 
-func (o *options) AggregationTypeWithSuffixForGauge(value []byte) AggregationType {
+func (o *options) AggregationTypeForGauge(value []byte) AggregationType {
 	return aggregationTypeWithSuffix(value, o.gaugeSuffixes)
 }
 
@@ -527,23 +559,11 @@ func aggregationTypeWithSuffix(value []byte, suffixes [][]byte) AggregationType 
 		if aggType == UnknownAggregationType.ID() {
 			continue
 		}
-		if isEqualBytes(b, value) {
+		if bytes.Equal(b, value) {
 			return AggregationType(aggType)
 		}
 	}
 	return UnknownAggregationType
-}
-
-func isEqualBytes(value, other []byte) bool {
-	if len(value) != len(other) {
-		return false
-	}
-	for i := range value {
-		if value[i] != other[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func (o *options) computeAllDerived() {
@@ -568,32 +588,35 @@ func (o *options) computeSuffixes() {
 
 func (o *options) computeDefaultSuffixes() {
 	o.defaultSuffixes = make([][]byte, MaxAggregationTypeID+1)
+	o.defaultSuffixes[UnknownAggregationType.ID()] = defaultUnknownSuffix
 	for aggType := range ValidAggregationTypes {
+		var suffix []byte
 		switch aggType {
 		case Last:
-			o.defaultSuffixes[aggType.ID()] = o.LastSuffix()
+			suffix = o.LastSuffix()
 		case Min:
-			o.defaultSuffixes[aggType.ID()] = o.MinSuffix()
+			suffix = o.MinSuffix()
 		case Max:
-			o.defaultSuffixes[aggType.ID()] = o.MaxSuffix()
+			suffix = o.MaxSuffix()
 		case Mean:
-			o.defaultSuffixes[aggType.ID()] = o.MeanSuffix()
+			suffix = o.MeanSuffix()
 		case Median:
-			o.defaultSuffixes[aggType.ID()] = o.MedianSuffix()
+			suffix = o.MedianSuffix()
 		case Count:
-			o.defaultSuffixes[aggType.ID()] = o.CountSuffix()
+			suffix = o.CountSuffix()
 		case Sum:
-			o.defaultSuffixes[aggType.ID()] = o.SumSuffix()
+			suffix = o.SumSuffix()
 		case SumSq:
-			o.defaultSuffixes[aggType.ID()] = o.SumSqSuffix()
+			suffix = o.SumSqSuffix()
 		case Stdev:
-			o.defaultSuffixes[aggType.ID()] = o.StdevSuffix()
+			suffix = o.StdevSuffix()
 		default:
 			q, ok := aggType.Quantile()
 			if ok {
-				o.defaultSuffixes[aggType.ID()] = o.timerQuantileSuffixFn(q)
+				suffix = o.timerQuantileSuffixFn(q)
 			}
 		}
+		o.defaultSuffixes[aggType.ID()] = suffix
 	}
 }
 
@@ -610,13 +633,13 @@ func (o *options) computeGaugeSuffixes() {
 }
 
 func (o options) computeOverrideSuffixes(m map[AggregationType][]byte) [][]byte {
-	res := make([][]byte, MaxAggregationTypeID+1)
-	for aggType := range ValidAggregationTypes {
-		if suffix, ok := m[aggType]; ok {
-			res[aggType.ID()] = suffix
+	res := make([][]byte, len(o.defaultSuffixes))
+	for aggType, defaultSuffix := range o.defaultSuffixes {
+		if overrideSuffix, ok := m[AggregationType(aggType)]; ok {
+			res[aggType] = overrideSuffix
 			continue
 		}
-		res[aggType.ID()] = o.defaultSuffixes[aggType.ID()]
+		res[aggType] = defaultSuffix
 	}
 	return res
 }
