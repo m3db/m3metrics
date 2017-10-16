@@ -290,16 +290,16 @@ func (o *options) initPools() {
 }
 
 func (o *options) Validate() error {
-	if err := o.validateUniqSuffixForMetricType(o.counterSuffixes, metric.CounterType); err != nil {
+	if err := o.ensureUniqueSuffix(o.counterSuffixes, metric.CounterType); err != nil {
 		return err
 	}
-	if err := o.validateUniqSuffixForMetricType(o.timerSuffixes, metric.TimerType); err != nil {
+	if err := o.ensureUniqueSuffix(o.timerSuffixes, metric.TimerType); err != nil {
 		return err
 	}
-	return o.validateUniqSuffixForMetricType(o.gaugeSuffixes, metric.GaugeType)
+	return o.ensureUniqueSuffix(o.gaugeSuffixes, metric.GaugeType)
 }
 
-func (o *options) validateUniqSuffixForMetricType(suffixes [][]byte, t metric.Type) error {
+func (o *options) ensureUniqueSuffix(suffixes [][]byte, t metric.Type) error {
 	m := make(map[string]int, len(suffixes))
 	for aggType, suffix := range suffixes {
 		s := string(suffix)
@@ -307,7 +307,7 @@ func (o *options) validateUniqSuffixForMetricType(suffixes [][]byte, t metric.Ty
 			return fmt.Errorf("invalid options, found duplicated suffix: '%s' for aggregation type %v and %v for metric type: %s",
 				s, AggregationType(aggType), AggregationType(existAggType), t.String())
 		}
-		m[string(suffix)] = aggType
+		m[s] = aggType
 	}
 	return nil
 }
