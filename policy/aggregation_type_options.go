@@ -127,14 +127,14 @@ type AggregationTypesOptions interface {
 
 	/// Write-only options.
 
-	// SetCounterSuffixOverride sets the overrides for counter suffixes.
-	SetCounterSuffixOverride(m map[AggregationType][]byte) AggregationTypesOptions
+	// SetCounterSuffixOverrides sets the overrides for counter suffixes.
+	SetCounterSuffixOverrides(m map[AggregationType][]byte) AggregationTypesOptions
 
-	// SetTimerSuffixOverride sets the overrides for timer suffixes.
-	SetTimerSuffixOverride(m map[AggregationType][]byte) AggregationTypesOptions
+	// SetTimerSuffixOverrides sets the overrides for timer suffixes.
+	SetTimerSuffixOverrides(m map[AggregationType][]byte) AggregationTypesOptions
 
-	// SetGaugeSuffixOverride sets the overrides for gauge suffixes.
-	SetGaugeSuffixOverride(m map[AggregationType][]byte) AggregationTypesOptions
+	// SetGaugeSuffixOverrides sets the overrides for gauge suffixes.
+	SetGaugeSuffixOverrides(m map[AggregationType][]byte) AggregationTypesOptions
 
 	// Read only methods.
 
@@ -255,22 +255,23 @@ func NewAggregationTypesOptions() AggregationTypesOptions {
 		sumSqSuffix:                    defaultAggregationSumSqSuffix,
 		stdevSuffix:                    defaultAggregationStdevSuffix,
 		timerQuantileSuffixFn:          defaultTimerQuantileSuffixFn,
-		aggTypesPool:                   NewAggregationTypesPool(nil),
-		quantilesPool:                  pool.NewFloatsPool(nil, nil),
 		counterSuffixOverride:          defaultCounterSuffixOverride,
 		timerSuffixOverride:            defaultTimerSuffixOverride,
 		gaugeSuffixOverride:            defaultGaugeSuffixOverride,
 	}
-
-	o.aggTypesPool.Init(
-		func() AggregationTypes {
-			return make(AggregationTypes, 0, len(ValidAggregationTypes))
-		},
-	)
-	o.quantilesPool.Init()
-
+	o.initPools()
 	o.computeAllDerived()
 	return o
+}
+
+func (o *options) initPools() {
+	o.aggTypesPool = NewAggregationTypesPool(nil)
+	o.aggTypesPool.Init(func() AggregationTypes {
+		return make(AggregationTypes, 0, len(ValidAggregationTypes))
+	})
+
+	o.quantilesPool = pool.NewFloatsPool(nil, nil)
+	o.quantilesPool.Init()
 }
 
 func (o *options) SetDefaultCounterAggregationTypes(aggTypes AggregationTypes) AggregationTypesOptions {
@@ -437,21 +438,21 @@ func (o *options) QuantilesPool() pool.FloatsPool {
 	return o.quantilesPool
 }
 
-func (o *options) SetCounterSuffixOverride(m map[AggregationType][]byte) AggregationTypesOptions {
+func (o *options) SetCounterSuffixOverrides(m map[AggregationType][]byte) AggregationTypesOptions {
 	opts := *o
 	opts.counterSuffixOverride = m
 	opts.computeSuffixes()
 	return &opts
 }
 
-func (o *options) SetTimerSuffixOverride(m map[AggregationType][]byte) AggregationTypesOptions {
+func (o *options) SetTimerSuffixOverrides(m map[AggregationType][]byte) AggregationTypesOptions {
 	opts := *o
 	opts.timerSuffixOverride = m
 	opts.computeSuffixes()
 	return &opts
 }
 
-func (o *options) SetGaugeSuffixOverride(m map[AggregationType][]byte) AggregationTypesOptions {
+func (o *options) SetGaugeSuffixOverrides(m map[AggregationType][]byte) AggregationTypesOptions {
 	opts := *o
 	opts.gaugeSuffixOverride = m
 	opts.computeSuffixes()

@@ -335,7 +335,7 @@ func TestSetCounterSuffixOverride(t *testing.T) {
 		Mean: []byte("test"),
 	}
 
-	o := NewAggregationTypesOptions().SetCounterSuffixOverride(m)
+	o := NewAggregationTypesOptions().SetCounterSuffixOverrides(m)
 	require.Equal(t, [][]byte{nil}, o.DefaultCounterAggregationSuffixes())
 	require.Equal(t, []byte("test"), o.SuffixForCounter(Mean))
 	require.Equal(t, []byte(".count"), o.SuffixForCounter(Count))
@@ -348,7 +348,7 @@ func TestSetTimerSuffixOverride(t *testing.T) {
 		Mean: []byte("test"),
 	}
 
-	o := NewAggregationTypesOptions().SetTimerSuffixOverride(m)
+	o := NewAggregationTypesOptions().SetTimerSuffixOverrides(m)
 	require.Equal(t, []byte("test"), o.SuffixForTimer(Mean))
 	require.Equal(t, []byte(".count"), o.SuffixForTimer(Count))
 	require.Equal(t, []byte(".lower"), o.SuffixForTimer(Min))
@@ -361,7 +361,7 @@ func TestSetGaugeSuffixOverride(t *testing.T) {
 		Mean: []byte("test"),
 	}
 
-	o := NewAggregationTypesOptions().SetGaugeSuffixOverride(m)
+	o := NewAggregationTypesOptions().SetGaugeSuffixOverrides(m)
 	require.Equal(t, [][]byte{nil}, o.DefaultGaugeAggregationSuffixes())
 	require.Equal(t, []byte("test"), o.SuffixForGauge(Mean))
 	require.Equal(t, []byte(nil), o.SuffixForGauge(Last))

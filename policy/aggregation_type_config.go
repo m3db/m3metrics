@@ -63,14 +63,14 @@ type AggregationTypesConfiguration struct {
 	// Metric suffix for aggregation type median.
 	MedianSuffix *string `yaml:"medianSuffix"`
 
-	// Counter suffix override.
-	CounterSuffixOverride map[AggregationType]string `yaml:"counterSuffixOverride"`
+	// Counter suffix overrides.
+	CounterSuffixOverrides map[AggregationType]string `yaml:"counterSuffixOverride"`
 
-	// Timer suffix override.
-	TimerSuffixOverride map[AggregationType]string `yaml:"timerSuffixOverride"`
+	// Timer suffix overrides.
+	TimerSuffixOverrides map[AggregationType]string `yaml:"timerSuffixOverride"`
 
-	// Gauge suffix override.
-	GaugeSuffixOverride map[AggregationType]string `yaml:"gaugeSuffixOverride"`
+	// Gauge suffix overrides.
+	GaugeSuffixOverrides map[AggregationType]string `yaml:"gaugeSuffixOverride"`
 
 	// Pool of aggregation types.
 	AggregationTypesPool pool.ObjectPoolConfiguration `yaml:"aggregationTypesPool"`
@@ -102,11 +102,12 @@ func (c AggregationTypesConfiguration) NewOptions(instrumentOpts instrument.Opti
 	opts = setSuffix(opts, c.StdevSuffix, opts.SetStdevSuffix)
 	opts = setSuffix(opts, c.MedianSuffix, opts.SetMedianSuffix)
 
-	opts = opts.SetCounterSuffixOverride(parseSuffixOverride(c.CounterSuffixOverride))
-	opts = opts.SetGaugeSuffixOverride(parseSuffixOverride(c.GaugeSuffixOverride))
-	opts = opts.SetTimerSuffixOverride(parseSuffixOverride(c.TimerSuffixOverride))
+	opts = opts.SetCounterSuffixOverrides(parseSuffixOverride(c.CounterSuffixOverrides))
+	opts = opts.SetGaugeSuffixOverrides(parseSuffixOverride(c.GaugeSuffixOverrides))
+	opts = opts.SetTimerSuffixOverrides(parseSuffixOverride(c.TimerSuffixOverrides))
 
 	scope := instrumentOpts.MetricsScope()
+
 	// Set aggregation types pool.
 	iOpts := instrumentOpts.SetMetricsScope(scope.SubScope("aggregation-types-pool"))
 	aggTypesPoolOpts := c.AggregationTypesPool.NewObjectPoolOptions(iOpts)
@@ -137,8 +138,7 @@ func setSuffix(
 	}
 	str := *strP
 	if str == "" {
-		var b []byte
-		return fn(b)
+		return fn(nil)
 	}
 	return fn([]byte(str))
 }
