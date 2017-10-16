@@ -159,6 +159,15 @@ type AggregationTypesOptions interface {
 	// Suffix returns the suffix for the aggregation type for gauges.
 	SuffixForGauge(value AggregationType) []byte
 
+	// AggregationTypeWithSuffixForCounter returns the aggregation type with the given suffix for counters.
+	AggregationTypeWithSuffixForCounter(value []byte) AggregationType
+
+	// AggregationTypeWithSuffixForTimer returns the aggregation type with the given suffix for timers.
+	AggregationTypeWithSuffixForTimer(value []byte) AggregationType
+
+	// AggregationTypeWithSuffixForGauge returns the aggregation type with the given suffix for gauges.
+	AggregationTypeWithSuffixForGauge(value []byte) AggregationType
+
 	// TimerQuantiles returns the quantiles for timers.
 	TimerQuantiles() []float64
 
@@ -483,6 +492,18 @@ func (o *options) SuffixForGauge(aggType AggregationType) []byte {
 	return o.gaugeSuffixes[aggType.ID()]
 }
 
+func (o *options) AggregationTypeWithSuffixForCounter(value []byte) AggregationType {
+	return aggregationTypeWithSuffix(value, o.counterSuffixes)
+}
+
+func (o *options) AggregationTypeWithSuffixForTimer(value []byte) AggregationType {
+	return aggregationTypeWithSuffix(value, o.timerSuffixes)
+}
+
+func (o *options) AggregationTypeWithSuffixForGauge(value []byte) AggregationType {
+	return aggregationTypeWithSuffix(value, o.gaugeSuffixes)
+}
+
 func (o *options) TimerQuantiles() []float64 {
 	return o.timerQuantiles
 }
@@ -499,6 +520,30 @@ func (o *options) IsContainedInDefaultAggregationTypes(at AggregationType, mt me
 	}
 
 	return aggTypes.Contains(at)
+}
+
+func aggregationTypeWithSuffix(value []byte, suffixes [][]byte) AggregationType {
+	for aggType, b := range suffixes {
+		if aggType == UnknownAggregationType.ID() {
+			continue
+		}
+		if isEqualBytes(b, value) {
+			return AggregationType(aggType)
+		}
+	}
+	return UnknownAggregationType
+}
+
+func isEqualBytes(value, other []byte) bool {
+	if len(value) != len(other) {
+		return false
+	}
+	for i := range value {
+		if value[i] != other[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (o *options) computeAllDerived() {

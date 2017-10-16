@@ -88,21 +88,6 @@ func TestOptionsSetDefaultGaugeAggregationTypes(t *testing.T) {
 	require.Equal(t, aggTypes, o.DefaultGaugeAggregationTypes())
 	require.Equal(t, [][]byte{[]byte(".mean"), []byte(".sum_sq")}, o.DefaultGaugeAggregationSuffixes())
 }
-func TestOptionsSetTimerSumSuffix(t *testing.T) {
-	newSumSuffix := []byte("testTimerSumSuffix")
-	o := NewAggregationTypesOptions().
-		SetDefaultCounterAggregationTypes(AggregationTypes{Sum}).
-		SetDefaultTimerAggregationTypes(AggregationTypes{Sum}).
-		SetDefaultGaugeAggregationTypes(AggregationTypes{Sum}).
-		SetSumSuffix(newSumSuffix)
-	require.Equal(t, newSumSuffix, o.SumSuffix())
-	require.Equal(t, []byte(nil), o.SuffixForCounter(Sum))
-	require.Equal(t, newSumSuffix, o.SuffixForTimer(Sum))
-	require.Equal(t, newSumSuffix, o.SuffixForGauge(Sum))
-	require.Equal(t, [][]byte{[]byte(nil)}, o.DefaultCounterAggregationSuffixes())
-	require.Equal(t, [][]byte{[]byte(newSumSuffix)}, o.DefaultTimerAggregationSuffixes())
-	require.Equal(t, [][]byte{[]byte(newSumSuffix)}, o.DefaultGaugeAggregationSuffixes())
-}
 
 func TestOptionsSetTimerSumSqSuffix(t *testing.T) {
 	newSumSqSuffix := []byte("testTimerSumSqSuffix")
@@ -118,6 +103,9 @@ func TestOptionsSetTimerSumSqSuffix(t *testing.T) {
 	require.Equal(t, [][]byte{[]byte(newSumSqSuffix)}, o.DefaultCounterAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newSumSqSuffix)}, o.DefaultTimerAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newSumSqSuffix)}, o.DefaultGaugeAggregationSuffixes())
+	require.Equal(t, SumSq, o.AggregationTypeWithSuffixForCounter([]byte("testTimerSumSqSuffix")))
+	require.Equal(t, SumSq, o.AggregationTypeWithSuffixForTimer([]byte("testTimerSumSqSuffix")))
+	require.Equal(t, SumSq, o.AggregationTypeWithSuffixForGauge([]byte("testTimerSumSqSuffix")))
 }
 
 func TestOptionsSetTimerMeanSuffix(t *testing.T) {
@@ -134,6 +122,9 @@ func TestOptionsSetTimerMeanSuffix(t *testing.T) {
 	require.Equal(t, [][]byte{[]byte(newMeanSuffix)}, o.DefaultCounterAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newMeanSuffix)}, o.DefaultTimerAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newMeanSuffix)}, o.DefaultGaugeAggregationSuffixes())
+	require.Equal(t, Mean, o.AggregationTypeWithSuffixForCounter([]byte("testTimerMeanSuffix")))
+	require.Equal(t, Mean, o.AggregationTypeWithSuffixForTimer([]byte("testTimerMeanSuffix")))
+	require.Equal(t, Mean, o.AggregationTypeWithSuffixForGauge([]byte("testTimerMeanSuffix")))
 }
 
 func TestOptionsSetCounterSumSuffix(t *testing.T) {
@@ -150,6 +141,9 @@ func TestOptionsSetCounterSumSuffix(t *testing.T) {
 	require.Equal(t, [][]byte{[]byte(nil)}, o.DefaultCounterAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newSumSuffix)}, o.DefaultTimerAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newSumSuffix)}, o.DefaultGaugeAggregationSuffixes())
+	require.Equal(t, Sum, o.AggregationTypeWithSuffixForCounter([]byte(nil)))
+	require.Equal(t, Sum, o.AggregationTypeWithSuffixForTimer([]byte("testSumSuffix")))
+	require.Equal(t, Sum, o.AggregationTypeWithSuffixForGauge([]byte("testSumSuffix")))
 }
 
 func TestOptionsSetGaugeLastSuffix(t *testing.T) {
@@ -166,6 +160,9 @@ func TestOptionsSetGaugeLastSuffix(t *testing.T) {
 	require.Equal(t, [][]byte{[]byte(newLastSuffix)}, o.DefaultCounterAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newLastSuffix)}, o.DefaultTimerAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(nil)}, o.DefaultGaugeAggregationSuffixes())
+	require.Equal(t, Last, o.AggregationTypeWithSuffixForCounter([]byte("testLastSuffix")))
+	require.Equal(t, Last, o.AggregationTypeWithSuffixForTimer([]byte("testLastSuffix")))
+	require.Equal(t, Last, o.AggregationTypeWithSuffixForGauge([]byte(nil)))
 }
 
 func TestOptionsSetTimerCountSuffix(t *testing.T) {
@@ -182,6 +179,9 @@ func TestOptionsSetTimerCountSuffix(t *testing.T) {
 	require.Equal(t, [][]byte{[]byte(newCountSuffix)}, o.DefaultCounterAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newCountSuffix)}, o.DefaultTimerAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newCountSuffix)}, o.DefaultGaugeAggregationSuffixes())
+	require.Equal(t, Count, o.AggregationTypeWithSuffixForCounter([]byte("testTimerCountSuffix")))
+	require.Equal(t, Count, o.AggregationTypeWithSuffixForTimer([]byte("testTimerCountSuffix")))
+	require.Equal(t, Count, o.AggregationTypeWithSuffixForGauge([]byte("testTimerCountSuffix")))
 }
 
 func TestOptionsSetTimerStdevSuffix(t *testing.T) {
@@ -198,6 +198,9 @@ func TestOptionsSetTimerStdevSuffix(t *testing.T) {
 	require.Equal(t, [][]byte{[]byte(newStdevSuffix)}, o.DefaultCounterAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newStdevSuffix)}, o.DefaultTimerAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newStdevSuffix)}, o.DefaultGaugeAggregationSuffixes())
+	require.Equal(t, Stdev, o.AggregationTypeWithSuffixForCounter([]byte("testTimerStdevSuffix")))
+	require.Equal(t, Stdev, o.AggregationTypeWithSuffixForTimer([]byte("testTimerStdevSuffix")))
+	require.Equal(t, Stdev, o.AggregationTypeWithSuffixForGauge([]byte("testTimerStdevSuffix")))
 }
 
 func TestOptionsSetTimerMedianSuffix(t *testing.T) {
@@ -214,6 +217,9 @@ func TestOptionsSetTimerMedianSuffix(t *testing.T) {
 	require.Equal(t, [][]byte{[]byte(newMedianSuffix)}, o.DefaultCounterAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newMedianSuffix)}, o.DefaultTimerAggregationSuffixes())
 	require.Equal(t, [][]byte{[]byte(newMedianSuffix)}, o.DefaultGaugeAggregationSuffixes())
+	require.Equal(t, Median, o.AggregationTypeWithSuffixForCounter([]byte("testTimerMedianSuffix")))
+	require.Equal(t, Median, o.AggregationTypeWithSuffixForTimer([]byte("testTimerMedianSuffix")))
+	require.Equal(t, Median, o.AggregationTypeWithSuffixForGauge([]byte("testTimerMedianSuffix")))
 }
 
 func TestOptionsSetTimerQuantileSuffixFn(t *testing.T) {
