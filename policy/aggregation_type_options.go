@@ -30,11 +30,11 @@ import (
 	"github.com/m3db/m3x/pool"
 )
 
-// QuantileTypeStringFn returns the byte-slice type string for a quantile value
+// QuantileTypeStringFn returns the byte-slice type string for a quantile value.
 type QuantileTypeStringFn func(quantile float64) []byte
 
-// TypeStringTransformerFn transforms the type string.
-type TypeStringTransformerFn func(typeString []byte) []byte
+// TypeStringTransformFn transforms the type string.
+type TypeStringTransformFn func(typeString []byte) []byte
 
 // AggregationTypesOptions provides a set of options for aggregation types.
 type AggregationTypesOptions interface {
@@ -67,13 +67,13 @@ type AggregationTypesOptions interface {
 	// TimerQuantileTypeStringFn returns the quantile type string function for timers.
 	TimerQuantileTypeStringFn() QuantileTypeStringFn
 
-	// SetTypeStringTransformerFn sets the type string transformer functions.
-	// TypeStringTransformerFn will only be applied to the global type strings, it
+	// SetGlobalTypeStringTransformFn sets the type string transform functions.
+	// The GlobalTypeStringTransformFn will only be applied to the global type strings, it
 	// will NOT be applied to the metric type specific overrides.
-	SetTypeStringTransformerFn(value TypeStringTransformerFn) AggregationTypesOptions
+	SetGlobalTypeStringTransformFn(value TypeStringTransformFn) AggregationTypesOptions
 
-	// TypeStringTransformerFn returns the type string transformer functions.
-	TypeStringTransformerFn() TypeStringTransformerFn
+	// GlobalTypeStringTransformFn returns the global type string transform functions.
+	GlobalTypeStringTransformFn() TypeStringTransformFn
 
 	// SetAggregationTypesPool sets the aggregation types pool.
 	SetAggregationTypesPool(pool AggregationTypesPool) AggregationTypesOptions
@@ -89,9 +89,9 @@ type AggregationTypesOptions interface {
 
 	/// Write-only options.
 
-	// SetTypeStrings sets the global type strings. TypeStringTransformerFn
-	// will be applied to these type strings.
-	SetTypeStrings(m map[AggregationType][]byte) AggregationTypesOptions
+	// SetGlobalTypeStringOverrides sets the global type strings.
+	// The GlobalTypeStringTransformFn will be applied to these type strings.
+	SetGlobalTypeStringOverrides(m map[AggregationType][]byte) AggregationTypesOptions
 
 	// SetCounterTypeStringOverrides sets the overrides for counter type strings.
 	SetCounterTypeStringOverrides(m map[AggregationType][]byte) AggregationTypesOptions
@@ -188,7 +188,7 @@ type options struct {
 	defaultTimerAggregationTypes   AggregationTypes
 	defaultGaugeAggregationTypes   AggregationTypes
 	timerQuantileTypeStringFn      QuantileTypeStringFn
-	typeStringTransformerFn        TypeStringTransformerFn
+	globalTypeStringTransformFn    TypeStringTransformFn
 	aggTypesPool                   AggregationTypesPool
 	quantilesPool                  pool.FloatsPool
 
@@ -197,7 +197,7 @@ type options struct {
 	timerTypeStrings   [][]byte
 	gaugeTypeStrings   [][]byte
 
-	typeStringOverrides       map[AggregationType][]byte
+	globalTypeStringOverrides map[AggregationType][]byte
 	counterTypeStringOverride map[AggregationType][]byte
 	timerTypeStringOverride   map[AggregationType][]byte
 	gaugeTypeStringOverride   map[AggregationType][]byte
@@ -215,7 +215,7 @@ func NewAggregationTypesOptions() AggregationTypesOptions {
 		defaultGaugeAggregationTypes:   defaultDefaultGaugeAggregationTypes,
 		defaultTimerAggregationTypes:   defaultDefaultTimerAggregationTypes,
 		timerQuantileTypeStringFn:      defaultTimerQuantileTypeStringFn,
-		typeStringTransformerFn:        defaultTypeStringTransformerFn,
+		globalTypeStringTransformFn:    noopTransformFn,
 		counterTypeStringOverride:      defaultCounterTypeStringOverride,
 		timerTypeStringOverride:        defaultTimerTypeStringOverride,
 		gaugeTypeStringOverride:        defaultGaugeTypeStringOverride,
@@ -303,15 +303,15 @@ func (o *options) TimerQuantileTypeStringFn() QuantileTypeStringFn {
 	return o.timerQuantileTypeStringFn
 }
 
-func (o *options) SetTypeStringTransformerFn(value TypeStringTransformerFn) AggregationTypesOptions {
+func (o *options) SetGlobalTypeStringTransformFn(value TypeStringTransformFn) AggregationTypesOptions {
 	opts := *o
-	opts.typeStringTransformerFn = value
+	opts.globalTypeStringTransformFn = value
 	opts.computeTypeStrings()
 	return &opts
 }
 
-func (o *options) TypeStringTransformerFn() TypeStringTransformerFn {
-	return o.typeStringTransformerFn
+func (o *options) GlobalTypeStringTransformFn() TypeStringTransformFn {
+	return o.globalTypeStringTransformFn
 }
 
 func (o *options) SetAggregationTypesPool(pool AggregationTypesPool) AggregationTypesOptions {
@@ -334,9 +334,9 @@ func (o *options) QuantilesPool() pool.FloatsPool {
 	return o.quantilesPool
 }
 
-func (o *options) SetTypeStrings(m map[AggregationType][]byte) AggregationTypesOptions {
+func (o *options) SetGlobalTypeStringOverrides(m map[AggregationType][]byte) AggregationTypesOptions {
 	opts := *o
-	opts.typeStringOverrides = m
+	opts.globalTypeStringOverrides = m
 	opts.computeTypeStrings()
 	return &opts
 }
@@ -418,9 +418,6 @@ func (o *options) IsContainedInDefaultAggregationTypes(at AggregationType, mt me
 
 func aggregationTypeWithTypeString(value []byte, typeStrings [][]byte) AggregationType {
 	for aggType, b := range typeStrings {
-		if aggType == UnknownAggregationType.ID() {
-			continue
-		}
 		if bytes.Equal(b, value) {
 			return AggregationType(aggType)
 		}
@@ -451,7 +448,7 @@ func (o *options) computeTypeStrings() {
 func (o *options) computeDefaultTypeStrings() {
 	o.defaultTypeStrings = make([][]byte, MaxAggregationTypeID+1)
 	o.defaultTypeStrings[UnknownAggregationType.ID()] = defaultUnknownTypeString
-	transformerFn := o.TypeStringTransformerFn()
+	transformFn := o.GlobalTypeStringTransformFn()
 	for aggType := range ValidAggregationTypes {
 		var typeString []byte
 		switch aggType {
@@ -479,11 +476,11 @@ func (o *options) computeDefaultTypeStrings() {
 				typeString = o.timerQuantileTypeStringFn(q)
 			}
 		}
-		override, ok := o.typeStringOverrides[aggType]
+		override, ok := o.globalTypeStringOverrides[aggType]
 		if ok {
 			typeString = override
 		}
-		o.defaultTypeStrings[aggType.ID()] = transformerFn(typeString)
+		o.defaultTypeStrings[aggType.ID()] = transformFn(typeString)
 	}
 }
 
@@ -542,10 +539,5 @@ func defaultTimerQuantileTypeStringFn(quantile float64) []byte {
 	return []byte("p" + str)
 }
 
-func defaultTypeStringTransformerFn(b []byte) []byte {
-	return b
-}
-
-func withDotPrefixTypeStringTransformerFn(b []byte) []byte {
-	return append([]byte("."), b...)
-}
+func noopTransformFn(b []byte) []byte   { return b }
+func suffixTransformFn(b []byte) []byte { return append([]byte("."), b...) }

@@ -33,13 +33,13 @@ func TestAggregationTypesConfiguration(t *testing.T) {
 	str := `
 defaultGaugeAggregationTypes: Max
 defaultTimerAggregationTypes: P50,P99,P9999
-typeStrings: 
+globalOverrides: 
   Mean: testMean
-gaugeTypeStringOverrides:
+gaugeOverrides:
   Last: ""
-counterTypeStringOverrides:
+counterOverrides:
   Sum: ""
-typeStringTransformerType: withDotPrefix
+transformFnType: suffix
 `
 
 	var cfg AggregationTypesConfiguration
@@ -59,11 +59,29 @@ typeStringTransformerType: withDotPrefix
 	}
 }
 
+func TestAggregationTypesConfigNoTransformFnType(t *testing.T) {
+	str := `
+defaultGaugeAggregationTypes: Max
+defaultTimerAggregationTypes: P50,P99,P9999
+globalOverrides: 
+  Mean: testMean
+gaugeOverrides:
+  Last: ""
+counterOverrides:
+  Sum: ""
+`
+
+	var cfg AggregationTypesConfiguration
+	require.NoError(t, yaml.Unmarshal([]byte(str), &cfg))
+	_, err := cfg.NewOptions(instrument.NewOptions())
+	require.NoError(t, err)
+}
+
 func TestAggregationTypesConfigurationError(t *testing.T) {
 	str := `
 defaultGaugeAggregationTypes: Max
 defaultTimerAggregationTypes: P50,P99,P9999
-typeStringTransformerType: bla
+transformFnType: bla
 `
 
 	var cfg AggregationTypesConfiguration

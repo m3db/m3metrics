@@ -37,7 +37,7 @@ func TestAggregationTypesOptionsValidateDefault(t *testing.T) {
 	require.Equal(t, defaultDefaultTimerAggregationTypes, o.DefaultTimerAggregationTypes())
 	require.Equal(t, defaultDefaultGaugeAggregationTypes, o.DefaultGaugeAggregationTypes())
 	require.NotNil(t, o.TimerQuantileTypeStringFn())
-	require.NotNil(t, o.TypeStringTransformerFn())
+	require.NotNil(t, o.GlobalTypeStringTransformFn())
 
 	// Validate derived options
 	validateQuantiles(t, o)
@@ -100,7 +100,7 @@ func TestOptionsSetTimerSumSqTypeString(t *testing.T) {
 		SetDefaultCounterAggregationTypes(AggregationTypes{SumSq}).
 		SetDefaultTimerAggregationTypes(AggregationTypes{SumSq}).
 		SetDefaultGaugeAggregationTypes(AggregationTypes{SumSq}).
-		SetTypeStrings(map[AggregationType][]byte{SumSq: newSumSqTypeString})
+		SetGlobalTypeStringOverrides(map[AggregationType][]byte{SumSq: newSumSqTypeString})
 	require.Equal(t, newSumSqTypeString, o.TypeStringForCounter(SumSq))
 	require.Equal(t, newSumSqTypeString, o.TypeStringForTimer(SumSq))
 	require.Equal(t, newSumSqTypeString, o.TypeStringForGauge(SumSq))
@@ -119,7 +119,7 @@ func TestOptionsSetTimerMeanTypeString(t *testing.T) {
 		SetDefaultCounterAggregationTypes(AggregationTypes{Mean}).
 		SetDefaultTimerAggregationTypes(AggregationTypes{Mean}).
 		SetDefaultGaugeAggregationTypes(AggregationTypes{Mean}).
-		SetTypeStrings(map[AggregationType][]byte{Mean: newMeanTypeString})
+		SetGlobalTypeStringOverrides(map[AggregationType][]byte{Mean: newMeanTypeString})
 	require.Equal(t, newMeanTypeString, o.TypeStringForCounter(Mean))
 	require.Equal(t, newMeanTypeString, o.TypeStringForTimer(Mean))
 	require.Equal(t, newMeanTypeString, o.TypeStringForGauge(Mean))
@@ -138,7 +138,7 @@ func TestOptionsSetCounterSumTypeString(t *testing.T) {
 		SetDefaultCounterAggregationTypes(AggregationTypes{Sum}).
 		SetDefaultTimerAggregationTypes(AggregationTypes{Sum}).
 		SetDefaultGaugeAggregationTypes(AggregationTypes{Sum}).
-		SetTypeStrings(map[AggregationType][]byte{Sum: newSumTypeString})
+		SetGlobalTypeStringOverrides(map[AggregationType][]byte{Sum: newSumTypeString})
 	require.Equal(t, []byte(nil), o.TypeStringForCounter(Sum))
 	require.Equal(t, newSumTypeString, o.TypeStringForTimer(Sum))
 	require.Equal(t, newSumTypeString, o.TypeStringForGauge(Sum))
@@ -157,7 +157,7 @@ func TestOptionsSetGaugeLastTypeString(t *testing.T) {
 		SetDefaultCounterAggregationTypes(AggregationTypes{Last}).
 		SetDefaultTimerAggregationTypes(AggregationTypes{Last}).
 		SetDefaultGaugeAggregationTypes(AggregationTypes{Last}).
-		SetTypeStrings(map[AggregationType][]byte{Last: newLastTypeString})
+		SetGlobalTypeStringOverrides(map[AggregationType][]byte{Last: newLastTypeString})
 	require.Equal(t, newLastTypeString, o.TypeStringForCounter(Last))
 	require.Equal(t, newLastTypeString, o.TypeStringForTimer(Last))
 	require.Equal(t, []byte(nil), o.TypeStringForGauge(Last))
@@ -176,7 +176,7 @@ func TestOptionsSetTimerCountTypeString(t *testing.T) {
 		SetDefaultCounterAggregationTypes(AggregationTypes{Count}).
 		SetDefaultTimerAggregationTypes(AggregationTypes{Count}).
 		SetDefaultGaugeAggregationTypes(AggregationTypes{Count}).
-		SetTypeStrings(map[AggregationType][]byte{Count: newCountTypeString})
+		SetGlobalTypeStringOverrides(map[AggregationType][]byte{Count: newCountTypeString})
 	require.Equal(t, newCountTypeString, o.TypeStringForCounter(Count))
 	require.Equal(t, newCountTypeString, o.TypeStringForTimer(Count))
 	require.Equal(t, newCountTypeString, o.TypeStringForGauge(Count))
@@ -195,7 +195,7 @@ func TestOptionsSetTimerStdevTypeString(t *testing.T) {
 		SetDefaultCounterAggregationTypes(AggregationTypes{Stdev}).
 		SetDefaultTimerAggregationTypes(AggregationTypes{Stdev}).
 		SetDefaultGaugeAggregationTypes(AggregationTypes{Stdev}).
-		SetTypeStrings(map[AggregationType][]byte{Stdev: newStdevTypeString})
+		SetGlobalTypeStringOverrides(map[AggregationType][]byte{Stdev: newStdevTypeString})
 	require.Equal(t, newStdevTypeString, o.TypeStringForCounter(Stdev))
 	require.Equal(t, newStdevTypeString, o.TypeStringForTimer(Stdev))
 	require.Equal(t, newStdevTypeString, o.TypeStringForGauge(Stdev))
@@ -214,7 +214,7 @@ func TestOptionsSetTimerMedianTypeString(t *testing.T) {
 		SetDefaultCounterAggregationTypes(AggregationTypes{Median}).
 		SetDefaultTimerAggregationTypes(AggregationTypes{Median}).
 		SetDefaultGaugeAggregationTypes(AggregationTypes{Median}).
-		SetTypeStrings(map[AggregationType][]byte{Median: newMedianTypeString})
+		SetGlobalTypeStringOverrides(map[AggregationType][]byte{Median: newMedianTypeString})
 	require.Equal(t, newMedianTypeString, o.TypeStringForCounter(Median))
 	require.Equal(t, newMedianTypeString, o.TypeStringForTimer(Median))
 	require.Equal(t, newMedianTypeString, o.TypeStringForGauge(Median))
@@ -273,13 +273,13 @@ func TestOptionsGaugeTypeString(t *testing.T) {
 	require.Equal(t, []byte(defaultStdevTypeString), o.TypeStringForGauge(Stdev))
 }
 
-func TestOptionsTypeStringTransformer(t *testing.T) {
+func TestOptionsTypeStringTransform(t *testing.T) {
 	o := NewAggregationTypesOptions()
 	for _, aggType := range o.DefaultTimerAggregationTypes() {
 		require.False(t, strings.HasPrefix(string(o.TypeStringForTimer(aggType)), "."))
 	}
 
-	o = o.SetTypeStringTransformerFn(withDotPrefixTypeStringTransformerFn)
+	o = o.SetGlobalTypeStringTransformFn(suffixTransformFn)
 	for _, aggType := range o.DefaultTimerAggregationTypes() {
 		require.True(t, strings.HasPrefix(string(o.TypeStringForTimer(aggType)), "."))
 	}

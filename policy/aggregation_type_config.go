@@ -38,20 +38,20 @@ type AggregationTypesConfiguration struct {
 	// Default aggregation types for gauge metrics.
 	DefaultGaugeAggregationTypes *AggregationTypes `yaml:"defaultGaugeAggregationTypes"`
 
-	// Global type strings.
-	TypeStrings map[AggregationType]string `yaml:"typeStrings"`
+	// Global type string overrides.
+	GlobalOverrides map[AggregationType]string `yaml:"globalOverrides"`
 
 	// Type string overrides for Counter.
-	CounterTypeStringOverrides map[AggregationType]string `yaml:"counterTypeStringOverrides"`
+	CounterOverrides map[AggregationType]string `yaml:"counterOverrides"`
 
 	// Type string overrides for Timer.
-	TimerTypeStringOverrides map[AggregationType]string `yaml:"timerTypeStringOverrides"`
+	TimerOverrides map[AggregationType]string `yaml:"timerOverrides"`
 
 	// Type string overrides for Gauge.
-	GaugeTypeStringOverrides map[AggregationType]string `yaml:"gaugeTypeStringOverrides"`
+	GaugeOverrides map[AggregationType]string `yaml:"gaugeOverrides"`
 
-	// TypeStringTransformerType configs the type string transformer type.
-	TypeStringTransformerType string `yaml:"typeStringTransformerType"`
+	// TransformFnType configs the global type string transform function type.
+	TransformFnType string `yaml:"transformFnType"`
 
 	// Pool of aggregation types.
 	AggregationTypesPool pool.ObjectPoolConfiguration `yaml:"aggregationTypesPool"`
@@ -62,12 +62,12 @@ type AggregationTypesConfiguration struct {
 
 // NewOptions creates a new Option.
 func (c AggregationTypesConfiguration) NewOptions(instrumentOpts instrument.Options) (AggregationTypesOptions, error) {
-	typeStringTypeTransformerFnType, err := parseTypeStringTransformerFnType(c.TypeStringTransformerType)
+	fn, err := parseTransformFn(c.TransformFnType)
 	if err != nil {
 		return nil, err
 	}
+	opts := NewAggregationTypesOptions().SetGlobalTypeStringTransformFn(fn)
 
-	opts := NewAggregationTypesOptions().SetTypeStringTransformerFn(typeStringTypeTransformerFnType)
 	if c.DefaultCounterAggregationTypes != nil {
 		opts = opts.SetDefaultCounterAggregationTypes(*c.DefaultCounterAggregationTypes)
 	}
@@ -78,10 +78,10 @@ func (c AggregationTypesConfiguration) NewOptions(instrumentOpts instrument.Opti
 		opts = opts.SetDefaultTimerAggregationTypes(*c.DefaultTimerAggregationTypes)
 	}
 
-	opts = opts.SetTypeStrings(parseTypeStringOverride(c.TypeStrings))
-	opts = opts.SetCounterTypeStringOverrides(parseTypeStringOverride(c.CounterTypeStringOverrides))
-	opts = opts.SetGaugeTypeStringOverrides(parseTypeStringOverride(c.GaugeTypeStringOverrides))
-	opts = opts.SetTimerTypeStringOverrides(parseTypeStringOverride(c.TimerTypeStringOverrides))
+	opts = opts.SetGlobalTypeStringOverrides(parseTypeStringOverride(c.GlobalOverrides))
+	opts = opts.SetCounterTypeStringOverrides(parseTypeStringOverride(c.CounterOverrides))
+	opts = opts.SetGaugeTypeStringOverrides(parseTypeStringOverride(c.GaugeOverrides))
+	opts = opts.SetTimerTypeStringOverrides(parseTypeStringOverride(c.TimerOverrides))
 
 	scope := instrumentOpts.MetricsScope()
 
@@ -103,7 +103,10 @@ func (c AggregationTypesConfiguration) NewOptions(instrumentOpts instrument.Opti
 	opts = opts.SetQuantilesPool(quantilesPool)
 	quantilesPool.Init()
 
-	return opts, opts.Validate()
+	if err := opts.Validate(); err != nil {
+		return nil, err
+	}
+	return opts, nil
 }
 
 func parseTypeStringOverride(m map[AggregationType]string) map[AggregationType][]byte {
@@ -119,30 +122,78 @@ func parseTypeStringOverride(m map[AggregationType]string) map[AggregationType][
 	return res
 }
 
-type typeStringTypeTransformerFnType string
+func parseTransformFn(str string) (TypeStringTransformFn, error) {
+	t, err := parseTransformFnType(str)
+	if err != nil {
+		return nil, err
+	}
+	return t.TransformFn()
+}
+
+func parseTransformFnType(str string) (transformType, error) {
+	if str == "" {
+		return noopTransformType, nil
+	}
+	var validStrings []string
+	for _, validType := range validTypes {
+		validString := string(validType)
+		if validString == str {
+			return validType, nil
+		}
+		validStrings = append(validStrings, validString)
+	}
+
+	return unknownTransformType, fmt.Errorf("invalid transform type %s, valid types are: %v", str, validStrings)
+
+}
+
+type transformType string
 
 var (
-	defaultTypeStringTransformerFnType       typeStringTypeTransformerFnType = "default"
-	withDotPrefixTypeStringTransformerFnType typeStringTypeTransformerFnType = "withDotPrefix"
+	unknownTransformType transformType = "unknown"
+	noopTransformType    transformType = "noop"
+	suffixTransformType  transformType = "suffix"
 
-	validTypeStringTransformerFnTypes = []string{
-		string(defaultTypeStringTransformerFnType),
-		string(withDotPrefixTypeStringTransformerFnType),
+	validTypes = []transformType{
+		noopTransformType,
+		suffixTransformType,
+	}
+	validTypeStringTransformFnTypes = []string{
+		string(noopTransformType),
+		string(suffixTransformType),
 	}
 )
 
-func parseTypeStringTransformerFnType(s string) (TypeStringTransformerFn, error) {
-	fnType := defaultTypeStringTransformerFnType
-	if s != "" {
-		fnType = typeStringTypeTransformerFnType(s)
+func (t *transformType) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	fmt.Println("called")
+	var str string
+	if err := unmarshal(&str); err != nil {
+		return err
+	}
+	if str == "" {
+		*t = noopTransformType
+		return nil
+	}
+	var validStrings []string
+	for _, validType := range validTypes {
+		validString := string(validType)
+		if validString == str {
+			*t = validType
+			return nil
+		}
+		validStrings = append(validStrings, validString)
 	}
 
-	switch fnType {
-	case defaultTypeStringTransformerFnType:
-		return defaultTypeStringTransformerFn, nil
-	case withDotPrefixTypeStringTransformerFnType:
-		return withDotPrefixTypeStringTransformerFn, nil
+	return fmt.Errorf("invalid transform type %s, valid types are: %v", str, validStrings)
+}
+
+func (t transformType) TransformFn() (TypeStringTransformFn, error) {
+	switch t {
+	case noopTransformType:
+		return noopTransformFn, nil
+	case suffixTransformType:
+		return suffixTransformFn, nil
 	default:
-		return nil, fmt.Errorf("invalid type string transformer function type: %s, supported types are: %v", s, validTypeStringTransformerFnTypes)
+		return nil, fmt.Errorf("invalid type string transform function type: %s", string(t))
 	}
 }
