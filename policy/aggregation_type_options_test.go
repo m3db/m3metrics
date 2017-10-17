@@ -48,8 +48,8 @@ func TestAggregationTypesOptionsValidateDefault(t *testing.T) {
 	// Validate derived options
 	validateQuantiles(t, o)
 	require.Equal(t, [][]byte{nil}, o.DefaultCounterAggregationSuffixes())
-	require.Equal(t, [][]byte{[]byte(".sum"), []byte(".sum_sq"), []byte(".mean"), []byte(".lower"), []byte(".upper"), []byte(".count"),
-		[]byte(".stdev"), []byte(".median"), []byte(".p50"), []byte(".p95"), []byte(".p99")}, o.DefaultTimerAggregationSuffixes())
+	require.Equal(t, [][]byte{[]byte("sum"), []byte("sum_sq"), []byte("mean"), []byte("lower"), []byte("upper"), []byte("count"),
+		[]byte("stdev"), []byte("median"), []byte("p50"), []byte("p95"), []byte("p99")}, o.DefaultTimerAggregationSuffixes())
 	require.Equal(t, [][]byte{nil}, o.DefaultGaugeAggregationSuffixes())
 }
 
@@ -71,7 +71,7 @@ func TestOptionsSetDefaultCounterAggregationTypes(t *testing.T) {
 	aggTypes := AggregationTypes{Mean, SumSq}
 	o := NewAggregationTypesOptions().SetDefaultCounterAggregationTypes(aggTypes)
 	require.Equal(t, aggTypes, o.DefaultCounterAggregationTypes())
-	require.Equal(t, [][]byte{[]byte(".mean"), []byte(".sum_sq")}, o.DefaultCounterAggregationSuffixes())
+	require.Equal(t, [][]byte{[]byte("mean"), []byte("sum_sq")}, o.DefaultCounterAggregationSuffixes())
 }
 
 func TestOptionsSetDefaultTimerAggregationTypes(t *testing.T) {
@@ -79,14 +79,14 @@ func TestOptionsSetDefaultTimerAggregationTypes(t *testing.T) {
 	o := NewAggregationTypesOptions().SetDefaultTimerAggregationTypes(aggTypes)
 	require.Equal(t, aggTypes, o.DefaultTimerAggregationTypes())
 	require.Equal(t, []float64{0.99, 0.9999}, o.TimerQuantiles())
-	require.Equal(t, [][]byte{[]byte(".mean"), []byte(".sum_sq"), []byte(".p99"), []byte(".p9999")}, o.DefaultTimerAggregationSuffixes())
+	require.Equal(t, [][]byte{[]byte("mean"), []byte("sum_sq"), []byte("p99"), []byte("p9999")}, o.DefaultTimerAggregationSuffixes())
 }
 
 func TestOptionsSetDefaultGaugeAggregationTypes(t *testing.T) {
 	aggTypes := AggregationTypes{Mean, SumSq}
 	o := NewAggregationTypesOptions().SetDefaultGaugeAggregationTypes(aggTypes)
 	require.Equal(t, aggTypes, o.DefaultGaugeAggregationTypes())
-	require.Equal(t, [][]byte{[]byte(".mean"), []byte(".sum_sq")}, o.DefaultGaugeAggregationSuffixes())
+	require.Equal(t, [][]byte{[]byte("mean"), []byte("sum_sq")}, o.DefaultGaugeAggregationSuffixes())
 }
 
 func TestOptionsSetTimerSumSqSuffix(t *testing.T) {
@@ -238,41 +238,41 @@ func TestOptionsSetTimerQuantileSuffixFn(t *testing.T) {
 
 func TestOptionsCounterSuffix(t *testing.T) {
 	o := NewAggregationTypesOptions()
-	require.Equal(t, []byte(".last"), o.SuffixForCounter(Last))
-	require.Equal(t, []byte(".lower"), o.SuffixForCounter(Min))
-	require.Equal(t, []byte(".upper"), o.SuffixForCounter(Max))
-	require.Equal(t, []byte(".mean"), o.SuffixForCounter(Mean))
-	require.Equal(t, []byte(".median"), o.SuffixForCounter(Median))
-	require.Equal(t, []byte(".count"), o.SuffixForCounter(Count))
+	require.Equal(t, []byte("last"), o.SuffixForCounter(Last))
+	require.Equal(t, []byte("lower"), o.SuffixForCounter(Min))
+	require.Equal(t, []byte("upper"), o.SuffixForCounter(Max))
+	require.Equal(t, []byte("mean"), o.SuffixForCounter(Mean))
+	require.Equal(t, []byte("median"), o.SuffixForCounter(Median))
+	require.Equal(t, []byte("count"), o.SuffixForCounter(Count))
 	require.Equal(t, []byte(nil), o.SuffixForCounter(Sum))
-	require.Equal(t, []byte(".sum_sq"), o.SuffixForCounter(SumSq))
-	require.Equal(t, []byte(".stdev"), o.SuffixForCounter(Stdev))
+	require.Equal(t, []byte("sum_sq"), o.SuffixForCounter(SumSq))
+	require.Equal(t, []byte("stdev"), o.SuffixForCounter(Stdev))
 }
 
 func TestOptionsTimerSuffix(t *testing.T) {
 	o := NewAggregationTypesOptions()
-	require.Equal(t, []byte(".last"), o.SuffixForTimer(Last))
-	require.Equal(t, []byte(".lower"), o.SuffixForTimer(Min))
-	require.Equal(t, []byte(".upper"), o.SuffixForTimer(Max))
-	require.Equal(t, []byte(".mean"), o.SuffixForTimer(Mean))
-	require.Equal(t, []byte(".median"), o.SuffixForTimer(Median))
-	require.Equal(t, []byte(".count"), o.SuffixForTimer(Count))
-	require.Equal(t, []byte(".sum"), o.SuffixForTimer(Sum))
-	require.Equal(t, []byte(".sum_sq"), o.SuffixForTimer(SumSq))
-	require.Equal(t, []byte(".stdev"), o.SuffixForTimer(Stdev))
+	require.Equal(t, []byte("last"), o.SuffixForTimer(Last))
+	require.Equal(t, []byte("lower"), o.SuffixForTimer(Min))
+	require.Equal(t, []byte("upper"), o.SuffixForTimer(Max))
+	require.Equal(t, []byte("mean"), o.SuffixForTimer(Mean))
+	require.Equal(t, []byte("median"), o.SuffixForTimer(Median))
+	require.Equal(t, []byte("count"), o.SuffixForTimer(Count))
+	require.Equal(t, []byte("sum"), o.SuffixForTimer(Sum))
+	require.Equal(t, []byte("sum_sq"), o.SuffixForTimer(SumSq))
+	require.Equal(t, []byte("stdev"), o.SuffixForTimer(Stdev))
 }
 
 func TestOptionsGaugeSuffix(t *testing.T) {
 	o := NewAggregationTypesOptions()
 	require.Equal(t, []byte(nil), o.SuffixForGauge(Last))
-	require.Equal(t, []byte(".lower"), o.SuffixForGauge(Min))
-	require.Equal(t, []byte(".upper"), o.SuffixForGauge(Max))
-	require.Equal(t, []byte(".mean"), o.SuffixForGauge(Mean))
-	require.Equal(t, []byte(".median"), o.SuffixForGauge(Median))
-	require.Equal(t, []byte(".count"), o.SuffixForGauge(Count))
-	require.Equal(t, []byte(".sum"), o.SuffixForGauge(Sum))
-	require.Equal(t, []byte(".sum_sq"), o.SuffixForGauge(SumSq))
-	require.Equal(t, []byte(".stdev"), o.SuffixForGauge(Stdev))
+	require.Equal(t, []byte("lower"), o.SuffixForGauge(Min))
+	require.Equal(t, []byte("upper"), o.SuffixForGauge(Max))
+	require.Equal(t, []byte("mean"), o.SuffixForGauge(Mean))
+	require.Equal(t, []byte("median"), o.SuffixForGauge(Median))
+	require.Equal(t, []byte("count"), o.SuffixForGauge(Count))
+	require.Equal(t, []byte("sum"), o.SuffixForGauge(Sum))
+	require.Equal(t, []byte("sum_sq"), o.SuffixForGauge(SumSq))
+	require.Equal(t, []byte("stdev"), o.SuffixForGauge(Stdev))
 }
 
 func TestOptionTimerQuantileSuffix(t *testing.T) {
@@ -283,51 +283,51 @@ func TestOptionTimerQuantileSuffix(t *testing.T) {
 	}{
 		{
 			quantile: 0.01,
-			b:        []byte(".p1"),
+			b:        []byte("p1"),
 		},
 		{
 			quantile: 0.1,
-			b:        []byte(".p10"),
+			b:        []byte("p10"),
 		},
 		{
 			quantile: 0.5,
-			b:        []byte(".p50"),
+			b:        []byte("p50"),
 		},
 		{
 			quantile: 0.9,
-			b:        []byte(".p90"),
+			b:        []byte("p90"),
 		},
 		{
 			quantile: 0.90,
-			b:        []byte(".p90"),
+			b:        []byte("p90"),
 		},
 		{
 			quantile: 0.90,
-			b:        []byte(".p90"),
+			b:        []byte("p90"),
 		},
 		{
 			quantile: 0.909,
-			b:        []byte(".p909"),
+			b:        []byte("p909"),
 		},
 		{
 			quantile: 0.999,
-			b:        []byte(".p999"),
+			b:        []byte("p999"),
 		},
 		{
 			quantile: 0.9990,
-			b:        []byte(".p999"),
+			b:        []byte("p999"),
 		},
 		{
 			quantile: 0.9999,
-			b:        []byte(".p9999"),
+			b:        []byte("p9999"),
 		},
 		{
 			quantile: 0.99995,
-			b:        []byte(".p99995"),
+			b:        []byte("p99995"),
 		},
 		{
 			quantile: 0.123,
-			b:        []byte(".p123"),
+			b:        []byte("p123"),
 		},
 	}
 
@@ -351,7 +351,7 @@ func TestSetCounterSuffixOverride(t *testing.T) {
 	o := NewAggregationTypesOptions().SetCounterSuffixOverrides(m)
 	require.Equal(t, [][]byte{nil}, o.DefaultCounterAggregationSuffixes())
 	require.Equal(t, []byte("test"), o.SuffixForCounter(Mean))
-	require.Equal(t, []byte(".count"), o.SuffixForCounter(Count))
+	require.Equal(t, []byte("count"), o.SuffixForCounter(Count))
 	require.NoError(t, o.Validate())
 }
 
@@ -370,23 +370,23 @@ func TestSetCounterSuffixOverrideDuplicate(t *testing.T) {
 
 func TestSetTimerSuffixOverride(t *testing.T) {
 	m := map[AggregationType][]byte{
-		Min:  []byte(".lower"),
-		Max:  []byte(".upper"),
+		Min:  []byte("lower"),
+		Max:  []byte("upper"),
 		Mean: []byte("test"),
 	}
 
 	o := NewAggregationTypesOptions().SetTimerSuffixOverrides(m)
 	require.Equal(t, []byte("test"), o.SuffixForTimer(Mean))
-	require.Equal(t, []byte(".count"), o.SuffixForTimer(Count))
-	require.Equal(t, []byte(".lower"), o.SuffixForTimer(Min))
-	require.Equal(t, []byte(".upper"), o.SuffixForTimer(Max))
+	require.Equal(t, []byte("count"), o.SuffixForTimer(Count))
+	require.Equal(t, []byte("lower"), o.SuffixForTimer(Min))
+	require.Equal(t, []byte("upper"), o.SuffixForTimer(Max))
 	require.NoError(t, o.Validate())
 }
 
 func TestSetTimerSuffixOverrideDuplicate(t *testing.T) {
 	m := map[AggregationType][]byte{
-		Min:  []byte(".lower"),
-		Max:  []byte(".upper"),
+		Min:  []byte("lower"),
+		Max:  []byte("upper"),
 		Mean: []byte("test"),
 		Sum:  []byte("test"),
 	}
@@ -407,7 +407,7 @@ func TestSetGaugeSuffixOverride(t *testing.T) {
 	require.Equal(t, [][]byte{nil}, o.DefaultGaugeAggregationSuffixes())
 	require.Equal(t, []byte("test"), o.SuffixForGauge(Mean))
 	require.Equal(t, []byte(nil), o.SuffixForGauge(Last))
-	require.Equal(t, []byte(".count"), o.SuffixForGauge(Count))
+	require.Equal(t, []byte("count"), o.SuffixForGauge(Count))
 	require.NoError(t, o.Validate())
 }
 

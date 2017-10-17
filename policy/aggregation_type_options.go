@@ -202,16 +202,16 @@ var (
 		Last,
 	}
 
-	defaultUnknownSuffix = []byte(".unknown")
-	defaultLastSuffix    = []byte(".last")
-	defaultSumSuffix     = []byte(".sum")
-	defaultSumSqSuffix   = []byte(".sum_sq")
-	defaultMeanSuffix    = []byte(".mean")
-	defaultMinSuffix     = []byte(".lower")
-	defaultMaxSuffix     = []byte(".upper")
-	defaultCountSuffix   = []byte(".count")
-	defaultStdevSuffix   = []byte(".stdev")
-	defaultMedianSuffix  = []byte(".median")
+	defaultUnknownSuffix = []byte("unknown")
+	defaultLastSuffix    = []byte("last")
+	defaultSumSuffix     = []byte("sum")
+	defaultSumSqSuffix   = []byte("sum_sq")
+	defaultMeanSuffix    = []byte("mean")
+	defaultMinSuffix     = []byte("lower")
+	defaultMaxSuffix     = []byte("upper")
+	defaultCountSuffix   = []byte("count")
+	defaultStdevSuffix   = []byte("stdev")
+	defaultMedianSuffix  = []byte("median")
 
 	defaultCounterSuffixOverride = map[AggregationType][]byte{
 		Sum: nil,
@@ -662,12 +662,12 @@ func (o *options) computeDefaultGaugeAggregationSuffix() {
 	}
 }
 
-// By default we use e.g. ".p50", ".p95", ".p99" for the 50th/95th/99th percentile.
+// By default we use e.g. "p50", "p95", "p99" for the 50th/95th/99th percentile.
 func defaultTimerQuantileSuffixFn(quantile float64) []byte {
 	str := strconv.FormatFloat(quantile*100, 'f', -1, 64)
 	idx := strings.Index(str, ".")
 	if idx != -1 {
 		str = str[:idx] + str[idx+1:]
 	}
-	return []byte(".p" + str)
+	return []byte("p" + str)
 }
