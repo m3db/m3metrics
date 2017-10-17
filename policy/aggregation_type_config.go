@@ -21,6 +21,8 @@
 package policy
 
 import (
+	"fmt"
+
 	"github.com/m3db/m3x/instrument"
 	"github.com/m3db/m3x/pool"
 )
@@ -36,41 +38,20 @@ type AggregationTypesConfiguration struct {
 	// Default aggregation types for gauge metrics.
 	DefaultGaugeAggregationTypes *AggregationTypes `yaml:"defaultGaugeAggregationTypes"`
 
-	// Metric suffix for aggregation type last.
-	LastSuffix *string `yaml:"lastSuffix"`
+	// Global type strings.
+	TypeStrings map[AggregationType]string `yaml:"typeStrings"`
 
-	// Metric suffix for aggregation type sum.
-	SumSuffix *string `yaml:"sumSuffix"`
+	// Type string overrides for Counter.
+	CounterTypeStringOverrides map[AggregationType]string `yaml:"counterTypeStringOverrides"`
 
-	// Metric suffix for aggregation type sum square.
-	SumSqSuffix *string `yaml:"sumSqSuffix"`
+	// Type string overrides for Timer.
+	TimerTypeStringOverrides map[AggregationType]string `yaml:"timerTypeStringOverrides"`
 
-	// Metric suffix for aggregation type mean.
-	MeanSuffix *string `yaml:"meanSuffix"`
+	// Type string overrides for Gauge.
+	GaugeTypeStringOverrides map[AggregationType]string `yaml:"gaugeTypeStringOverrides"`
 
-	// Metric suffix for aggregation type min.
-	MinSuffix *string `yaml:"minSuffix"`
-
-	// Metric suffix for aggregation type max.
-	MaxSuffix *string `yaml:"maxSuffix"`
-
-	// Metric suffix for aggregation type count.
-	CountSuffix *string `yaml:"countSuffix"`
-
-	// Metric suffix for aggregation type standard deviation.
-	StdevSuffix *string `yaml:"stdevSuffix"`
-
-	// Metric suffix for aggregation type median.
-	MedianSuffix *string `yaml:"medianSuffix"`
-
-	// Counter suffix overrides.
-	CounterSuffixOverrides map[AggregationType]string `yaml:"counterSuffixOverrides"`
-
-	// Timer suffix overrides.
-	TimerSuffixOverrides map[AggregationType]string `yaml:"timerSuffixOverrides"`
-
-	// Gauge suffix overrides.
-	GaugeSuffixOverrides map[AggregationType]string `yaml:"gaugeSuffixOverrides"`
+	// TypeStringTransformerType configs the type string transformer type.
+	TypeStringTransformerType string `yaml:"typeStringTransformerType"`
 
 	// Pool of aggregation types.
 	AggregationTypesPool pool.ObjectPoolConfiguration `yaml:"aggregationTypesPool"`
@@ -80,8 +61,13 @@ type AggregationTypesConfiguration struct {
 }
 
 // NewOptions creates a new Option.
-func (c AggregationTypesConfiguration) NewOptions(instrumentOpts instrument.Options) AggregationTypesOptions {
-	opts := NewAggregationTypesOptions()
+func (c AggregationTypesConfiguration) NewOptions(instrumentOpts instrument.Options) (AggregationTypesOptions, error) {
+	typeStringTypeTransformerFnType, err := parseTypeStringTransformerFnType(c.TypeStringTransformerType)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := NewAggregationTypesOptions().SetTypeStringTransformerFn(typeStringTypeTransformerFnType)
 	if c.DefaultCounterAggregationTypes != nil {
 		opts = opts.SetDefaultCounterAggregationTypes(*c.DefaultCounterAggregationTypes)
 	}
@@ -92,19 +78,10 @@ func (c AggregationTypesConfiguration) NewOptions(instrumentOpts instrument.Opti
 		opts = opts.SetDefaultTimerAggregationTypes(*c.DefaultTimerAggregationTypes)
 	}
 
-	opts = setSuffix(opts, c.LastSuffix, opts.SetLastSuffix)
-	opts = setSuffix(opts, c.SumSuffix, opts.SetSumSuffix)
-	opts = setSuffix(opts, c.SumSqSuffix, opts.SetSumSqSuffix)
-	opts = setSuffix(opts, c.MeanSuffix, opts.SetMeanSuffix)
-	opts = setSuffix(opts, c.MinSuffix, opts.SetMinSuffix)
-	opts = setSuffix(opts, c.MaxSuffix, opts.SetMaxSuffix)
-	opts = setSuffix(opts, c.CountSuffix, opts.SetCountSuffix)
-	opts = setSuffix(opts, c.StdevSuffix, opts.SetStdevSuffix)
-	opts = setSuffix(opts, c.MedianSuffix, opts.SetMedianSuffix)
-
-	opts = opts.SetCounterSuffixOverrides(parseSuffixOverride(c.CounterSuffixOverrides))
-	opts = opts.SetGaugeSuffixOverrides(parseSuffixOverride(c.GaugeSuffixOverrides))
-	opts = opts.SetTimerSuffixOverrides(parseSuffixOverride(c.TimerSuffixOverrides))
+	opts = opts.SetTypeStrings(parseTypeStringOverride(c.TypeStrings))
+	opts = opts.SetCounterTypeStringOverrides(parseTypeStringOverride(c.CounterTypeStringOverrides))
+	opts = opts.SetGaugeTypeStringOverrides(parseTypeStringOverride(c.GaugeTypeStringOverrides))
+	opts = opts.SetTimerTypeStringOverrides(parseTypeStringOverride(c.TimerTypeStringOverrides))
 
 	scope := instrumentOpts.MetricsScope()
 
@@ -125,25 +102,11 @@ func (c AggregationTypesConfiguration) NewOptions(instrumentOpts instrument.Opti
 	)
 	opts = opts.SetQuantilesPool(quantilesPool)
 	quantilesPool.Init()
-	return opts
+
+	return opts, opts.Validate()
 }
 
-func setSuffix(
-	opts AggregationTypesOptions,
-	strP *string,
-	fn func(value []byte) AggregationTypesOptions,
-) AggregationTypesOptions {
-	if strP == nil {
-		return opts
-	}
-	str := *strP
-	if str == "" {
-		return fn(nil)
-	}
-	return fn([]byte(str))
-}
-
-func parseSuffixOverride(m map[AggregationType]string) map[AggregationType][]byte {
+func parseTypeStringOverride(m map[AggregationType]string) map[AggregationType][]byte {
 	res := make(map[AggregationType][]byte, len(m))
 	for aggType, s := range m {
 		var bytes []byte
@@ -154,4 +117,32 @@ func parseSuffixOverride(m map[AggregationType]string) map[AggregationType][]byt
 		res[aggType] = bytes
 	}
 	return res
+}
+
+type typeStringTypeTransformerFnType string
+
+var (
+	defaultTypeStringTransformerFnType       typeStringTypeTransformerFnType = "default"
+	withDotPrefixTypeStringTransformerFnType typeStringTypeTransformerFnType = "withDotPrefix"
+
+	validTypeStringTransformerFnTypes = []string{
+		string(defaultTypeStringTransformerFnType),
+		string(withDotPrefixTypeStringTransformerFnType),
+	}
+)
+
+func parseTypeStringTransformerFnType(s string) (TypeStringTransformerFn, error) {
+	fnType := defaultTypeStringTransformerFnType
+	if s != "" {
+		fnType = typeStringTypeTransformerFnType(s)
+	}
+
+	switch fnType {
+	case defaultTypeStringTransformerFnType:
+		return defaultTypeStringTransformerFn, nil
+	case withDotPrefixTypeStringTransformerFnType:
+		return withDotPrefixTypeStringTransformerFn, nil
+	default:
+		return nil, fmt.Errorf("invalid type string transformer function type: %s, supported types are: %v", s, validTypeStringTransformerFnTypes)
+	}
 }
