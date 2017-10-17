@@ -100,9 +100,8 @@ func (v *validator) validateMappingRules(mrv map[string]*MappingRuleView) error 
 
 func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
 	var (
-		namesSeen    = make(map[string]struct{}, len(rrv))
-		targetsSeen  = make([]RollupTarget, 0, len(rrv))
-		requiredTags = v.opts.RequiredRollupTags()
+		namesSeen   = make(map[string]struct{}, len(rrv))
+		targetsSeen = make([]RollupTarget, 0, len(rrv))
 	)
 	for _, view := range rrv {
 		// Validate that no rules with the same name exist.
@@ -126,17 +125,9 @@ func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
 		}
 
 		for _, target := range view.Targets {
-			// Validate that the rollup tags contain the list of required rollup tags.
-			if len(requiredTags) > 0 {
-				rollupTags := make(map[string]struct{}, len(target.Tags))
-				for _, tag := range target.Tags {
-					rollupTags[tag] = struct{}{}
-				}
-				for _, requiredTag := range requiredTags {
-					if _, exists := rollupTags[requiredTag]; !exists {
-						return fmt.Errorf("rollup rule %s does not have required rollup tag: %s, provided rollup tags are %v", view.Name, requiredTag, target.Tags)
-					}
-				}
+			// Validate that the rollup tags are valid.
+			if err := v.validateRollupTags(view.Name, target.Tags); err != nil {
+				return err
 			}
 
 			// Validate that the policies are valid.
@@ -167,6 +158,24 @@ func (v *validator) validateFilters(f map[string]string) error {
 		// Validating the filter expression by actually constructing the filter.
 		if _, err := filters.NewFilter([]byte(filter)); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (v *validator) validateRollupTags(ruleName string, tags []string) error {
+	requiredTags := v.opts.RequiredRollupTags()
+	if len(requiredTags) == 0 {
+		return nil
+	}
+	// Validating the list of rollup tags in the rule contain all required tags.
+	rollupTags := make(map[string]struct{}, len(tags))
+	for _, tag := range tags {
+		rollupTags[tag] = struct{}{}
+	}
+	for _, requiredTag := range requiredTags {
+		if _, exists := rollupTags[requiredTag]; !exists {
+			return fmt.Errorf("rollup rule %s does not have required rollup tag: %s, provided rollup tags are %v", ruleName, requiredTag, tags)
 		}
 	}
 	return nil
