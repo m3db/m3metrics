@@ -85,7 +85,5 @@ transformFnType: bla
 `
 
 	var cfg AggregationTypesConfiguration
-	require.NoError(t, yaml.Unmarshal([]byte(str), &cfg))
-	_, err := cfg.NewOptions(instrument.NewOptions())
-	require.Error(t, err)
+	require.Error(t, yaml.Unmarshal([]byte(str), &cfg))
 }

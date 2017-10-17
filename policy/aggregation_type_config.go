@@ -51,7 +51,7 @@ type AggregationTypesConfiguration struct {
 	GaugeOverrides map[AggregationType]string `yaml:"gaugeOverrides"`
 
 	// TransformFnType configs the global type string transform function type.
-	TransformFnType string `yaml:"transformFnType"`
+	TransformFnType *transformFnType `yaml:"transformFnType"`
 
 	// Pool of aggregation types.
 	AggregationTypesPool pool.ObjectPoolConfiguration `yaml:"aggregationTypesPool"`
@@ -62,11 +62,14 @@ type AggregationTypesConfiguration struct {
 
 // NewOptions creates a new Option.
 func (c AggregationTypesConfiguration) NewOptions(instrumentOpts instrument.Options) (AggregationTypesOptions, error) {
-	fn, err := parseTransformFn(c.TransformFnType)
-	if err != nil {
-		return nil, err
+	opts := NewAggregationTypesOptions()
+	if c.TransformFnType != nil {
+		fn, err := c.TransformFnType.TransformFn()
+		if err != nil {
+			return nil, err
+		}
+		opts = opts.SetGlobalTypeStringTransformFn(fn)
 	}
-	opts := NewAggregationTypesOptions().SetGlobalTypeStringTransformFn(fn)
 
 	if c.DefaultCounterAggregationTypes != nil {
 		opts = opts.SetDefaultCounterAggregationTypes(*c.DefaultCounterAggregationTypes)
@@ -122,45 +125,38 @@ func parseTypeStringOverride(m map[AggregationType]string) map[AggregationType][
 	return res
 }
 
-func parseTransformFn(str string) (TypeStringTransformFn, error) {
-	t, err := parseTransformFnType(str)
-	if err != nil {
-		return nil, err
-	}
-	return t.TransformFn()
-}
-
-func parseTransformFnType(str string) (transformType, error) {
-	if str == "" {
-		return noopTransformType, nil
-	}
-	var validStrings []string
-	for _, validType := range validTypes {
-		validString := string(validType)
-		if validString == str {
-			return validType, nil
-		}
-		validStrings = append(validStrings, validString)
-	}
-
-	return unknownTransformType, fmt.Errorf("invalid transform type %s, valid types are: %v", str, validStrings)
-
-}
-
-type transformType string
+type transformFnType string
 
 var (
-	unknownTransformType transformType = "unknown"
-	noopTransformType    transformType = "noop"
-	suffixTransformType  transformType = "suffix"
+	unknownTransformType transformFnType = "unknown"
+	noopTransformType    transformFnType = "noop"
+	suffixTransformType  transformFnType = "suffix"
 
-	validTypes = []transformType{
+	validTypes = []transformFnType{
 		noopTransformType,
 		suffixTransformType,
 	}
 )
 
-func (t transformType) TransformFn() (TypeStringTransformFn, error) {
+func (t *transformFnType) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var str string
+	if err := unmarshal(&str); err != nil {
+		return err
+	}
+	var validStrings []string
+	for _, validType := range validTypes {
+		validString := string(validType)
+		if validString == str {
+			*t = validType
+			return nil
+		}
+		validStrings = append(validStrings, validString)
+	}
+
+	return fmt.Errorf("invalid transform type %s, valid types are: %v", str, validStrings)
+}
+
+func (t transformFnType) TransformFn() (TypeStringTransformFn, error) {
 	switch t {
 	case noopTransformType:
 		return noopTransformFn, nil
