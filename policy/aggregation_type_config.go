@@ -158,34 +158,7 @@ var (
 		noopTransformType,
 		suffixTransformType,
 	}
-	validTypeStringTransformFnTypes = []string{
-		string(noopTransformType),
-		string(suffixTransformType),
-	}
 )
-
-func (t *transformType) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	fmt.Println("called")
-	var str string
-	if err := unmarshal(&str); err != nil {
-		return err
-	}
-	if str == "" {
-		*t = noopTransformType
-		return nil
-	}
-	var validStrings []string
-	for _, validType := range validTypes {
-		validString := string(validType)
-		if validString == str {
-			*t = validType
-			return nil
-		}
-		validStrings = append(validStrings, validString)
-	}
-
-	return fmt.Errorf("invalid transform type %s, valid types are: %v", str, validStrings)
-}
 
 func (t transformType) TransformFn() (TypeStringTransformFn, error) {
 	switch t {
