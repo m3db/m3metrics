@@ -169,8 +169,6 @@ func (v *validator) validateFilters(f map[string]string) error {
 }
 
 func (v *validator) validateRollupTags(ruleName string, tags []string) error {
-	requiredTags := v.opts.RequiredRollupTags()
-
 	// Validate that all tags have valid characters
 	invalidChars := v.opts.RollupTagInvalidChars()
 	for _, tag := range tags {
@@ -181,6 +179,7 @@ func (v *validator) validateRollupTags(ruleName string, tags []string) error {
 	}
 
 	// Validating the list of rollup tags in the rule contain all required tags.
+	requiredTags := v.opts.RequiredRollupTags()
 	rollupTags := make(map[string]struct{}, len(tags))
 	for _, tag := range tags {
 		rollupTags[tag] = struct{}{}
