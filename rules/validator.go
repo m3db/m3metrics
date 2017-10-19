@@ -21,7 +21,6 @@
 package rules
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/m3db/m3metrics/filters"
@@ -160,10 +159,9 @@ func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
 }
 
 func (v *validator) validateFilters(f map[string]string) error {
-	invalidChars := v.opts.TagNameInvalidChars()
 	for tag, filter := range f {
 		// Validating the filter tag name does not contain invalid chars.
-		if err := validateChars(tag, invalidChars); err != nil {
+		if containsInvalidChar, err := v.opts.ContainsInvalidCharactersForTagName(tag); containsInvalidChar {
 			return fmt.Errorf("filter tag name %s contains invalid character: %v", tag, err)
 		}
 
@@ -177,12 +175,9 @@ func (v *validator) validateFilters(f map[string]string) error {
 
 func (v *validator) validateRollupTags(ruleName string, tags []string) error {
 	// Validating that all tag names have valid characters.
-	invalidChars := v.opts.TagNameInvalidChars()
-	if len(invalidChars) > 0 {
-		for _, tag := range tags {
-			if err := validateChars(tag, invalidChars); err != nil {
-				return fmt.Errorf("rollup rule %s has invalid rolup tag %s: %v", ruleName, tag, err)
-			}
+	for _, tag := range tags {
+		if containsInvalidChar, err := v.opts.ContainsInvalidCharactersForTagName(tag); containsInvalidChar {
+			return fmt.Errorf("rollup rule %s has invalid rolup tag %s: %v", ruleName, tag, err)
 		}
 	}
 
@@ -205,30 +200,16 @@ func (v *validator) validateRollupTags(ruleName string, tags []string) error {
 }
 
 func (v *validator) validateRollupMetricName(metricName, ruleName string) error {
-	// Validate that rollup metric name is not empty
+	// Validate that rollup metric name is not empty.
 	if metricName == "" {
-		return errors.New("rollup rule %s has an empty rollup metric name")
+		return fmt.Errorf("rollup rule %s has an empty rollup metric name", ruleName)
 	}
 
 	// Validate that rollup metric name has valid characters.
-	if err := validateChars(metricName, v.opts.MetricNameInvalidChars()); err != nil {
+	if containsInvalidChar, err := v.opts.ContainsInvalidCharactersForMetricName(metricName); containsInvalidChar {
 		return fmt.Errorf("rollup rule %s has an invalid rollup metric name %s: %v", ruleName, metricName, err)
 	}
 
-	return nil
-}
-
-func validateChars(str string, invalidChars map[rune]struct{}) error {
-	if len(invalidChars) == 0 {
-		return nil
-	}
-
-	// Validate that given string doesn't contain an invalid character.
-	for _, char := range str {
-		if _, exists := invalidChars[char]; exists {
-			return fmt.Errorf("%s contains invalid character %v", str, char)
-		}
-	}
 	return nil
 }
 

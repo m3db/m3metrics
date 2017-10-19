@@ -21,6 +21,8 @@
 package rules
 
 import (
+	"fmt"
+
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/policy"
 )
@@ -59,14 +61,16 @@ type ValidatorOptions interface {
 	// SetTagNameInvalidChars sets the list of invalid chars for a tag name.
 	SetTagNameInvalidChars([]rune) ValidatorOptions
 
-	// tagNameInvalidChars gets the list of invalid chars for a tag name.
-	TagNameInvalidChars() map[rune]struct{}
+	// ContainsInvalidCharactersForTagName returns whether the given tag name contains invalid characters
+	// with an error if invalid character(s) present.
+	ContainsInvalidCharactersForTagName(tagName string) (bool, error)
 
 	// SetMetricNameInvalidChars sets the list of invalid chars for a metric name.
 	SetMetricNameInvalidChars([]rune) ValidatorOptions
 
-	// MetricNameInvalidChars gets the list of invalid chars for a metric name.
-	MetricNameInvalidChars() map[rune]struct{}
+	// ContainsInvalidCharactersForMetricName returns whether the given metric name contains invalid characters
+	// with an error if invalid character(s) present.
+	ContainsInvalidCharactersForMetricName(metricName string) (bool, error)
 
 	// IsAllowedStoragePolicyFor determines whether a given storage policy is allowed for the
 	// given metric type.
@@ -154,8 +158,11 @@ func (o *validatorOptions) SetTagNameInvalidChars(values []rune) ValidatorOption
 	return &opts
 }
 
-func (o *validatorOptions) TagNameInvalidChars() map[rune]struct{} {
-	return o.tagNameInvalidChars
+func (o *validatorOptions) ContainsInvalidCharactersForTagName(tagName string) (bool, error) {
+	if err := validateChars(tagName, o.tagNameInvalidChars); err != nil {
+		return true, err
+	}
+	return false, nil
 }
 
 func (o *validatorOptions) SetMetricNameInvalidChars(values []rune) ValidatorOptions {
@@ -168,8 +175,11 @@ func (o *validatorOptions) SetMetricNameInvalidChars(values []rune) ValidatorOpt
 	return &opts
 }
 
-func (o *validatorOptions) MetricNameInvalidChars() map[rune]struct{} {
-	return o.metricNameInvalidChars
+func (o *validatorOptions) ContainsInvalidCharactersForMetricName(metricName string) (bool, error) {
+	if err := validateChars(metricName, o.metricNameInvalidChars); err != nil {
+		return true, err
+	}
+	return false, nil
 }
 
 func (o *validatorOptions) IsAllowedStoragePolicyFor(t metric.Type, p policy.StoragePolicy) bool {
@@ -214,4 +224,18 @@ func toAggregationTypeSet(aggTypes policy.AggregationTypes) map[policy.Aggregati
 		m[t] = struct{}{}
 	}
 	return m
+}
+
+func validateChars(str string, invalidChars map[rune]struct{}) error {
+	if len(invalidChars) == 0 {
+		return nil
+	}
+
+	// Validate that given string doesn't contain an invalid character.
+	for _, char := range str {
+		if _, exists := invalidChars[char]; exists {
+			return fmt.Errorf("%s contains invalid character %v", str, char)
+		}
+	}
+	return nil
 }
