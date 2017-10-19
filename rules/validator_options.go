@@ -56,17 +56,17 @@ type ValidatorOptions interface {
 	// RequiredRollupTags returns the list of required rollup tags.
 	RequiredRollupTags() []string
 
-	// SetRollupTagInvalidChars sets the list of invalid chars for a rollup metric tag.
-	SetRollupTagInvalidChars([]rune) ValidatorOptions
+	// SetTagNameInvalidChars sets the list of invalid chars for a tag name.
+	SetTagNameInvalidChars([]rune) ValidatorOptions
 
-	// RollupTagInvalidChars gets the list of invalid chars for a rollup metric tag.
-	RollupTagInvalidChars() []rune
+	// tagNameInvalidChars gets the list of invalid chars for a tag name.
+	TagNameInvalidChars() map[rune]struct{}
 
-	// SetRollupTargetNameInvalidChars sets the list of invalid chars for a rollup target name.
-	SetRollupTargetNameInvalidChars([]rune) ValidatorOptions
+	// SetMetricNameInvalidChars sets the list of invalid chars for a metric name.
+	SetMetricNameInvalidChars([]rune) ValidatorOptions
 
-	// RollupTargetNameInvalidChars gets the list of invalid chars for a rollup target name.
-	RollupTargetNameInvalidChars() []rune
+	// MetricNameInvalidChars gets the list of invalid chars for a metric name.
+	MetricNameInvalidChars() map[rune]struct{}
 
 	// IsAllowedStoragePolicyFor determines whether a given storage policy is allowed for the
 	// given metric type.
@@ -87,8 +87,8 @@ type validatorOptions struct {
 	defaultAllowedCustomAggregationTypes map[policy.AggregationType]struct{}
 	metricTypesFn                        MetricTypesFn
 	requiredRollupTags                   []string
-	rollupTargetNameInvalidChars         []rune
-	rollupTagInvalidChars                []rune
+	metricNameInvalidChars               map[rune]struct{}
+	tagNameInvalidChars                  map[rune]struct{}
 	metadatasByType                      map[metric.Type]validationMetadata
 }
 
@@ -144,28 +144,32 @@ func (o *validatorOptions) RequiredRollupTags() []string {
 	return o.requiredRollupTags
 }
 
-func (o *validatorOptions) SetRollupTagInvalidChars(value []rune) ValidatorOptions {
-	rollupTagInvalidChars := make([]rune, len(value))
-	copy(rollupTagInvalidChars, value)
+func (o *validatorOptions) SetTagNameInvalidChars(values []rune) ValidatorOptions {
+	tagNameInvalidChars := make(map[rune]struct{}, len(values))
+	for _, v := range values {
+		tagNameInvalidChars[v] = struct{}{}
+	}
 	opts := *o
-	opts.rollupTagInvalidChars = rollupTagInvalidChars
+	opts.tagNameInvalidChars = tagNameInvalidChars
 	return &opts
 }
 
-func (o *validatorOptions) RollupTagInvalidChars() []rune {
-	return o.rollupTagInvalidChars
+func (o *validatorOptions) TagNameInvalidChars() map[rune]struct{} {
+	return o.tagNameInvalidChars
 }
 
-func (o *validatorOptions) SetRollupTargetNameInvalidChars(value []rune) ValidatorOptions {
-	rollupTargetNameInvalidChars := make([]rune, len(value))
-	copy(rollupTargetNameInvalidChars, value)
+func (o *validatorOptions) SetMetricNameInvalidChars(values []rune) ValidatorOptions {
+	metricNameInvalidChars := make(map[rune]struct{}, len(values))
+	for _, v := range values {
+		metricNameInvalidChars[v] = struct{}{}
+	}
 	opts := *o
-	opts.rollupTargetNameInvalidChars = rollupTargetNameInvalidChars
+	opts.metricNameInvalidChars = metricNameInvalidChars
 	return &opts
 }
 
-func (o *validatorOptions) RollupTargetNameInvalidChars() []rune {
-	return o.rollupTargetNameInvalidChars
+func (o *validatorOptions) MetricNameInvalidChars() map[rune]struct{} {
+	return o.metricNameInvalidChars
 }
 
 func (o *validatorOptions) IsAllowedStoragePolicyFor(t metric.Type, p policy.StoragePolicy) bool {
