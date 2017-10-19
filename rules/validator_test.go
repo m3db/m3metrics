@@ -70,6 +70,23 @@ func TestValidatorValidateMappingRuleInvalidFilter(t *testing.T) {
 	require.Error(t, rs.Validate(validator))
 }
 
+func TestValidatorValidateMappingRuleInvalidFilterTagName(t *testing.T) {
+	invalidChars := []rune{'$'}
+	invalidFilterSnapshot := &mappingRuleSnapshot{
+		rawFilters: map[string]string{
+			"random$Tag": "!=",
+		},
+	}
+	invalidFilterRule := &mappingRule{
+		snapshots: []*mappingRuleSnapshot{invalidFilterSnapshot},
+	}
+	rs := &ruleSet{
+		mappingRules: []*mappingRule{invalidFilterRule},
+	}
+	validator := NewValidator(testValidatorOptions().SetTagNameInvalidChars(invalidChars))
+	require.Error(t, rs.Validate(validator))
+}
+
 func TestValidatorValidateMappingRuleInvalidMetricType(t *testing.T) {
 	ruleSet := testRuleSetWithMappingRules(t, testInvalidMetricTypeMappingRulesConfig())
 	validator := NewValidator(testValidatorOptions())
@@ -175,6 +192,23 @@ func TestValidatorValidateRollupRuleInvalidFilter(t *testing.T) {
 		rollupRules: []*rollupRule{invalidFilterRule},
 	}
 	validator := NewValidator(testValidatorOptions())
+	require.Error(t, rs.Validate(validator))
+}
+
+func TestValidatorValidateRollupRuleInvalidFilterTagName(t *testing.T) {
+	invalidChars := []rune{'$'}
+	invalidFilterSnapshot := &mappingRuleSnapshot{
+		rawFilters: map[string]string{
+			"random$Tag": "!=",
+		},
+	}
+	invalidFilterRule := &mappingRule{
+		snapshots: []*mappingRuleSnapshot{invalidFilterSnapshot},
+	}
+	rs := &ruleSet{
+		mappingRules: []*mappingRule{invalidFilterRule},
+	}
+	validator := NewValidator(testValidatorOptions().SetTagNameInvalidChars(invalidChars))
 	require.Error(t, rs.Validate(validator))
 }
 
