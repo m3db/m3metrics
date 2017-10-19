@@ -162,7 +162,7 @@ func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
 func (v *validator) validateFilters(f map[string]string) error {
 	invalidChars := v.opts.TagNameInvalidChars()
 	for tag, filter := range f {
-		// Validating the filter tag name does not contain invalid chars
+		// Validating the filter tag name does not contain invalid chars.
 		if err := validateChars(tag, invalidChars); err != nil {
 			return fmt.Errorf("filter tag name %s contains invalid character: %v", tag, err)
 		}
