@@ -125,6 +125,11 @@ func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
 		}
 
 		for _, target := range view.Targets {
+			// Validate that rollup target name is valid
+			if err := validateChars(target.Name, v.opts.RollupTargetNameInvalidChars()); err != nil {
+				return fmt.Errorf("rollup rule %s has an invalid rollup target name %s: %s", view.Name, target.Name, err.Error())
+			}
+
 			// Validate that the rollup tags are valid.
 			if err := v.validateRollupTags(view.Name, target.Tags); err != nil {
 				return err
@@ -165,9 +170,16 @@ func (v *validator) validateFilters(f map[string]string) error {
 
 func (v *validator) validateRollupTags(ruleName string, tags []string) error {
 	requiredTags := v.opts.RequiredRollupTags()
-	if len(requiredTags) == 0 {
-		return nil
+
+	// Validate that all tags have valid characters
+	invalidChars := v.opts.RollupTagInvalidChars()
+	for _, tag := range tags {
+		fmt.Println("in here")
+		if err := validateChars(tag, invalidChars); err != nil {
+			return fmt.Errorf("invalid rollup tag %s for rollup rule %s : %s", tag, ruleName, err.Error())
+		}
 	}
+
 	// Validating the list of rollup tags in the rule contain all required tags.
 	rollupTags := make(map[string]struct{}, len(tags))
 	for _, tag := range tags {
@@ -176,6 +188,25 @@ func (v *validator) validateRollupTags(ruleName string, tags []string) error {
 	for _, requiredTag := range requiredTags {
 		if _, exists := rollupTags[requiredTag]; !exists {
 			return fmt.Errorf("rollup rule %s does not have required rollup tag: %s, provided rollup tags are %v", ruleName, requiredTag, tags)
+		}
+	}
+
+	return nil
+}
+
+func validateChars(str string, invalidChars []rune) error {
+	if len(invalidChars) == 0 {
+		return nil
+	}
+
+	// Validate that given string doesn't contain an invalid character
+	chars := make(map[rune]struct{}, len(invalidChars))
+	for _, invalidChar := range invalidChars {
+		chars[invalidChar] = struct{}{}
+	}
+	for _, char := range str {
+		if _, exists := chars[char]; exists {
+			return fmt.Errorf("%d is an invalid character", char)
 		}
 	}
 	return nil

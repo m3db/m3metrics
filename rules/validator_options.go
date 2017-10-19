@@ -56,6 +56,18 @@ type ValidatorOptions interface {
 	// RequiredRollupTags returns the list of required rollup tags.
 	RequiredRollupTags() []string
 
+	// SetRollupTagInvalidChars sets the list of invalid chars for a rollup metric tag.
+	SetRollupTagInvalidChars([]rune) ValidatorOptions
+
+	// RollupTagInvalidChars gets the list of invalid chars for a rollup metric tag.
+	RollupTagInvalidChars() []rune
+
+	// SetRollupTargetNameInvalidChars sets the list of invalid chars for a rollup target name.
+	SetRollupTargetNameInvalidChars([]rune) ValidatorOptions
+
+	// RollupTargetNameInvalidChars gets the list of invalid chars for a rollup target name.
+	RollupTargetNameInvalidChars() []rune
+
 	// IsAllowedStoragePolicyFor determines whether a given storage policy is allowed for the
 	// given metric type.
 	IsAllowedStoragePolicyFor(t metric.Type, p policy.StoragePolicy) bool
@@ -75,6 +87,8 @@ type validatorOptions struct {
 	defaultAllowedCustomAggregationTypes map[policy.AggregationType]struct{}
 	metricTypesFn                        MetricTypesFn
 	requiredRollupTags                   []string
+	rollupTargetNameInvalidChars         []rune
+	rollupTagInvalidChars                []rune
 	metadatasByType                      map[metric.Type]validationMetadata
 }
 
@@ -128,6 +142,30 @@ func (o *validatorOptions) SetRequiredRollupTags(value []string) ValidatorOption
 
 func (o *validatorOptions) RequiredRollupTags() []string {
 	return o.requiredRollupTags
+}
+
+func (o *validatorOptions) SetRollupTagInvalidChars(value []rune) ValidatorOptions {
+	rollupTagInvalidChars := make([]rune, len(value))
+	copy(rollupTagInvalidChars, value)
+	opts := *o
+	opts.rollupTagInvalidChars = rollupTagInvalidChars
+	return &opts
+}
+
+func (o *validatorOptions) RollupTagInvalidChars() []rune {
+	return o.rollupTagInvalidChars
+}
+
+func (o *validatorOptions) SetRollupTargetNameInvalidChars(value []rune) ValidatorOptions {
+	rollupTargetNameInvalidChars := make([]rune, len(value))
+	copy(rollupTargetNameInvalidChars, value)
+	opts := *o
+	opts.rollupTargetNameInvalidChars = rollupTargetNameInvalidChars
+	return &opts
+}
+
+func (o *validatorOptions) RollupTargetNameInvalidChars() []rune {
+	return o.rollupTargetNameInvalidChars
 }
 
 func (o *validatorOptions) IsAllowedStoragePolicyFor(t metric.Type, p policy.StoragePolicy) bool {

@@ -191,6 +191,34 @@ func TestValidatorValidateRollupRuleMissingRequiredTag(t *testing.T) {
 	require.Error(t, ruleSet.Validate(validator))
 }
 
+func TestValidatorValidateRollupRuleWithInvalidRollupTargetName(t *testing.T) {
+	invalidChars := []rune{'$'}
+	ruleSet := testRuleSetWithRollupRules(t, testTargetNameRollupRulesConfig())
+	validator := NewValidator(testValidatorOptions().SetRollupTargetNameInvalidChars(invalidChars))
+	require.Error(t, ruleSet.Validate(validator))
+}
+
+func TestValidatorValidateRollupRuleWithValidRollupTargetName(t *testing.T) {
+	invalidChars := []rune{' ', '%'}
+	ruleSet := testRuleSetWithRollupRules(t, testTargetNameRollupRulesConfig())
+	validator := NewValidator(testValidatorOptions().SetRollupTargetNameInvalidChars(invalidChars))
+	require.NoError(t, ruleSet.Validate(validator))
+}
+
+func TestValidatorValidateRollupRuleWithInvalidTag(t *testing.T) {
+	invalidChars := []rune{'$'}
+	ruleSet := testRuleSetWithRollupRules(t, testTagRollupRulesConfig())
+	validator := NewValidator(testValidatorOptions().SetRollupTagInvalidChars(invalidChars))
+	require.Error(t, ruleSet.Validate(validator))
+}
+
+func TestValidatorValidateRollupRuleWithValidTag(t *testing.T) {
+	invalidChars := []rune{' ', '%'}
+	ruleSet := testRuleSetWithRollupRules(t, testTagRollupRulesConfig())
+	validator := NewValidator(testValidatorOptions().SetRollupTagInvalidChars(invalidChars))
+	require.NoError(t, ruleSet.Validate(validator))
+}
+
 func TestValidatorValidateRollupRulePolicy(t *testing.T) {
 	testStoragePolicies := []policy.StoragePolicy{
 		policy.MustParseStoragePolicy("10s:1d"),
@@ -473,6 +501,46 @@ func testMissingRequiredTagRollupRulesConfig() []*schema.RollupRule {
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
 							Name: "rName1",
+							Tags: []string{"rtagName1", "rtagName2"},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func testTagRollupRulesConfig() []*schema.RollupRule {
+	return []*schema.RollupRule{
+		&schema.RollupRule{
+			Uuid: "rollupRule1",
+			Snapshots: []*schema.RollupRuleSnapshot{
+				&schema.RollupRuleSnapshot{
+					Name:       "snapshot1",
+					Tombstoned: false,
+					Targets: []*schema.RollupTarget{
+						&schema.RollupTarget{
+							Name: "rName1",
+							Tags: []string{"rtagName1", "rtagName2$", "$"},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func testTargetNameRollupRulesConfig() []*schema.RollupRule {
+	return []*schema.RollupRule{
+		&schema.RollupRule{
+			Uuid: "rollupRule1",
+			Snapshots: []*schema.RollupRuleSnapshot{
+				&schema.RollupRuleSnapshot{
+					Name:       "snapshot1",
+					Tombstoned: false,
+					Targets: []*schema.RollupTarget{
+						&schema.RollupTarget{
+							Name: "rName$1",
 							Tags: []string{"rtagName1", "rtagName2"},
 						},
 					},
