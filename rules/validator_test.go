@@ -113,6 +113,12 @@ func TestValidatorValidateMappingRulePolicy(t *testing.T) {
 	}
 }
 
+func TestValidatorValidateMappingRuleNoPolicies(t *testing.T) {
+	ruleSet := testRuleSetWithMappingRules(t, testNoPoliciesMappingRulesConfig())
+	validator := NewValidator(testValidatorOptions())
+	require.Error(t, ruleSet.Validate(validator))
+}
+
 func TestValidatorValidateMappingRuleCustomAggregationTypes(t *testing.T) {
 	testAggregationTypes := []policy.AggregationType{policy.Count, policy.Max}
 	ruleSet := testRuleSetWithMappingRules(t, testCustomAggregationTypeMappingRulesConfig())
@@ -226,6 +232,12 @@ func TestValidatorValidateRollupRulePolicy(t *testing.T) {
 			require.NoError(t, ruleSet.Validate(validator))
 		}
 	}
+}
+
+func TestValidatorValidateRollupRuleWithNoPolicies(t *testing.T) {
+	ruleSet := testRuleSetWithRollupRules(t, testNoPoliciesRollupRulesConfig())
+	validator := NewValidator(testValidatorOptions())
+	require.Error(t, ruleSet.Validate(validator))
 }
 
 func TestValidatorValidateRollupRuleCustomAggregationTypes(t *testing.T) {
@@ -359,6 +371,24 @@ func testPolicyResolutionMappingRulesConfig() []*schema.MappingRule {
 							},
 						},
 					},
+				},
+			},
+		},
+	}
+}
+
+func testNoPoliciesMappingRulesConfig() []*schema.MappingRule {
+	return []*schema.MappingRule{
+		&schema.MappingRule{
+			Uuid: "mappingRule1",
+			Snapshots: []*schema.MappingRuleSnapshot{
+				&schema.MappingRuleSnapshot{
+					Name:       "snapshot1",
+					Tombstoned: false,
+					TagFilters: map[string]string{
+						testTypeTag: testTimerType,
+					},
+					Policies: []*schema.Policy{},
 				},
 			},
 		},
@@ -510,6 +540,30 @@ func testPolicyResolutionRollupRulesConfig() []*schema.RollupRule {
 									},
 								},
 							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func testNoPoliciesRollupRulesConfig() []*schema.RollupRule {
+	return []*schema.RollupRule{
+		&schema.RollupRule{
+			Uuid: "rollupRule1",
+			Snapshots: []*schema.RollupRuleSnapshot{
+				&schema.RollupRuleSnapshot{
+					Name:       "snapshot1",
+					Tombstoned: false,
+					TagFilters: map[string]string{
+						testTypeTag: testTimerType,
+					},
+					Targets: []*schema.RollupTarget{
+						&schema.RollupTarget{
+							Name:     "rName1",
+							Tags:     []string{"rtagName1", "rtagName2"},
+							Policies: []*schema.Policy{},
 						},
 					},
 				},

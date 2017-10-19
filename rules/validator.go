@@ -88,6 +88,10 @@ func (v *validator) validateMappingRules(mrv map[string]*MappingRuleView) error 
 
 		// Validate that the policies are valid.
 		for _, t := range types {
+			if len(view.Policies) == 0 {
+				return fmt.Errorf("mapping rule %s has no storage policies for metric type %s", view.Name, t)
+			}
+
 			for _, p := range view.Policies {
 				if err := v.validatePolicy(t, p); err != nil {
 					return err
@@ -132,6 +136,10 @@ func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
 
 			// Validate that the policies are valid.
 			for _, t := range types {
+				if len(target.Policies) == 0 {
+					return fmt.Errorf("rollup rule %s with metric name %s has no storage policies for metric type %s", view.Name, target.Name, t)
+				}
+
 				for _, p := range target.Policies {
 					if err := v.validatePolicy(t, p); err != nil {
 						return err
