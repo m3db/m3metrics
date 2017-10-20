@@ -59,18 +59,18 @@ type ValidatorOptions interface {
 	RequiredRollupTags() []string
 
 	// SetTagNameInvalidChars sets the list of invalid chars for a tag name.
-	SetTagNameInvalidChars([]rune) ValidatorOptions
+	SetTagNameInvalidChars(value []rune) ValidatorOptions
 
 	// ContainsInvalidCharactersForTagName returns whether the given tag name contains invalid characters
 	// with an error if invalid character(s) present.
-	ContainsInvalidCharactersForTagName(tagName string) (bool, error)
+	ContainsInvalidCharactersForTagName(tagName string) error
 
 	// SetMetricNameInvalidChars sets the list of invalid chars for a metric name.
-	SetMetricNameInvalidChars([]rune) ValidatorOptions
+	SetMetricNameInvalidChars(value []rune) ValidatorOptions
 
 	// ContainsInvalidCharactersForMetricName returns whether the given metric name contains invalid characters
 	// with an error if invalid character(s) present.
-	ContainsInvalidCharactersForMetricName(metricName string) (bool, error)
+	ContainsInvalidCharactersForMetricName(metricName string) error
 
 	// IsAllowedStoragePolicyFor determines whether a given storage policy is allowed for the
 	// given metric type.
@@ -158,11 +158,8 @@ func (o *validatorOptions) SetTagNameInvalidChars(values []rune) ValidatorOption
 	return &opts
 }
 
-func (o *validatorOptions) ContainsInvalidCharactersForTagName(tagName string) (bool, error) {
-	if err := validateChars(tagName, o.tagNameInvalidChars); err != nil {
-		return true, err
-	}
-	return false, nil
+func (o *validatorOptions) ContainsInvalidCharactersForTagName(tagName string) error {
+	return validateChars(tagName, o.tagNameInvalidChars)
 }
 
 func (o *validatorOptions) SetMetricNameInvalidChars(values []rune) ValidatorOptions {
@@ -175,11 +172,8 @@ func (o *validatorOptions) SetMetricNameInvalidChars(values []rune) ValidatorOpt
 	return &opts
 }
 
-func (o *validatorOptions) ContainsInvalidCharactersForMetricName(metricName string) (bool, error) {
-	if err := validateChars(metricName, o.metricNameInvalidChars); err != nil {
-		return true, err
-	}
-	return false, nil
+func (o *validatorOptions) ContainsInvalidCharactersForMetricName(metricName string) error {
+	return validateChars(metricName, o.metricNameInvalidChars)
 }
 
 func (o *validatorOptions) IsAllowedStoragePolicyFor(t metric.Type, p policy.StoragePolicy) bool {
