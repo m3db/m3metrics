@@ -22,6 +22,7 @@ package rules
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/policy"
@@ -228,7 +229,7 @@ func validateChars(str string, invalidChars map[rune]struct{}) error {
 	// Validate that given string doesn't contain an invalid character.
 	for _, char := range str {
 		if _, exists := invalidChars[char]; exists {
-			return fmt.Errorf("%s contains invalid character %v", str, char)
+			return fmt.Errorf("%s contains invalid character %s", str, strconv.QuoteRune(char))
 		}
 	}
 	return nil
