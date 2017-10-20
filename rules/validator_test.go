@@ -532,21 +532,9 @@ func testInvalidMetricTypeRollupRulesConfig() []*schema.RollupRule {
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
-							Name: "rName1",
-							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
-											WindowSize: int64(10 * time.Second),
-											Precision:  int64(time.Second),
-										},
-										Retention: &schema.Retention{
-											Period: int64(6 * time.Hour),
-										},
-									},
-								},
-							},
+							Name:     "rName1",
+							Tags:     []string{"rtagName1", "rtagName2"},
+							Policies: testPolicies(),
 						},
 					},
 				},
