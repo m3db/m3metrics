@@ -61,16 +61,16 @@ type ValidatorOptions interface {
 	// SetTagNameInvalidChars sets the list of invalid chars for a tag name.
 	SetTagNameInvalidChars(value []rune) ValidatorOptions
 
-	// ContainsInvalidCharactersForTagName returns whether the given tag name contains invalid characters
-	// with an error if invalid character(s) present.
-	ContainsInvalidCharactersForTagName(tagName string) error
+	// CheckInvalidCharactersForTagName checks if the given tag name contains invalid characters
+	// returning an error if invalid character(s) present.
+	CheckInvalidCharactersForTagName(tagName string) error
 
 	// SetMetricNameInvalidChars sets the list of invalid chars for a metric name.
 	SetMetricNameInvalidChars(value []rune) ValidatorOptions
 
-	// ContainsInvalidCharactersForMetricName returns whether the given metric name contains invalid characters
-	// with an error if invalid character(s) present.
-	ContainsInvalidCharactersForMetricName(metricName string) error
+	// CheckInvalidCharactersForMetricName checks if the given metric name contains invalid characters
+	// returning an error if invalid character(s) present.
+	CheckInvalidCharactersForMetricName(metricName string) error
 
 	// IsAllowedStoragePolicyFor determines whether a given storage policy is allowed for the
 	// given metric type.
@@ -158,7 +158,7 @@ func (o *validatorOptions) SetTagNameInvalidChars(values []rune) ValidatorOption
 	return &opts
 }
 
-func (o *validatorOptions) ContainsInvalidCharactersForTagName(tagName string) error {
+func (o *validatorOptions) CheckInvalidCharactersForTagName(tagName string) error {
 	return validateChars(tagName, o.tagNameInvalidChars)
 }
 
@@ -172,7 +172,7 @@ func (o *validatorOptions) SetMetricNameInvalidChars(values []rune) ValidatorOpt
 	return &opts
 }
 
-func (o *validatorOptions) ContainsInvalidCharactersForMetricName(metricName string) error {
+func (o *validatorOptions) CheckInvalidCharactersForMetricName(metricName string) error {
 	return validateChars(metricName, o.metricNameInvalidChars)
 }
 
