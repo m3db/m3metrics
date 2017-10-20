@@ -292,19 +292,7 @@ func testDuplicateMappingRulesConfig() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
-									WindowSize: int64(10 * time.Second),
-									Precision:  int64(time.Second),
-								},
-								Retention: &schema.Retention{
-									Period: int64(6 * time.Hour),
-								},
-							},
-						},
-					},
+					Policies:   testPolicies(),
 				},
 			},
 		},
@@ -341,19 +329,7 @@ func testNoDuplicateMappingRulesConfigWithTombstone() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: true,
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
-									WindowSize: int64(10 * time.Second),
-									Precision:  int64(time.Second),
-								},
-								Retention: &schema.Retention{
-									Period: int64(6 * time.Hour),
-								},
-							},
-						},
-					},
+					Policies:   testPolicies(),
 				},
 			},
 		},
@@ -363,19 +339,7 @@ func testNoDuplicateMappingRulesConfigWithTombstone() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
-									WindowSize: int64(10 * time.Second),
-									Precision:  int64(time.Second),
-								},
-								Retention: &schema.Retention{
-									Period: int64(6 * time.Hour),
-								},
-							},
-						},
-					},
+					Policies:   testPolicies(),
 				},
 			},
 		},
@@ -491,21 +455,9 @@ func testDuplicateRollupRulesConfig() []*schema.RollupRule {
 					Tombstoned: false,
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
-							Name: "rName1",
-							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
-											WindowSize: int64(10 * time.Second),
-											Precision:  int64(time.Second),
-										},
-										Retention: &schema.Retention{
-											Period: int64(6 * time.Hour),
-										},
-									},
-								},
-							},
+							Name:     "rName1",
+							Tags:     []string{"rtagName1", "rtagName2"},
+							Policies: testPolicies(),
 						},
 					},
 				},
@@ -519,21 +471,9 @@ func testDuplicateRollupRulesConfig() []*schema.RollupRule {
 					Tombstoned: false,
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
-							Name: "rName1",
-							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
-											WindowSize: int64(10 * time.Second),
-											Precision:  int64(time.Second),
-										},
-										Retention: &schema.Retention{
-											Period: int64(6 * time.Hour),
-										},
-									},
-								},
-							},
+							Name:     "rName1",
+							Tags:     []string{"rtagName1", "rtagName2"},
+							Policies: testPolicies(),
 						},
 					},
 				},
@@ -552,21 +492,9 @@ func testNoDuplicateRollupRulesConfigWithTombstone() []*schema.RollupRule {
 					Tombstoned: true,
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
-							Name: "rName1",
-							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
-											WindowSize: int64(10 * time.Second),
-											Precision:  int64(time.Second),
-										},
-										Retention: &schema.Retention{
-											Period: int64(6 * time.Hour),
-										},
-									},
-								},
-							},
+							Name:     "rName1",
+							Tags:     []string{"rtagName1", "rtagName2"},
+							Policies: testPolicies(),
 						},
 					},
 				},
@@ -580,21 +508,9 @@ func testNoDuplicateRollupRulesConfigWithTombstone() []*schema.RollupRule {
 					Tombstoned: false,
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
-							Name: "rName1",
-							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
-											WindowSize: int64(10 * time.Second),
-											Precision:  int64(time.Second),
-										},
-										Retention: &schema.Retention{
-											Period: int64(6 * time.Hour),
-										},
-									},
-								},
-							},
+							Name:     "rName1",
+							Tags:     []string{"rtagName1", "rtagName2"},
+							Policies: testPolicies(),
 						},
 					},
 				},
@@ -649,21 +565,9 @@ func testMissingRequiredTagRollupRulesConfig() []*schema.RollupRule {
 					Tombstoned: false,
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
-							Name: "rName1",
-							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
-											WindowSize: int64(10 * time.Second),
-											Precision:  int64(time.Second),
-										},
-										Retention: &schema.Retention{
-											Period: int64(6 * time.Hour),
-										},
-									},
-								},
-							},
+							Name:     "rName1",
+							Tags:     []string{"rtagName1", "rtagName2"},
+							Policies: testPolicies(),
 						},
 					},
 				},
@@ -879,5 +783,21 @@ func testMetricTypesFn() MetricTypesFn {
 		default:
 			return nil, fmt.Errorf("unknown metric type %v", typ)
 		}
+	}
+}
+
+func testPolicies() []*schema.Policy {
+	return []*schema.Policy{
+		&schema.Policy{
+			StoragePolicy: &schema.StoragePolicy{
+				Resolution: &schema.Resolution{
+					WindowSize: int64(10 * time.Second),
+					Precision:  int64(time.Second),
+				},
+				Retention: &schema.Retention{
+					Period: int64(6 * time.Hour),
+				},
+			},
+		},
 	}
 }

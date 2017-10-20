@@ -157,7 +157,7 @@ func (v *validator) validateFilters(f map[string]string) error {
 
 func (v *validator) validatePolicies(ruleName string, policies []policy.Policy, types []metric.Type) error {
 	if len(policies) == 0 {
-		return fmt.Errorf("rule %s has no storage policies", ruleName)
+		return fmt.Errorf("rule %s has no policies", ruleName)
 	}
 
 	for _, t := range types {
