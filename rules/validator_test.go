@@ -292,6 +292,19 @@ func testDuplicateMappingRulesConfig() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
+					Policies: []*schema.Policy{
+						&schema.Policy{
+							StoragePolicy: &schema.StoragePolicy{
+								Resolution: &schema.Resolution{
+									WindowSize: int64(10 * time.Second),
+									Precision:  int64(time.Second),
+								},
+								Retention: &schema.Retention{
+									Period: int64(6 * time.Hour),
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -301,6 +314,19 @@ func testDuplicateMappingRulesConfig() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
+					Policies: []*schema.Policy{
+						&schema.Policy{
+							StoragePolicy: &schema.StoragePolicy{
+								Resolution: &schema.Resolution{
+									WindowSize: int64(10 * time.Second),
+									Precision:  int64(time.Second),
+								},
+								Retention: &schema.Retention{
+									Period: int64(6 * time.Hour),
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -315,6 +341,19 @@ func testNoDuplicateMappingRulesConfigWithTombstone() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: true,
+					Policies: []*schema.Policy{
+						&schema.Policy{
+							StoragePolicy: &schema.StoragePolicy{
+								Resolution: &schema.Resolution{
+									WindowSize: int64(10 * time.Second),
+									Precision:  int64(time.Second),
+								},
+								Retention: &schema.Retention{
+									Period: int64(6 * time.Hour),
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -324,6 +363,19 @@ func testNoDuplicateMappingRulesConfigWithTombstone() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
+					Policies: []*schema.Policy{
+						&schema.Policy{
+							StoragePolicy: &schema.StoragePolicy{
+								Resolution: &schema.Resolution{
+									WindowSize: int64(10 * time.Second),
+									Precision:  int64(time.Second),
+								},
+								Retention: &schema.Retention{
+									Period: int64(6 * time.Hour),
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -437,6 +489,25 @@ func testDuplicateRollupRulesConfig() []*schema.RollupRule {
 				&schema.RollupRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
+					Targets: []*schema.RollupTarget{
+						&schema.RollupTarget{
+							Name: "rName1",
+							Tags: []string{"rtagName1", "rtagName2"},
+							Policies: []*schema.Policy{
+								&schema.Policy{
+									StoragePolicy: &schema.StoragePolicy{
+										Resolution: &schema.Resolution{
+											WindowSize: int64(10 * time.Second),
+											Precision:  int64(time.Second),
+										},
+										Retention: &schema.Retention{
+											Period: int64(6 * time.Hour),
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -446,6 +517,25 @@ func testDuplicateRollupRulesConfig() []*schema.RollupRule {
 				&schema.RollupRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
+					Targets: []*schema.RollupTarget{
+						&schema.RollupTarget{
+							Name: "rName1",
+							Tags: []string{"rtagName1", "rtagName2"},
+							Policies: []*schema.Policy{
+								&schema.Policy{
+									StoragePolicy: &schema.StoragePolicy{
+										Resolution: &schema.Resolution{
+											WindowSize: int64(10 * time.Second),
+											Precision:  int64(time.Second),
+										},
+										Retention: &schema.Retention{
+											Period: int64(6 * time.Hour),
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -460,6 +550,25 @@ func testNoDuplicateRollupRulesConfigWithTombstone() []*schema.RollupRule {
 				&schema.RollupRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: true,
+					Targets: []*schema.RollupTarget{
+						&schema.RollupTarget{
+							Name: "rName1",
+							Tags: []string{"rtagName1", "rtagName2"},
+							Policies: []*schema.Policy{
+								&schema.Policy{
+									StoragePolicy: &schema.StoragePolicy{
+										Resolution: &schema.Resolution{
+											WindowSize: int64(10 * time.Second),
+											Precision:  int64(time.Second),
+										},
+										Retention: &schema.Retention{
+											Period: int64(6 * time.Hour),
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -469,6 +578,25 @@ func testNoDuplicateRollupRulesConfigWithTombstone() []*schema.RollupRule {
 				&schema.RollupRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
+					Targets: []*schema.RollupTarget{
+						&schema.RollupTarget{
+							Name: "rName1",
+							Tags: []string{"rtagName1", "rtagName2"},
+							Policies: []*schema.Policy{
+								&schema.Policy{
+									StoragePolicy: &schema.StoragePolicy{
+										Resolution: &schema.Resolution{
+											WindowSize: int64(10 * time.Second),
+											Precision:  int64(time.Second),
+										},
+										Retention: &schema.Retention{
+											Period: int64(6 * time.Hour),
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -485,6 +613,25 @@ func testInvalidMetricTypeRollupRulesConfig() []*schema.RollupRule {
 					Tombstoned: false,
 					TagFilters: map[string]string{
 						testTypeTag: "nonexistent",
+					},
+					Targets: []*schema.RollupTarget{
+						&schema.RollupTarget{
+							Name: "rName1",
+							Tags: []string{"rtagName1", "rtagName2"},
+							Policies: []*schema.Policy{
+								&schema.Policy{
+									StoragePolicy: &schema.StoragePolicy{
+										Resolution: &schema.Resolution{
+											WindowSize: int64(10 * time.Second),
+											Precision:  int64(time.Second),
+										},
+										Retention: &schema.Retention{
+											Period: int64(6 * time.Hour),
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -504,6 +651,19 @@ func testMissingRequiredTagRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName1",
 							Tags: []string{"rtagName1", "rtagName2"},
+							Policies: []*schema.Policy{
+								&schema.Policy{
+									StoragePolicy: &schema.StoragePolicy{
+										Resolution: &schema.Resolution{
+											WindowSize: int64(10 * time.Second),
+											Precision:  int64(time.Second),
+										},
+										Retention: &schema.Retention{
+											Period: int64(6 * time.Hour),
+										},
+									},
+								},
+							},
 						},
 					},
 				},
