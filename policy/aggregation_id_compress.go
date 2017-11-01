@@ -77,10 +77,10 @@ func (c *aggregationIDCompressor) Compress(aggTypes AggregationTypes) (Aggregati
 
 func (c *aggregationIDCompressor) MustCompress(aggTypes AggregationTypes) AggregationID {
 	id, err := c.Compress(aggTypes)
-	if err == nil {
-		return id
+	if err != nil {
+		panic(fmt.Errorf("unable to compress %v: %v", aggTypes, err))
 	}
-	panic(fmt.Errorf("unable to compress %v: %v", aggTypes, err))
+	return id
 }
 
 type aggregationIDDecompressor struct {
