@@ -1211,13 +1211,13 @@ func TestRuleSetActiveSet(t *testing.T) {
 
 func testMappingRules(t *testing.T) []*mappingRule {
 	filter1, err := filters.NewTagsFilter(
-		map[string]string{"mtagName1": "mtagValue1"},
+		filters.TagFilterValueMap{"mtagName1": filters.FilterValue{Pattern: "mtagValue1"}},
 		filters.Conjunction,
 		testTagsFilterOptions(),
 	)
 	require.NoError(t, err)
 	filter2, err := filters.NewTagsFilter(
-		map[string]string{"mtagName1": "mtagValue2"},
+		filters.TagFilterValueMap{"mtagName1": filters.FilterValue{Pattern: "mtagValue2"}},
 		filters.Conjunction,
 		testTagsFilterOptions(),
 	)
@@ -1364,17 +1364,17 @@ func testMappingRules(t *testing.T) []*mappingRule {
 
 func testRollupRules(t *testing.T) []*rollupRule {
 	filter1, err := filters.NewTagsFilter(
-		map[string]string{
-			"rtagName1": "rtagValue1",
-			"rtagName2": "rtagValue2",
+		filters.TagFilterValueMap{
+			"rtagName1": filters.FilterValue{Pattern: "rtagValue1"},
+			"rtagName2": filters.FilterValue{Pattern: "rtagValue2"},
 		},
 		filters.Conjunction,
 		testTagsFilterOptions(),
 	)
 	require.NoError(t, err)
 	filter2, err := filters.NewTagsFilter(
-		map[string]string{
-			"rtagName1": "rtagValue2",
+		filters.TagFilterValueMap{
+			"rtagName1": filters.FilterValue{Pattern: "rtagValue2"},
 		},
 		filters.Conjunction,
 		testTagsFilterOptions(),
@@ -1649,7 +1649,9 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Name:         "mappingRule1.snapshot1",
 					Tombstoned:   false,
 					CutoverNanos: 10000,
-					TagFilters:   map[string]string{"mtagName1": "mtagValue1"},
+					TagFilters: map[string]*schema.FilterValue{
+						"mtagName1": &schema.FilterValue{Pattern: "mtagValue1"},
+					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -1668,7 +1670,9 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Name:         "mappingRule1.snapshot2",
 					Tombstoned:   false,
 					CutoverNanos: 20000,
-					TagFilters:   map[string]string{"mtagName1": "mtagValue1"},
+					TagFilters: map[string]*schema.FilterValue{
+						"mtagName1": &schema.FilterValue{Pattern: "mtagValue1"},
+					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -1709,7 +1713,9 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Name:         "mappingRule1.snapshot3",
 					Tombstoned:   false,
 					CutoverNanos: 30000,
-					TagFilters:   map[string]string{"mtagName1": "mtagValue1"},
+					TagFilters: map[string]*schema.FilterValue{
+						"mtagName1": &schema.FilterValue{Pattern: "mtagValue1"},
+					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -1733,7 +1739,9 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Name:         "mappingRule2.snapshot1",
 					Tombstoned:   false,
 					CutoverNanos: 15000,
-					TagFilters:   map[string]string{"mtagName1": "mtagValue1"},
+					TagFilters: map[string]*schema.FilterValue{
+						"mtagName1": &schema.FilterValue{Pattern: "mtagValue1"},
+					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -1752,7 +1760,9 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Name:         "mappingRule2.snapshot2",
 					Tombstoned:   false,
 					CutoverNanos: 22000,
-					TagFilters:   map[string]string{"mtagName1": "mtagValue1"},
+					TagFilters: map[string]*schema.FilterValue{
+						"mtagName1": &schema.FilterValue{Pattern: "mtagValue1"},
+					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -1785,7 +1795,9 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Name:         "mappingRule2.snapshot3",
 					Tombstoned:   true,
 					CutoverNanos: 35000,
-					TagFilters:   map[string]string{"mtagName1": "mtagValue1"},
+					TagFilters: map[string]*schema.FilterValue{
+						"mtagName1": &schema.FilterValue{Pattern: "mtagValue1"},
+					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -1823,7 +1835,9 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Name:         "mappingRule3.snapshot1",
 					Tombstoned:   false,
 					CutoverNanos: 22000,
-					TagFilters:   map[string]string{"mtagName1": "mtagValue1"},
+					TagFilters: map[string]*schema.FilterValue{
+						"mtagName1": &schema.FilterValue{Pattern: "mtagValue1"},
+					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -1867,7 +1881,9 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Name:         "mappingRule3.snapshot2",
 					Tombstoned:   false,
 					CutoverNanos: 34000,
-					TagFilters:   map[string]string{"mtagName1": "mtagValue1"},
+					TagFilters: map[string]*schema.FilterValue{
+						"mtagName1": &schema.FilterValue{Pattern: "mtagValue1"},
+					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -1902,7 +1918,9 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Name:         "mappingRule4.snapshot1",
 					Tombstoned:   false,
 					CutoverNanos: 24000,
-					TagFilters:   map[string]string{"mtagName1": "mtagValue2"},
+					TagFilters: map[string]*schema.FilterValue{
+						"mtagName1": &schema.FilterValue{Pattern: "mtagValue2"},
+					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -1931,7 +1949,9 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					CutoverNanos:       100000,
 					LastUpdatedAtNanos: 123456,
 					LastUpdatedBy:      "test",
-					TagFilters:         map[string]string{"mtagName1": "mtagValue1"},
+					TagFilters: map[string]*schema.FilterValue{
+						"mtagName1": &schema.FilterValue{Pattern: "mtagValue1"},
+					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
 							StoragePolicy: &schema.StoragePolicy{
@@ -1960,9 +1980,9 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule1.snapshot1",
 					Tombstoned:   false,
 					CutoverNanos: 10000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue1",
-						"rtagName2": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue1"},
+						"rtagName2": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -1988,9 +2008,9 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule1.snapshot2",
 					Tombstoned:   false,
 					CutoverNanos: 20000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue1",
-						"rtagName2": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue1"},
+						"rtagName2": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -2038,9 +2058,9 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule1.snapshot3",
 					Tombstoned:   false,
 					CutoverNanos: 30000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue1",
-						"rtagName2": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue1"},
+						"rtagName2": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -2071,9 +2091,9 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule2.snapshot1",
 					Tombstoned:   false,
 					CutoverNanos: 15000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue1",
-						"rtagName2": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue1"},
+						"rtagName2": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -2099,9 +2119,9 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule2.snapshot2",
 					Tombstoned:   false,
 					CutoverNanos: 22000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue1",
-						"rtagName2": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue1"},
+						"rtagName2": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -2138,9 +2158,9 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule2.snapshot3",
 					Tombstoned:   true,
 					CutoverNanos: 35000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue1",
-						"rtagName2": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue1"},
+						"rtagName2": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -2182,9 +2202,9 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule3.snapshot1",
 					Tombstoned:   false,
 					CutoverNanos: 22000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue1",
-						"rtagName2": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue1"},
+						"rtagName2": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -2249,9 +2269,9 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule3.snapshot2",
 					Tombstoned:   false,
 					CutoverNanos: 34000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue1",
-						"rtagName2": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue1"},
+						"rtagName2": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -2293,8 +2313,8 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule4.snapshot1",
 					Tombstoned:   false,
 					CutoverNanos: 24000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -2325,8 +2345,8 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule5.snapshot1",
 					Tombstoned:   false,
 					CutoverNanos: 24000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -2357,9 +2377,9 @@ func testRollupRulesConfig() []*schema.RollupRule {
 					Name:         "rollupRule6.snapshot1",
 					Tombstoned:   false,
 					CutoverNanos: 100000,
-					TagFilters: map[string]string{
-						"rtagName1": "rtagValue1",
-						"rtagName2": "rtagValue2",
+					TagFilters: map[string]*schema.FilterValue{
+						"rtagName1": &schema.FilterValue{Pattern: "rtagValue1"},
+						"rtagName2": &schema.FilterValue{Pattern: "rtagValue2"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -2494,7 +2514,10 @@ func TestAddMappingRule(t *testing.T) {
 	_, err = rs.getMappingRuleByName("foo")
 	require.Error(t, err)
 
-	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	newFilters := filters.TagFilterValueMap{
+		"tag1": filters.FilterValue{Pattern: "value"},
+		"tag2": filters.FilterValue{Pattern: "value"},
+	}
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
 	view := MappingRuleView{
 		Name:     "foo",
@@ -2527,7 +2550,10 @@ func TestAddMappingRuleDup(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, m)
 
-	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	newFilters := filters.TagFilterValueMap{
+		"tag1": filters.FilterValue{Pattern: "value"},
+		"tag2": filters.FilterValue{Pattern: "value"},
+	}
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
 	view := MappingRuleView{
 		Name:     "mappingRule5.snapshot1",
@@ -2551,7 +2577,9 @@ func TestAddMappingRuleRevive(t *testing.T) {
 	err = mutable.DeleteMappingRule("mappingRule5", helper.NewUpdateMetadata(now, testUser))
 	require.NoError(t, err)
 
-	newFilters := map[string]string{"test": "bar"}
+	newFilters := filters.TagFilterValueMap{
+		"test": filters.FilterValue{Pattern: "bar"},
+	}
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
 	view := MappingRuleView{
 		Name:     "mappingRule5.snapshot1",
@@ -2592,7 +2620,10 @@ func TestUpdateMappingRule(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, mrs, "mappingRule5")
 
-	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	newFilters := filters.TagFilterValueMap{
+		"tag1": filters.FilterValue{Pattern: "value"},
+		"tag2": filters.FilterValue{Pattern: "value"},
+	}
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
 	view := MappingRuleView{
 		ID:       "mappingRule5",
@@ -2651,7 +2682,10 @@ func TestAddRollupRule(t *testing.T) {
 	_, err = rs.getRollupRuleByID("foo")
 	require.Error(t, err)
 
-	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	newFilters := filters.TagFilterValueMap{
+		"tag1": filters.FilterValue{Pattern: "value"},
+		"tag2": filters.FilterValue{Pattern: "value"},
+	}
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
 
 	newTargets := []RollupTargetView{
@@ -2703,7 +2737,9 @@ func TestAddRollupRuleDup(t *testing.T) {
 			Policies: p,
 		},
 	}
-	newFilters := map[string]string{"test": "bar"}
+	newFilters := filters.TagFilterValueMap{
+		"test": filters.FilterValue{Pattern: "bar"},
+	}
 	view := RollupRuleView{
 		Name:    "rollupRule5.snapshot1",
 		Filters: newFilters,
@@ -2766,7 +2802,10 @@ func TestUpdateRollupRule(t *testing.T) {
 	rr, err := rs.getRollupRuleByID("rollupRule5")
 	require.NoError(t, err)
 
-	newFilters := map[string]string{"tag1": "value", "tag2": "value"}
+	newFilters := filters.TagFilterValueMap{
+		"tag1": filters.FilterValue{Pattern: "value"},
+		"tag2": filters.FilterValue{Pattern: "value"},
+	}
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
 	newTargets := []RollupTargetView{
 		RollupTargetView{

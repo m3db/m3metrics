@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
 	xtime "github.com/m3db/m3x/time"
@@ -41,9 +42,9 @@ var (
 				CutoverNanos:       12345,
 				LastUpdatedAtNanos: 12345,
 				LastUpdatedBy:      "someone-else",
-				TagFilters: map[string]string{
-					"tag1": "value1",
-					"tag2": "value2",
+				TagFilters: map[string]*schema.FilterValue{
+					"tag1": &schema.FilterValue{Pattern: "value1"},
+					"tag2": &schema.FilterValue{Pattern: "value2"},
 				},
 				Targets: []*schema.RollupTarget{
 					&schema.RollupTarget{
@@ -71,9 +72,9 @@ var (
 				CutoverNanos:       67890,
 				LastUpdatedAtNanos: 67890,
 				LastUpdatedBy:      "someone",
-				TagFilters: map[string]string{
-					"tag3": "value3",
-					"tag4": "value4",
+				TagFilters: map[string]*schema.FilterValue{
+					"tag3": &schema.FilterValue{Pattern: "value3"},
+					"tag4": &schema.FilterValue{Pattern: "value4"},
 				},
 				Targets: []*schema.RollupTarget{
 					&schema.RollupTarget{
@@ -285,7 +286,7 @@ func TestRollupRuleSchema(t *testing.T) {
 }
 
 func TestNewRollupRuleFromFields(t *testing.T) {
-	rawFilters := map[string]string{"tag3": "value3"}
+	rawFilters := filters.TagFilterValueMap{"tag3": filters.FilterValue{Pattern: "value3"}}
 	rr, err := newRollupRuleFromFields(
 		"bar",
 		rawFilters,
@@ -374,7 +375,7 @@ func TestRollupRuleSnapshotClone(t *testing.T) {
 	require.False(t, s1 == &s1Clone)
 
 	// Checking that things are cloned and not just referenced.
-	s1Clone.rawFilters["blah"] = "foo"
+	s1Clone.rawFilters["blah"] = filters.FilterValue{Pattern: "foo"}
 	require.NotContains(t, s1.rawFilters, "blah")
 
 	s1Clone.targets = append(s1Clone.targets, s1Clone.targets[0])
@@ -393,9 +394,9 @@ func TestNewRollupRuleView(t *testing.T) {
 		CutoverNanos:       12345,
 		LastUpdatedAtNanos: 12345,
 		LastUpdatedBy:      "someone-else",
-		Filters: map[string]string{
-			"tag1": "value1",
-			"tag2": "value2",
+		Filters: filters.TagFilterValueMap{
+			"tag1": filters.FilterValue{Pattern: "value1"},
+			"tag2": filters.FilterValue{Pattern: "value2"},
 		},
 		Targets: []RollupTargetView{
 			RollupTargetView{
@@ -436,9 +437,9 @@ func TestNewRollupRuleHistory(t *testing.T) {
 			Tombstoned:         true,
 			LastUpdatedAtNanos: 67890,
 			LastUpdatedBy:      "someone",
-			Filters: map[string]string{
-				"tag3": "value3",
-				"tag4": "value4",
+			Filters: filters.TagFilterValueMap{
+				"tag3": filters.FilterValue{Pattern: "value3"},
+				"tag4": filters.FilterValue{Pattern: "value4"},
 			},
 			Targets: []RollupTargetView{
 				RollupTargetView{
@@ -455,9 +456,9 @@ func TestNewRollupRuleHistory(t *testing.T) {
 			Tombstoned:         false,
 			LastUpdatedAtNanos: 12345,
 			LastUpdatedBy:      "someone-else",
-			Filters: map[string]string{
-				"tag1": "value1",
-				"tag2": "value2",
+			Filters: filters.TagFilterValueMap{
+				"tag1": filters.FilterValue{Pattern: "value1"},
+				"tag2": filters.FilterValue{Pattern: "value2"},
 			},
 			Targets: []RollupTargetView{
 				RollupTargetView{

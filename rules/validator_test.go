@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/policy"
@@ -56,8 +57,8 @@ func TestValidatorValidateNoDuplicateMappingRulesWithTombstone(t *testing.T) {
 
 func TestValidatorValidateMappingRuleInvalidFilter(t *testing.T) {
 	invalidFilterSnapshot := &mappingRuleSnapshot{
-		rawFilters: map[string]string{
-			"randomTag": "*too*many*wildcards*",
+		rawFilters: filters.TagFilterValueMap{
+			"randomTag": filters.FilterValue{Pattern: "*too*many*wildcards*"},
 		},
 	}
 	invalidFilterRule := &mappingRule{
@@ -73,8 +74,8 @@ func TestValidatorValidateMappingRuleInvalidFilter(t *testing.T) {
 func TestValidatorValidateMappingRuleInvalidFilterTagName(t *testing.T) {
 	invalidChars := []rune{'$'}
 	invalidFilterSnapshot := &mappingRuleSnapshot{
-		rawFilters: map[string]string{
-			"random$Tag": "!=",
+		rawFilters: filters.TagFilterValueMap{
+			"random$Tag": filters.FilterValue{Pattern: "!="},
 		},
 	}
 	invalidFilterRule := &mappingRule{
@@ -187,8 +188,8 @@ func TestValidatorValidateNoDuplicateRollupRulesWithTombstone(t *testing.T) {
 
 func TestValidatorValidateRollupRuleInvalidFilter(t *testing.T) {
 	invalidFilterSnapshot := &rollupRuleSnapshot{
-		rawFilters: map[string]string{
-			"randomTag": "*too*many*wildcards*",
+		rawFilters: filters.TagFilterValueMap{
+			"randomTag": filters.FilterValue{Pattern: "*too*many*wildcards*"},
 		},
 	}
 	invalidFilterRule := &rollupRule{
@@ -204,8 +205,8 @@ func TestValidatorValidateRollupRuleInvalidFilter(t *testing.T) {
 func TestValidatorValidateRollupRuleInvalidFilterTagName(t *testing.T) {
 	invalidChars := []rune{'$'}
 	invalidFilterSnapshot := &mappingRuleSnapshot{
-		rawFilters: map[string]string{
-			"random$Tag": "!=",
+		rawFilters: filters.TagFilterValueMap{
+			"random$Tag": filters.FilterValue{Pattern: "!="},
 		},
 	}
 	invalidFilterRule := &mappingRule{
@@ -431,8 +432,8 @@ func testInvalidMetricTypeMappingRulesConfig() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					TagFilters: map[string]string{
-						testTypeTag: "nonexistent",
+					TagFilters: map[string]*schema.FilterValue{
+						testTypeTag: &schema.FilterValue{Pattern: "nonexistent"},
 					},
 				},
 			},
@@ -448,8 +449,8 @@ func testPolicyResolutionMappingRulesConfig() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					TagFilters: map[string]string{
-						testTypeTag: testTimerType,
+					TagFilters: map[string]*schema.FilterValue{
+						testTypeTag: &schema.FilterValue{Pattern: testTimerType},
 					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
@@ -478,8 +479,8 @@ func testNoPoliciesMappingRulesConfig() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					TagFilters: map[string]string{
-						testTypeTag: testTimerType,
+					TagFilters: map[string]*schema.FilterValue{
+						testTypeTag: &schema.FilterValue{Pattern: testTimerType},
 					},
 					Policies: []*schema.Policy{},
 				},
@@ -496,8 +497,8 @@ func testCustomAggregationTypeMappingRulesConfig() []*schema.MappingRule {
 				&schema.MappingRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					TagFilters: map[string]string{
-						testTypeTag: testTimerType,
+					TagFilters: map[string]*schema.FilterValue{
+						testTypeTag: &schema.FilterValue{Pattern: testTimerType},
 					},
 					Policies: []*schema.Policy{
 						&schema.Policy{
@@ -604,8 +605,8 @@ func testInvalidMetricTypeRollupRulesConfig() []*schema.RollupRule {
 				&schema.RollupRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					TagFilters: map[string]string{
-						testTypeTag: "nonexistent",
+					TagFilters: map[string]*schema.FilterValue{
+						testTypeTag: &schema.FilterValue{Pattern: "nonexistent"},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -711,8 +712,8 @@ func testPolicyResolutionRollupRulesConfig() []*schema.RollupRule {
 				&schema.RollupRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					TagFilters: map[string]string{
-						testTypeTag: testTimerType,
+					TagFilters: map[string]*schema.FilterValue{
+						testTypeTag: &schema.FilterValue{Pattern: testTimerType},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -747,8 +748,8 @@ func testNoPoliciesRollupRulesConfig() []*schema.RollupRule {
 				&schema.RollupRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					TagFilters: map[string]string{
-						testTypeTag: testTimerType,
+					TagFilters: map[string]*schema.FilterValue{
+						testTypeTag: &schema.FilterValue{Pattern: testTimerType},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -771,8 +772,8 @@ func testCustomAggregationTypeRollupRulesConfig() []*schema.RollupRule {
 				&schema.RollupRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					TagFilters: map[string]string{
-						testTypeTag: testTimerType,
+					TagFilters: map[string]*schema.FilterValue{
+						testTypeTag: &schema.FilterValue{Pattern: testTimerType},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -811,8 +812,8 @@ func testConflictingTargetsRollupRulesConfig() []*schema.RollupRule {
 				&schema.RollupRuleSnapshot{
 					Name:       "snapshot1",
 					Tombstoned: false,
-					TagFilters: map[string]string{
-						testTypeTag: testTimerType,
+					TagFilters: map[string]*schema.FilterValue{
+						testTypeTag: &schema.FilterValue{Pattern: testTimerType},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -842,8 +843,8 @@ func testConflictingTargetsRollupRulesConfig() []*schema.RollupRule {
 				&schema.RollupRuleSnapshot{
 					Name:       "snapshot2",
 					Tombstoned: false,
-					TagFilters: map[string]string{
-						testTypeTag: testTimerType,
+					TagFilters: map[string]*schema.FilterValue{
+						testTypeTag: &schema.FilterValue{Pattern: testTimerType},
 					},
 					Targets: []*schema.RollupTarget{
 						&schema.RollupTarget{
@@ -895,12 +896,12 @@ func testValidatorOptions() ValidatorOptions {
 }
 
 func testMetricTypesFn() MetricTypesFn {
-	return func(filters map[string]string) ([]metric.Type, error) {
-		typ, exists := filters[testTypeTag]
+	return func(filters filters.TagFilterValueMap) ([]metric.Type, error) {
+		fv, exists := filters[testTypeTag]
 		if !exists {
 			return []metric.Type{metric.UnknownType}, nil
 		}
-		switch typ {
+		switch fv.Pattern {
 		case testCounterType:
 			return []metric.Type{metric.CounterType}, nil
 		case testTimerType:
@@ -908,7 +909,7 @@ func testMetricTypesFn() MetricTypesFn {
 		case testGaugeType:
 			return []metric.Type{metric.GaugeType}, nil
 		default:
-			return nil, fmt.Errorf("unknown metric type %v", typ)
+			return nil, fmt.Errorf("unknown metric type %v", fv.Pattern)
 		}
 	}
 }

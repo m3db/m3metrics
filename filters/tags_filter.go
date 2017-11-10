@@ -25,8 +25,36 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/metric/id"
 )
+
+// TagFilterValueMap is a map containing mappings from tag names to filter values.
+type TagFilterValueMap map[string]FilterValue
+
+// NewTagFilterValueMapFromSchema creates a tag filter value map from a given schema.
+func NewTagFilterValueMapFromSchema(
+	filterValues map[string]*schema.FilterValue,
+) (TagFilterValueMap, error) {
+	m := make(TagFilterValueMap, len(filterValues))
+	for name, value := range filterValues {
+		fv, err := NewFilterValueFromSchema(value)
+		if err != nil {
+			return nil, err
+		}
+		m[name] = fv
+	}
+	return m, nil
+}
+
+// Schema returns a schema object created from the tag filter values map.
+func (m TagFilterValueMap) Schema() map[string]*schema.FilterValue {
+	sm := make(map[string]*schema.FilterValue, len(m))
+	for name, value := range m {
+		sm[name] = &schema.FilterValue{Pattern: value.Pattern, Negate: value.Negate}
+	}
+	return sm
+}
 
 // tagFilter is a filter associated with a given tag.
 type tagFilter struct {
@@ -66,7 +94,7 @@ type tagsFilter struct {
 
 // NewTagsFilter creates a new tags filter.
 func NewTagsFilter(
-	filters map[string]string,
+	filters TagFilterValueMap,
 	op LogicalOp,
 	opts TagsFilterOptions,
 ) (Filter, error) {
@@ -75,7 +103,7 @@ func NewTagsFilter(
 		tagFilters = make([]tagFilter, 0, len(filters))
 	)
 	for name, value := range filters {
-		valFilter, err := NewFilter([]byte(value))
+		valFilter, err := NewFilterFromFilterValue(value)
 		if err != nil {
 			return nil, err
 		}

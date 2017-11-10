@@ -24,9 +24,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
+	"github.com/m3db/m3metrics/generated/proto/schema"
 )
 
 var (
+	errNilFilterValueSchema                  = errors.New("nil filter value schema")
 	errInvalidFilterPattern                  = errors.New("invalid filter pattern defined")
 	allowAllFilter               filter      = allowFilter{}
 	singleAnyCharFilterForwards  chainFilter = &singleAnyCharFilter{backwards: false}
@@ -65,6 +68,21 @@ var (
 	multiRangeSplit = []byte(",")
 )
 
+// FilterValue contains the filter pattern and a boolean flag indicating
+// whether the filter should be negated.
+type FilterValue struct {
+	Pattern string
+	Negate  bool
+}
+
+// NewFilterValueFromSchema creates a new filter value from the filter value schema.
+func NewFilterValueFromSchema(v *schema.FilterValue) (FilterValue, error) {
+	if v == nil {
+		return FilterValue{}, errNilFilterValueSchema
+	}
+	return FilterValue{Pattern: v.Pattern, Negate: v.Negate}, nil
+}
+
 // Filter matches a string against certain conditions.
 type Filter interface {
 	filter
@@ -77,6 +95,18 @@ type filter interface {
 
 	// Matches returns true if the conditions are met.
 	Matches(val []byte) bool
+}
+
+// NewFilterFromFilterValue creates a filter from the given filter value.
+func NewFilterFromFilterValue(fv FilterValue) (Filter, error) {
+	f, err := NewFilter([]byte(fv.Pattern))
+	if err != nil {
+		return nil, err
+	}
+	if !fv.Negate {
+		return f, nil
+	}
+	return newNegationFilter(f), nil
 }
 
 // NewFilter supports startsWith, endsWith, contains and a single wildcard

@@ -161,7 +161,7 @@ type rollupRuleSnapshot struct {
 	cutoverNanos       int64
 	filter             filters.Filter
 	targets            []RollupTarget
-	rawFilters         map[string]string
+	rawFilters         filters.TagFilterValueMap
 	lastUpdatedAtNanos int64
 	lastUpdatedBy      string
 }
@@ -181,7 +181,11 @@ func newRollupRuleSnapshot(
 		}
 		targets = append(targets, target)
 	}
-	filter, err := filters.NewTagsFilter(r.TagFilters, filters.Conjunction, opts)
+	filterValues, err := filters.NewTagFilterValueMapFromSchema(r.TagFilters)
+	if err != nil {
+		return nil, err
+	}
+	filter, err := filters.NewTagsFilter(filterValues, filters.Conjunction, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +194,7 @@ func newRollupRuleSnapshot(
 		r.Name,
 		r.Tombstoned,
 		r.CutoverNanos,
-		r.TagFilters,
+		filterValues,
 		targets,
 		filter,
 		r.LastUpdatedAtNanos,
@@ -202,7 +206,7 @@ func newRollupRuleSnapshotFromFields(
 	name string,
 	tombstoned bool,
 	cutoverNanos int64,
-	tagFilters map[string]string,
+	tagFilters filters.TagFilterValueMap,
 	targets []RollupTarget,
 	filter filters.Filter,
 	lastUpdatedAtNanos int64,
@@ -221,7 +225,7 @@ func newRollupRuleSnapshotFromFields(
 }
 
 func (rrs *rollupRuleSnapshot) clone() rollupRuleSnapshot {
-	rawFilters := make(map[string]string, len(rrs.rawFilters))
+	rawFilters := make(filters.TagFilterValueMap, len(rrs.rawFilters))
 	for k, v := range rrs.rawFilters {
 		rawFilters[k] = v
 	}
@@ -251,7 +255,7 @@ func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 		Name:               rrs.name,
 		Tombstoned:         rrs.tombstoned,
 		CutoverNanos:       rrs.cutoverNanos,
-		TagFilters:         rrs.rawFilters,
+		TagFilters:         rrs.rawFilters.Schema(),
 		LastUpdatedAtNanos: rrs.lastUpdatedAtNanos,
 		LastUpdatedBy:      rrs.lastUpdatedBy,
 	}
@@ -275,7 +279,7 @@ type RollupRuleView struct {
 	Name               string
 	Tombstoned         bool
 	CutoverNanos       int64
-	Filters            map[string]string
+	Filters            filters.TagFilterValueMap
 	Targets            []RollupTargetView
 	LastUpdatedBy      string
 	LastUpdatedAtNanos int64
@@ -333,7 +337,7 @@ func newRollupRule(
 
 func newRollupRuleFromFields(
 	name string,
-	rawFilters map[string]string,
+	rawFilters filters.TagFilterValueMap,
 	targets []RollupTarget,
 	meta UpdateMetadata,
 ) (*rollupRule, error) {
@@ -405,7 +409,7 @@ func (rc *rollupRule) Tombstoned() bool {
 
 func (rc *rollupRule) addSnapshot(
 	name string,
-	rawFilters map[string]string,
+	rawFilters filters.TagFilterValueMap,
 	rollupTargets []RollupTarget,
 	meta UpdateMetadata,
 ) error {
@@ -447,7 +451,7 @@ func (rc *rollupRule) markTombstoned(cutoverTime int64) error {
 
 func (rc *rollupRule) revive(
 	name string,
-	rawFilters map[string]string,
+	rawFilters filters.TagFilterValueMap,
 	targets []RollupTarget,
 	meta UpdateMetadata,
 ) error {

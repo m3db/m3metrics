@@ -85,9 +85,9 @@ var (
 						Name:         "foo",
 						Tombstoned:   false,
 						CutoverNanos: 12345,
-						TagFilters: map[string]string{
-							"tag1": "value1",
-							"tag2": "value2",
+						TagFilters: map[string]*schema.FilterValue{
+							"tag1": &schema.FilterValue{Pattern: "value1"},
+							"tag2": &schema.FilterValue{Pattern: "value2"},
 						},
 						Policies: []*schema.Policy{
 							&schema.Policy{
@@ -110,9 +110,9 @@ var (
 						Name:         "foo",
 						Tombstoned:   false,
 						CutoverNanos: 67890,
-						TagFilters: map[string]string{
-							"tag3": "value3",
-							"tag4": "value4",
+						TagFilters: map[string]*schema.FilterValue{
+							"tag3": &schema.FilterValue{Pattern: "value3"},
+							"tag4": &schema.FilterValue{Pattern: "value4"},
 						},
 						Policies: []*schema.Policy{
 							&schema.Policy{
@@ -148,9 +148,9 @@ var (
 						Name:         "dup",
 						Tombstoned:   false,
 						CutoverNanos: 12345,
-						TagFilters: map[string]string{
-							"tag1": "value1",
-							"tag2": "value2",
+						TagFilters: map[string]*schema.FilterValue{
+							"tag1": &schema.FilterValue{Pattern: "value1"},
+							"tag2": &schema.FilterValue{Pattern: "value2"},
 						},
 						Policies: []*schema.Policy{
 							&schema.Policy{
@@ -180,9 +180,9 @@ var (
 						Name:         "foo2",
 						Tombstoned:   false,
 						CutoverNanos: 12345,
-						TagFilters: map[string]string{
-							"tag1": "value1",
-							"tag2": "value2",
+						TagFilters: map[string]*schema.FilterValue{
+							"tag1": &schema.FilterValue{Pattern: "value1"},
+							"tag2": &schema.FilterValue{Pattern: "value2"},
 						},
 						Targets: []*schema.RollupTarget{
 							&schema.RollupTarget{
@@ -208,9 +208,9 @@ var (
 						Name:         "bar",
 						Tombstoned:   true,
 						CutoverNanos: 67890,
-						TagFilters: map[string]string{
-							"tag3": "value3",
-							"tag4": "value4",
+						TagFilters: map[string]*schema.FilterValue{
+							"tag3": &schema.FilterValue{Pattern: "value3"},
+							"tag4": &schema.FilterValue{Pattern: "value4"},
 						},
 						Targets: []*schema.RollupTarget{
 							&schema.RollupTarget{
@@ -255,9 +255,9 @@ var (
 						Name:         "foo",
 						Tombstoned:   false,
 						CutoverNanos: 12345,
-						TagFilters: map[string]string{
-							"tag1": "value1",
-							"tag2": "value2",
+						TagFilters: map[string]*schema.FilterValue{
+							"tag1": &schema.FilterValue{Pattern: "value1"},
+							"tag2": &schema.FilterValue{Pattern: "value2"},
 						},
 						Targets: []*schema.RollupTarget{
 							&schema.RollupTarget{
@@ -283,9 +283,9 @@ var (
 						Name:         "baz",
 						Tombstoned:   false,
 						CutoverNanos: 67890,
-						TagFilters: map[string]string{
-							"tag3": "value3",
-							"tag4": "value4",
+						TagFilters: map[string]*schema.FilterValue{
+							"tag3": &schema.FilterValue{Pattern: "value3"},
+							"tag4": &schema.FilterValue{Pattern: "value4"},
 						},
 						Targets: []*schema.RollupTarget{
 							&schema.RollupTarget{
@@ -330,9 +330,9 @@ var (
 						Name:         "dup",
 						Tombstoned:   false,
 						CutoverNanos: 12345,
-						TagFilters: map[string]string{
-							"tag1": "value1",
-							"tag2": "value2",
+						TagFilters: map[string]*schema.FilterValue{
+							"tag1": &schema.FilterValue{Pattern: "value1"},
+							"tag2": &schema.FilterValue{Pattern: "value2"},
 						},
 						Targets: []*schema.RollupTarget{
 							&schema.RollupTarget{

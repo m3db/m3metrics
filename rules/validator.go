@@ -150,15 +150,15 @@ func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
 	return nil
 }
 
-func (v *validator) validateFilters(ruleName string, f map[string]string) error {
-	for tag, filter := range f {
+func (v *validator) validateFilters(ruleName string, f filters.TagFilterValueMap) error {
+	for tag, filterValue := range f {
 		// Validating the filter tag name does not contain invalid chars.
 		if err := v.opts.CheckInvalidCharactersForTagName(tag); err != nil {
 			return fmt.Errorf("rule %s with filter tag name %s contains invalid character: %v", ruleName, tag, err)
 		}
 
 		// Validating the filter expression by actually constructing the filter.
-		if _, err := filters.NewFilter([]byte(filter)); err != nil {
+		if _, err := filters.NewFilterFromFilterValue(filterValue); err != nil {
 			return err
 		}
 	}

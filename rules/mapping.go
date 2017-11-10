@@ -44,7 +44,7 @@ type mappingRuleSnapshot struct {
 	tombstoned         bool
 	cutoverNanos       int64
 	filter             filters.Filter
-	rawFilters         map[string]string
+	rawFilters         filters.TagFilterValueMap
 	policies           []policy.Policy
 	lastUpdatedAtNanos int64
 	lastUpdatedBy      string
@@ -61,7 +61,11 @@ func newMappingRuleSnapshot(
 	if err != nil {
 		return nil, err
 	}
-	filter, err := filters.NewTagsFilter(r.TagFilters, filters.Conjunction, opts)
+	filterValues, err := filters.NewTagFilterValueMapFromSchema(r.TagFilters)
+	if err != nil {
+		return nil, err
+	}
+	filter, err := filters.NewTagsFilter(filterValues, filters.Conjunction, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +74,7 @@ func newMappingRuleSnapshot(
 		r.Name,
 		r.Tombstoned,
 		r.CutoverNanos,
-		r.TagFilters,
+		filterValues,
 		policies,
 		filter,
 		r.LastUpdatedAtNanos,
@@ -82,7 +86,7 @@ func newMappingRuleSnapshotFromFields(
 	name string,
 	tombstoned bool,
 	cutoverNanos int64,
-	tagFilters map[string]string,
+	tagFilters filters.TagFilterValueMap,
 	policies []policy.Policy,
 	filter filters.Filter,
 	lastUpdatedAtNanos int64,
@@ -101,7 +105,7 @@ func newMappingRuleSnapshotFromFields(
 }
 
 func (mrs *mappingRuleSnapshot) clone() mappingRuleSnapshot {
-	rawFilters := make(map[string]string, len(mrs.rawFilters))
+	rawFilters := make(filters.TagFilterValueMap, len(mrs.rawFilters))
 	for k, v := range mrs.rawFilters {
 		rawFilters[k] = v
 	}
@@ -129,7 +133,7 @@ func (mrs *mappingRuleSnapshot) Schema() (*schema.MappingRuleSnapshot, error) {
 		Name:               mrs.name,
 		Tombstoned:         mrs.tombstoned,
 		CutoverNanos:       mrs.cutoverNanos,
-		TagFilters:         mrs.rawFilters,
+		TagFilters:         mrs.rawFilters.Schema(),
 		LastUpdatedAtNanos: mrs.lastUpdatedAtNanos,
 		LastUpdatedBy:      mrs.lastUpdatedBy,
 	}
@@ -153,7 +157,7 @@ type MappingRuleView struct {
 	Name               string
 	Tombstoned         bool
 	CutoverNanos       int64
-	Filters            map[string]string
+	Filters            filters.TagFilterValueMap
 	Policies           []policy.Policy
 	LastUpdatedBy      string
 	LastUpdatedAtNanos int64
@@ -206,7 +210,7 @@ func newMappingRule(
 
 func newMappingRuleFromFields(
 	name string,
-	rawFilters map[string]string,
+	rawFilters filters.TagFilterValueMap,
 	policies []policy.Policy,
 	meta UpdateMetadata,
 ) (*mappingRule, error) {
@@ -247,7 +251,7 @@ func (mc *mappingRule) Tombstoned() bool {
 
 func (mc *mappingRule) addSnapshot(
 	name string,
-	rawFilters map[string]string,
+	rawFilters filters.TagFilterValueMap,
 	policies []policy.Policy,
 	meta UpdateMetadata,
 ) error {
@@ -287,7 +291,7 @@ func (mc *mappingRule) markTombstoned(cutoverTime int64) error {
 
 func (mc *mappingRule) revive(
 	name string,
-	rawFilters map[string]string,
+	rawFilters filters.TagFilterValueMap,
 	policies []policy.Policy,
 	meta UpdateMetadata,
 ) error {
