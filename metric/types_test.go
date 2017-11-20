@@ -55,3 +55,8 @@ func TestTypeUnmarshalYAMLErrors(t *testing.T) {
 		require.Equal(t, "invalid metric type '"+input+"', valid types are: counter, timer, gauge", err.Error())
 	}
 }
+
+func TestMustParseType(t *testing.T) {
+	require.Equal(t, CounterType, MustParseType("counter"))
+	require.Panics(t, func() { MustParseType("foo") })
+}
