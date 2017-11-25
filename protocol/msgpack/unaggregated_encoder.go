@@ -156,10 +156,7 @@ func (enc *unaggregatedEncoder) encodeCounter(c unaggregated.Counter) {
 func (enc *unaggregatedEncoder) encodeBatchTimer(bt unaggregated.BatchTimer) {
 	enc.encodeNumObjectFields(numFieldsForType(batchTimerType))
 	enc.encodeRawID(bt.ID)
-	enc.encodeArrayLen(len(bt.Values))
-	for _, v := range bt.Values {
-		enc.encodeFloat64(v)
-	}
+	enc.encodeFloat64Slice(bt.Values)
 }
 
 func (enc *unaggregatedEncoder) encodeGauge(g unaggregated.Gauge) {

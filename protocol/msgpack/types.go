@@ -147,6 +147,9 @@ type encoderBase interface {
 	// encodeFloat64 encodes a float64 value.
 	encodeFloat64(value float64)
 
+	// encodeFloat64Slice encodes a slice of float64 values.
+	encodeFloat64Slice(values []float64)
+
 	// encodeBytes encodes a byte slice.
 	encodeBytes(value []byte)
 
@@ -197,6 +200,9 @@ type iteratorBase interface {
 
 	// decodeFloat64 decodes a float64 value.
 	decodeFloat64() float64
+
+	// decodeFloat64Slice decodes a float64 slice.
+	decodeFloat64Slice() []float64
 
 	// decodeBytes decodes a byte slice.
 	decodeBytes() []byte
