@@ -158,6 +158,9 @@ type encoderBase interface {
 
 	// encodeArrayLen encodes the length of an array.
 	encodeArrayLen(value int)
+
+	// writeRaw writes raw bytes into the encoder.
+	writeRaw(buf []byte)
 }
 
 // iteratorBase is the base iterator interface.

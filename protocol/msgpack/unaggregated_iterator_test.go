@@ -183,29 +183,8 @@ func TestUnaggregatedIteratorDecodeBatchTimerDecodeArrayLenError(t *testing.T) {
 	enc.encodeFloat64(1.0)
 	require.NoError(t, enc.err())
 	it := testUnaggregatedIterator(enc.Encoder().Buffer()).(*unaggregatedIterator)
-	it.decodeBatchTimer()
+	it.decodeBatchTimer(0)
 	require.Error(t, it.Err())
-}
-
-func TestUnaggregatedIteratorDecodeBatchTimerNoValues(t *testing.T) {
-	enc := testUnaggregatedEncoder().(*unaggregatedEncoder)
-	bt := unaggregated.BatchTimer{
-		ID:     []byte("foo"),
-		Values: nil,
-	}
-	enc.encodeBatchTimer(bt)
-	require.NoError(t, enc.err())
-
-	it := testUnaggregatedIterator(enc.Encoder().Buffer()).(*unaggregatedIterator)
-	it.decodeBatchTimer()
-
-	require.NoError(t, it.Err())
-	mu := it.Metric()
-	require.Equal(t, unaggregated.BatchTimerType, mu.Type)
-	require.Equal(t, id.RawID("foo"), mu.ID)
-	require.Equal(t, 0, len(mu.BatchTimerVal))
-	require.False(t, mu.OwnsID)
-	require.Nil(t, mu.TimerValPool)
 }
 
 func TestUnaggregatedIteratorDecodeBatchTimerDecodeFloat64Error(t *testing.T) {
@@ -219,11 +198,76 @@ func TestUnaggregatedIteratorDecodeBatchTimerDecodeFloat64Error(t *testing.T) {
 	require.NoError(t, enc.err())
 
 	it := testUnaggregatedIterator(enc.Encoder().Buffer()).(*unaggregatedIterator)
-	it.decodeBatchTimer()
+	it.decodeBatchTimer(0)
 
 	require.Error(t, it.Err())
 }
 
+func TestUnaggregatedIteratorDecodeBatchTimerDecodeBytesLenError(t *testing.T) {
+	enc := testUnaggregatedEncoder().(*unaggregatedEncoder)
+	enc.encodeFloat64(1.0)
+	require.NoError(t, enc.err())
+	it := testUnaggregatedIterator(enc.Encoder().Buffer()).(*unaggregatedIterator)
+	it.decodeBatchTimer(1)
+	require.Error(t, it.Err())
+}
+
+func TestUnaggregatedIteratorDecodeBatchTimerReadByteError(t *testing.T) {
+	enc := testUnaggregatedEncoder().(*unaggregatedEncoder)
+	enc.encodeBatchTimerFn = func(bt unaggregated.BatchTimer) {
+		enc.encodeNumObjectFields(numFieldsForType(batchTimerType))
+		enc.encodeRawID(bt.ID)
+		enc.encodeBytesLen(len(bt.Values))
+		enc.encodeBool(true)
+	}
+	require.NoError(t, enc.err())
+
+	it := testUnaggregatedIterator(enc.Encoder().Buffer()).(*unaggregatedIterator)
+	it.decodeBatchTimer(1)
+
+	require.Error(t, it.Err())
+}
+
+func TestUnaggregatedIteratorDecodeBatchTimerNoValues(t *testing.T) {
+	for version := 1; version <= unaggregatedVersion; version++ {
+		testUnaggregatedIteratorDecodeBatchTimerWithVersion(t, nil, version)
+	}
+}
+
+func TestUnaggregatedIteratorDecodeBatchTimerWithValues(t *testing.T) {
+	values := []float64{1.0, 2.0, 3.0, 4.0}
+	for version := 1; version <= unaggregatedVersion; version++ {
+		testUnaggregatedIteratorDecodeBatchTimerWithVersion(t, values, version)
+	}
+}
+
+func testUnaggregatedIteratorDecodeBatchTimerWithVersion(
+	t *testing.T,
+	values []float64,
+	version int,
+) {
+	enc := testUnaggregatedEncoder().(*unaggregatedEncoder)
+	enc.encoderBase.(*baseEncoder).versionFn = func() int { return version }
+	bt := unaggregated.BatchTimer{
+		ID:     []byte("foo"),
+		Values: values,
+	}
+	enc.encodeBatchTimer(bt)
+	require.NoError(t, enc.err())
+
+	it := testUnaggregatedIterator(enc.Encoder().Buffer()).(*unaggregatedIterator)
+	it.decodeBatchTimer(version)
+
+	require.NoError(t, it.Err())
+	mu := it.Metric()
+	require.Equal(t, unaggregated.BatchTimerType, mu.Type)
+	require.Equal(t, id.RawID("foo"), mu.ID)
+	require.Equal(t, len(values), len(mu.BatchTimerVal))
+	require.False(t, mu.OwnsID)
+	require.Nil(t, mu.TimerValPool)
+}
+
+/*
 func TestUnaggregatedIteratorDecodeBatchTimerNoAlloc(t *testing.T) {
 	enc := testUnaggregatedEncoder().(*unaggregatedEncoder)
 	bt := unaggregated.BatchTimer{
@@ -297,6 +341,7 @@ func TestUnaggregatedIteratorDecodeBatchTimerWithAllocPoolAlloc(t *testing.T) {
 	require.NotNil(t, mu.TimerValPool)
 	require.Equal(t, it.largeFloatsPool, mu.TimerValPool)
 }
+*/
 
 func TestUnaggregatedIteratorDecodeNewerVersionThanSupported(t *testing.T) {
 	input := metricWithPoliciesList{
@@ -324,7 +369,7 @@ func TestUnaggregatedIteratorDecodeNewerVersionThanSupported(t *testing.T) {
 
 	it.Reset(bytes.NewBuffer(enc.Encoder().Bytes()))
 	it.(*unaggregatedIterator).ignoreHigherVersion = false
-	validateUnaggregatedDecodeResults(t, it, nil, errors.New("received version 2 is higher than supported version 1"))
+	validateUnaggregatedDecodeResults(t, it, nil, errors.New("received version 3 is higher than supported version 2"))
 }
 
 func TestUnaggregatedIteratorDecodeRootObjectMoreFieldsThanExpected(t *testing.T) {
@@ -398,22 +443,64 @@ func TestUnaggregatedIteratorDecodeCounterMoreFieldsThanExpected(t *testing.T) {
 }
 
 func TestUnaggregatedIteratorDecodeBatchTimerMoreFieldsThanExpected(t *testing.T) {
+	enc := testUnaggregatedEncoder().(*unaggregatedEncoder)
+	inputs := []struct {
+		version            int
+		encodeBatchTimerFn encodeBatchTimerFn
+	}{
+		{
+			version: 1,
+			encodeBatchTimerFn: func(bt unaggregated.BatchTimer) {
+				enc.encodeNumObjectFields(numFieldsForType(batchTimerType) + 1)
+				enc.encodeRawID(bt.ID)
+				enc.encodeArrayLen(len(bt.Values))
+				for _, v := range bt.Values {
+					enc.encodeFloat64(v)
+				}
+				// Pretend we added an extra int field to the batch timer object.
+				enc.encodeVarint(0)
+			},
+		},
+		/*
+			{
+				version: 2,
+				encodeBatchTimerFn: func(bt unaggregated.BatchTimer) {
+					enc.encodeNumObjectFields(numFieldsForType(batchTimerType) + 1)
+					enc.encodeRawID(bt.ID)
+					enc.encodeBytesLen(len(bt.Values) * numBytesInFloat64)
+					var buf [numBytesInFloat64]byte
+					for _, v := range bt.Values {
+						byteOrder.PutUint64(buf[:], math.Float64bits(v))
+						enc.writeRaw(buf[:])
+					}
+					// Pretend we added an extra int field to the batch timer object.
+					enc.encodeVarint(0)
+				},
+			},
+		*/
+	}
+
+	for _, input := range inputs {
+		testUnaggregatedIteratorDecodeBatchTimerMoreFieldsThanExpectedWithVersion(
+			t,
+			input.encodeBatchTimerFn,
+			input.version,
+		)
+	}
+}
+
+func testUnaggregatedIteratorDecodeBatchTimerMoreFieldsThanExpectedWithVersion(
+	t *testing.T,
+	encodeBatchTimerFn encodeBatchTimerFn,
+	version int,
+) {
 	input := metricWithPoliciesList{
 		metric:       testBatchTimer,
 		policiesList: testDefaultStagedPoliciesList,
 	}
 	enc := testUnaggregatedEncoder().(*unaggregatedEncoder)
-
-	// Pretend we added an extra int field to the batch timer object.
-	enc.encodeBatchTimerFn = func(bt unaggregated.BatchTimer) {
-		enc.encodeNumObjectFields(numFieldsForType(batchTimerType) + 1)
-		enc.encodeRawID(bt.ID)
-		enc.encodeArrayLen(len(bt.Values))
-		for _, v := range bt.Values {
-			enc.encodeFloat64(v)
-		}
-		enc.encodeVarint(0)
-	}
+	//enc.encoderBase.(*baseEncoder).versionFn = func() int { return version }
+	enc.encodeBatchTimerFn = encodeBatchTimerFn
 	require.NoError(t, testUnaggregatedEncodeMetricWithPoliciesList(enc, input.metric, input.policiesList))
 
 	it := testUnaggregatedIterator(enc.Encoder().Buffer())

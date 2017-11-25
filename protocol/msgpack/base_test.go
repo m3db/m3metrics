@@ -1,14 +1,6 @@
 package msgpack
 
-import (
-	"testing"
-	"time"
-
-	"github.com/m3db/m3metrics/policy"
-	xtime "github.com/m3db/m3x/time"
-	"github.com/stretchr/testify/require"
-)
-
+/*
 func TestAggregationTypesRoundTrip(t *testing.T) {
 	inputs := []policy.AggregationID{
 		policy.DefaultAggregationID,
@@ -43,3 +35,4 @@ func TestUnaggregatedPolicyRoundTrip(t *testing.T) {
 		require.Equal(t, input, r)
 	}
 }
+*/

@@ -27,6 +27,7 @@ import (
 	"github.com/m3db/m3metrics/policy"
 )
 
+type versionFn func() int
 type encodeVarintFn func(value int64)
 type encodeBoolFn func(value bool)
 type encodeFloat64Fn func(value float64)
@@ -42,6 +43,7 @@ type baseEncoder struct {
 	bufEncoder            BufferedEncoder
 	tmpBuf                []byte
 	encodeErr             error
+	versionFn             versionFn
 	encodeVarintFn        encodeVarintFn
 	encodeBoolFn          encodeBoolFn
 	encodeFloat64Fn       encodeFloat64Fn
@@ -59,6 +61,7 @@ func newBaseEncoder(encoder BufferedEncoder) encoderBase {
 		tmpBuf:     make([]byte, numBytesInFloat64),
 	}
 
+	enc.versionFn = enc.version
 	enc.encodeVarintFn = enc.encodeVarintInternal
 	enc.encodeBoolFn = enc.encodeBoolInternal
 	enc.encodeFloat64Fn = enc.encodeFloat64Internal
@@ -73,6 +76,7 @@ func newBaseEncoder(encoder BufferedEncoder) encoderBase {
 }
 
 func (enc *baseEncoder) encoder() BufferedEncoder                   { return enc.bufEncoder }
+func (enc *baseEncoder) version() int                               { return unaggregatedVersion }
 func (enc *baseEncoder) err() error                                 { return enc.encodeErr }
 func (enc *baseEncoder) resetData()                                 { enc.bufEncoder.Reset() }
 func (enc *baseEncoder) encodeVersion(version int)                  { enc.encodeVarint(int64(version)) }
@@ -198,7 +202,7 @@ func (enc *baseEncoder) encodeFloat64Internal(value float64) {
 }
 
 func (enc *baseEncoder) encodeFloat64SliceInternal(values []float64) {
-	if unaggregatedVersion <= 1 {
+	if enc.versionFn() <= 1 {
 		enc.encodeFloat64SliceNative(values)
 		return
 	}

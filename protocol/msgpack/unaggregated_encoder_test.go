@@ -343,11 +343,8 @@ func expectedResultsForUnaggregatedMetric(t *testing.T, m unaggregated.MetricUni
 			int64(batchTimerType),
 			numFieldsForType(batchTimerType),
 			[]byte(m.ID),
-			len(m.BatchTimerVal),
+			m.BatchTimerVal,
 		}...)
-		for _, v := range m.BatchTimerVal {
-			results = append(results, v)
-		}
 	case unaggregated.GaugeType:
 		results = append(results, []interface{}{
 			int64(gaugeType),
@@ -387,11 +384,8 @@ func expectedResultsForUnaggregatedMetricWithPoliciesList(
 			numFieldsForType(batchTimerWithPoliciesListType),
 			numFieldsForType(batchTimerType),
 			[]byte(m.ID),
-			len(m.BatchTimerVal),
+			m.BatchTimerVal,
 		}...)
-		for _, v := range m.BatchTimerVal {
-			results = append(results, v)
-		}
 	case unaggregated.GaugeType:
 		results = append(results, []interface{}{
 			int64(gaugeWithPoliciesListType),
