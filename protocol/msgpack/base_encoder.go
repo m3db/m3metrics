@@ -27,11 +27,9 @@ import (
 	"github.com/m3db/m3metrics/policy"
 )
 
-type versionFn func() int
 type encodeVarintFn func(value int64)
 type encodeBoolFn func(value bool)
 type encodeFloat64Fn func(value float64)
-type encodeFloat64SliceFn func(value []float64)
 type encodeBytesFn func(value []byte)
 type encodeBytesLenFn func(value int)
 type encodeArrayLenFn func(value int)
@@ -43,11 +41,9 @@ type baseEncoder struct {
 	bufEncoder            BufferedEncoder
 	tmpBuf                []byte
 	encodeErr             error
-	versionFn             versionFn
 	encodeVarintFn        encodeVarintFn
 	encodeBoolFn          encodeBoolFn
 	encodeFloat64Fn       encodeFloat64Fn
-	encodeFloat64SliceFn  encodeFloat64SliceFn
 	encodeBytesFn         encodeBytesFn
 	encodeBytesLenFn      encodeBytesLenFn
 	encodeArrayLenFn      encodeArrayLenFn
@@ -61,11 +57,9 @@ func newBaseEncoder(encoder BufferedEncoder) encoderBase {
 		tmpBuf:     make([]byte, numBytesInFloat64),
 	}
 
-	enc.versionFn = enc.version
 	enc.encodeVarintFn = enc.encodeVarintInternal
 	enc.encodeBoolFn = enc.encodeBoolInternal
 	enc.encodeFloat64Fn = enc.encodeFloat64Internal
-	enc.encodeFloat64SliceFn = enc.encodeFloat64SliceInternal
 	enc.encodeBytesFn = enc.encodeBytesInternal
 	enc.encodeBytesLenFn = enc.encodeBytesLenInternal
 	enc.encodeArrayLenFn = enc.encodeArrayLenInternal
@@ -76,7 +70,7 @@ func newBaseEncoder(encoder BufferedEncoder) encoderBase {
 }
 
 func (enc *baseEncoder) encoder() BufferedEncoder                   { return enc.bufEncoder }
-func (enc *baseEncoder) version() int                               { return unaggregatedVersion }
+func (enc *baseEncoder) version() int                               { return baseVersion }
 func (enc *baseEncoder) err() error                                 { return enc.encodeErr }
 func (enc *baseEncoder) resetData()                                 { enc.bufEncoder.Reset() }
 func (enc *baseEncoder) encodeVersion(version int)                  { enc.encodeVarint(int64(version)) }
@@ -86,7 +80,6 @@ func (enc *baseEncoder) encodeRawID(id id.RawID)                    { enc.encode
 func (enc *baseEncoder) encodeVarint(value int64)                   { enc.encodeVarintFn(value) }
 func (enc *baseEncoder) encodeBool(value bool)                      { enc.encodeBoolFn(value) }
 func (enc *baseEncoder) encodeFloat64(value float64)                { enc.encodeFloat64Fn(value) }
-func (enc *baseEncoder) encodeFloat64Slice(values []float64)        { enc.encodeFloat64SliceFn(values) }
 func (enc *baseEncoder) encodeBytes(value []byte)                   { enc.encodeBytesFn(value) }
 func (enc *baseEncoder) encodeBytesLen(value int)                   { enc.encodeBytesLenFn(value) }
 func (enc *baseEncoder) encodeArrayLen(value int)                   { enc.encodeArrayLenFn(value) }
@@ -201,12 +194,12 @@ func (enc *baseEncoder) encodeFloat64Internal(value float64) {
 	enc.encodeErr = enc.bufEncoder.EncodeFloat64(value)
 }
 
-func (enc *baseEncoder) encodeFloat64SliceInternal(values []float64) {
-	if enc.versionFn() <= 1 {
+func (enc *baseEncoder) encodeFloat64Slice(values []float64, encodingType encodingType) {
+	if encodingType == nonPackedEncoding {
 		enc.encodeFloat64SliceNative(values)
 		return
 	}
-	enc.encodeFloat64SliceAsBytes(values)
+	enc.encodeFloat64SlicePacked(values)
 }
 
 // encodeFloat64SliceNative encodes a slice of float64 values using
@@ -225,7 +218,9 @@ func (enc *baseEncoder) encodeFloat64SliceNative(values []float64) {
 	}
 }
 
-func (enc *baseEncoder) encodeFloat64SliceAsBytes(values []float64) {
+// encodeFloat64SliceNative encodes a slice of float64 values using
+// more compact encoding by encoding the float64 values as a byte slice.
+func (enc *baseEncoder) encodeFloat64SlicePacked(values []float64) {
 	if enc.encodeErr != nil {
 		return
 	}

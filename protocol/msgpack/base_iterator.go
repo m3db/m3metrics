@@ -270,11 +270,11 @@ func (it *baseIterator) decodeFloat64() float64 {
 	return value
 }
 
-func (it *baseIterator) decodeFloat64Slice(version int) ([]float64, pool.FloatsPool) {
-	if version <= 1 {
+func (it *baseIterator) decodeFloat64Slice(encodingType encodingType) ([]float64, pool.FloatsPool) {
+	if encodingType == nonPackedEncoding {
 		return it.decodeFloat64SliceNative()
 	}
-	return it.decodeFloat64SliceFromBytes()
+	return it.decodeFloat64SlicePacked()
 }
 
 func (it *baseIterator) decodeFloat64SliceNative() ([]float64, pool.FloatsPool) {
@@ -293,7 +293,7 @@ func (it *baseIterator) decodeFloat64SliceNative() ([]float64, pool.FloatsPool) 
 	return decoded, pool
 }
 
-func (it *baseIterator) decodeFloat64SliceFromBytes() ([]float64, pool.FloatsPool) {
+func (it *baseIterator) decodeFloat64SlicePacked() ([]float64, pool.FloatsPool) {
 	numBytes := it.decodeBytesLen()
 	if it.decodeErr != nil {
 		return nil, nil

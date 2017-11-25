@@ -189,9 +189,11 @@ func (it *unaggregatedIterator) decodeBatchTimer(version int) {
 	}
 	it.metric.Type = unaggregated.BatchTimerType
 	it.metric.ID = it.decodeID()
-	decoded, pool := it.decodeFloat64Slice(version)
-	it.metric.BatchTimerVal = decoded
-	it.metric.TimerValPool = pool
+	encodingType := nonPackedEncoding
+	if version > 1 {
+		encodingType = packedEncoding
+	}
+	it.metric.BatchTimerVal, it.metric.TimerValPool = it.decodeFloat64Slice(encodingType)
 	it.skip(numActualFields - numExpectedFields)
 }
 

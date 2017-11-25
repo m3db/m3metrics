@@ -31,6 +31,13 @@ import (
 	"github.com/m3db/m3x/pool"
 )
 
+type encodingType int
+
+const (
+	nonPackedEncoding encodingType = iota
+	packedEncoding
+)
+
 // Buffer is a byte buffer.
 type Buffer interface {
 	// Buffer returns the bytes buffer.
@@ -148,7 +155,9 @@ type encoderBase interface {
 	encodeFloat64(value float64)
 
 	// encodeFloat64Slice encodes a slice of float64 values.
-	encodeFloat64Slice(values []float64)
+	// If packed is false, the encoder uses native MessagePack encoding.
+	// If packed is true, the encoder uses more compact encoding.
+	encodeFloat64Slice(values []float64, encodingType encodingType)
 
 	// encodeBytes encodes a byte slice.
 	encodeBytes(value []byte)
@@ -205,9 +214,9 @@ type iteratorBase interface {
 	decodeFloat64() float64
 
 	// decodeFloat64Slice decodes a float64 slice, returning the
-	// decoded value, and if the value is pooled, which pool the
-	// values are pooled from.
-	decodeFloat64Slice(version int) ([]float64, pool.FloatsPool)
+	// decoded value, and the pool that allocated the decoded value
+	// if applicable.
+	decodeFloat64Slice(encodingType encodingType) ([]float64, pool.FloatsPool)
 
 	// decodeBytes decodes a byte slice.
 	decodeBytes() []byte
