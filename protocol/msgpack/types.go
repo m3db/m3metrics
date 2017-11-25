@@ -201,8 +201,10 @@ type iteratorBase interface {
 	// decodeFloat64 decodes a float64 value.
 	decodeFloat64() float64
 
-	// decodeFloat64Slice decodes a float64 slice.
-	decodeFloat64Slice() []float64
+	// decodeFloat64Slice decodes a float64 slice, returning the
+	// decoded value, and if the value is pooled, which pool the
+	// values are pooled from.
+	decodeFloat64Slice(version int) ([]float64, pool.FloatsPool)
 
 	// decodeBytes decodes a byte slice.
 	decodeBytes() []byte
@@ -275,8 +277,37 @@ type UnaggregatedIterator interface {
 	Close()
 }
 
+// BaseIteratorOptions provide options for base iterators.
+type BaseIteratorOptions interface {
+	// SetReaderBufferSize sets the reader buffer size.
+	SetReaderBufferSize(value int) BaseIteratorOptions
+
+	// ReaderBufferSize returns the reader buffer size.
+	ReaderBufferSize() int
+
+	// SetLargeFloatsSize determines whether a float slice is considered a "large"
+	// slice and therefore resort to the pool for allocating that slice.
+	SetLargeFloatsSize(value int) BaseIteratorOptions
+
+	// LargeFloatsSize returns whether a float slice is considered a "large"
+	// slice and therefore resort to the pool for allocating that slice.
+	LargeFloatsSize() int
+
+	// SetLargeFloatsPool sets the large floats pool.
+	SetLargeFloatsPool(value pool.FloatsPool) BaseIteratorOptions
+
+	// LargeFloatsPool returns the large floats pool.
+	LargeFloatsPool() pool.FloatsPool
+}
+
 // UnaggregatedIteratorOptions provide options for unaggregated iterators.
 type UnaggregatedIteratorOptions interface {
+	// SetBaseIteratorOptions sets the base iterator options.
+	SetBaseIteratorOptions(value BaseIteratorOptions) UnaggregatedIteratorOptions
+
+	// BaseIteratorOptions returns the base iterator options.
+	BaseIteratorOptions() BaseIteratorOptions
+
 	// SetIgnoreHigherVersion determines whether the iterator ignores messages
 	// with higher-than-supported version.
 	SetIgnoreHigherVersion(value bool) UnaggregatedIteratorOptions
@@ -284,26 +315,6 @@ type UnaggregatedIteratorOptions interface {
 	// IgnoreHigherVersion returns whether the iterator ignores messages with
 	// higher-than-supported version.
 	IgnoreHigherVersion() bool
-
-	// SetReaderBufferSize sets the reader buffer size.
-	SetReaderBufferSize(value int) UnaggregatedIteratorOptions
-
-	// ReaderBufferSize returns the reader buffer size.
-	ReaderBufferSize() int
-
-	// SetLargeFloatsSize determines whether a float slice is considered a "large"
-	// slice and therefore resort to the pool for allocating that slice.
-	SetLargeFloatsSize(value int) UnaggregatedIteratorOptions
-
-	// LargeFloatsSize returns whether a float slice is considered a "large"
-	// slice and therefore resort to the pool for allocating that slice.
-	LargeFloatsSize() int
-
-	// SetLargeFloatsPool sets the large floats pool.
-	SetLargeFloatsPool(value pool.FloatsPool) UnaggregatedIteratorOptions
-
-	// LargeFloatsPool returns the large floats pool.
-	LargeFloatsPool() pool.FloatsPool
 
 	// SetIteratorPool sets the unaggregated iterator pool.
 	SetIteratorPool(value UnaggregatedIteratorPool) UnaggregatedIteratorOptions
@@ -377,6 +388,12 @@ type AggregatedIterator interface {
 
 // AggregatedIteratorOptions provide options for aggregated iterators.
 type AggregatedIteratorOptions interface {
+	// SetBaseIteratorOptions sets the base iterator options.
+	SetBaseIteratorOptions(value BaseIteratorOptions) AggregatedIteratorOptions
+
+	// BaseIteratorOptions returns the base iterator options.
+	BaseIteratorOptions() BaseIteratorOptions
+
 	// SetIgnoreHigherVersion determines whether the iterator ignores messages
 	// with higher-than-supported version.
 	SetIgnoreHigherVersion(value bool) AggregatedIteratorOptions
@@ -384,12 +401,6 @@ type AggregatedIteratorOptions interface {
 	// IgnoreHigherVersion returns whether the iterator ignores messages with
 	// higher-than-supported version.
 	IgnoreHigherVersion() bool
-
-	// SetReaderBufferSize sets the reader buffer size.
-	SetReaderBufferSize(value int) AggregatedIteratorOptions
-
-	// ReaderBufferSize returns the reader buffer size.
-	ReaderBufferSize() int
 
 	// SetIteratorPool sets the aggregated iterator pool.
 	SetIteratorPool(value AggregatedIteratorPool) AggregatedIteratorOptions

@@ -23,16 +23,10 @@ package msgpack
 import (
 	"fmt"
 	"io"
-	"math"
 
 	"github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/metric/unaggregated"
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3x/pool"
-)
-
-const (
-	defaultInitTimerValuesCapacity = 16
 )
 
 // unaggregatedIterator uses MessagePack to decode different types of unaggregated metrics.
@@ -40,8 +34,6 @@ const (
 type unaggregatedIterator struct {
 	iteratorBase
 
-	largeFloatsSize     int
-	largeFloatsPool     pool.FloatsPool
 	iteratorPool        UnaggregatedIteratorPool
 	ignoreHigherVersion bool
 
@@ -49,7 +41,6 @@ type unaggregatedIterator struct {
 	metric             unaggregated.MetricUnion
 	policiesList       policy.PoliciesList
 	id                 id.RawID
-	timerValues        []float64
 	cachedPolicies     [][]policy.Policy
 	cachedPoliciesList policy.PoliciesList
 }
@@ -60,12 +51,9 @@ func NewUnaggregatedIterator(reader io.Reader, opts UnaggregatedIteratorOptions)
 		opts = NewUnaggregatedIteratorOptions()
 	}
 	it := &unaggregatedIterator{
-		iteratorBase:        newBaseIterator(reader, opts.ReaderBufferSize()),
+		iteratorBase:        newBaseIterator(reader, opts.BaseIteratorOptions()),
 		ignoreHigherVersion: opts.IgnoreHigherVersion(),
-		largeFloatsSize:     opts.LargeFloatsSize(),
-		largeFloatsPool:     opts.LargeFloatsPool(),
 		iteratorPool:        opts.IteratorPool(),
-		timerValues:         make([]float64, 0, defaultInitTimerValuesCapacity),
 	}
 	return it
 }
@@ -139,9 +127,9 @@ func (it *unaggregatedIterator) decodeRootObject() bool {
 	}
 	switch objType {
 	case counterType, batchTimerType, gaugeType:
-		it.decodeMetric(objType)
+		it.decodeMetric(objType, version)
 	case counterWithPoliciesListType, batchTimerWithPoliciesListType, gaugeWithPoliciesListType:
-		it.decodeMetricWithPoliciesList(objType)
+		it.decodeMetricWithPoliciesList(objType, version)
 	default:
 		it.setErr(fmt.Errorf("unrecognized object type %v", objType))
 	}
@@ -150,12 +138,12 @@ func (it *unaggregatedIterator) decodeRootObject() bool {
 	return it.err() == nil
 }
 
-func (it *unaggregatedIterator) decodeMetric(objType objectType) {
+func (it *unaggregatedIterator) decodeMetric(objType objectType, version int) {
 	switch objType {
 	case counterType:
 		it.decodeCounter()
 	case batchTimerType:
-		it.decodeBatchTimer()
+		it.decodeBatchTimer(version)
 	case gaugeType:
 		it.decodeGauge()
 	default:
@@ -163,7 +151,7 @@ func (it *unaggregatedIterator) decodeMetric(objType objectType) {
 	}
 }
 
-func (it *unaggregatedIterator) decodeMetricWithPoliciesList(objType objectType) {
+func (it *unaggregatedIterator) decodeMetricWithPoliciesList(objType objectType, version int) {
 	numExpectedFields, numActualFields, ok := it.checkNumFieldsForType(objType)
 	if !ok {
 		return
@@ -172,7 +160,7 @@ func (it *unaggregatedIterator) decodeMetricWithPoliciesList(objType objectType)
 	case counterWithPoliciesListType:
 		it.decodeCounter()
 	case batchTimerWithPoliciesListType:
-		it.decodeBatchTimer()
+		it.decodeBatchTimer(version)
 	case gaugeWithPoliciesListType:
 		it.decodeGauge()
 	default:
@@ -194,39 +182,16 @@ func (it *unaggregatedIterator) decodeCounter() {
 	it.skip(numActualFields - numExpectedFields)
 }
 
-func (it *unaggregatedIterator) decodeBatchTimer() {
+func (it *unaggregatedIterator) decodeBatchTimer(version int) {
 	numExpectedFields, numActualFields, ok := it.checkNumFieldsForType(batchTimerType)
 	if !ok {
 		return
 	}
 	it.metric.Type = unaggregated.BatchTimerType
 	it.metric.ID = it.decodeID()
-	var (
-		timerValues []float64
-		poolAlloc   = false
-		numValues   = it.decodeArrayLen()
-	)
-	if cap(it.timerValues) >= numValues {
-		it.timerValues = it.timerValues[:0]
-		timerValues = it.timerValues
-	} else if numValues <= it.largeFloatsSize {
-		newCapcity := int(math.Max(float64(numValues), float64(cap(it.timerValues)*2)))
-		if newCapcity > it.largeFloatsSize {
-			newCapcity = it.largeFloatsSize
-		}
-		it.timerValues = make([]float64, 0, newCapcity)
-		timerValues = it.timerValues
-	} else {
-		timerValues = it.largeFloatsPool.Get(numValues)
-		poolAlloc = true
-	}
-	for i := 0; i < numValues; i++ {
-		timerValues = append(timerValues, it.decodeFloat64())
-	}
-	it.metric.BatchTimerVal = timerValues
-	if poolAlloc {
-		it.metric.TimerValPool = it.largeFloatsPool
-	}
+	decoded, pool := it.decodeFloat64Slice(version)
+	it.metric.BatchTimerVal = decoded
+	it.metric.TimerValPool = pool
 	it.skip(numActualFields - numExpectedFields)
 }
 

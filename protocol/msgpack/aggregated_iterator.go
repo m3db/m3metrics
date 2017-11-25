@@ -45,11 +45,11 @@ func NewAggregatedIterator(reader io.Reader, opts AggregatedIteratorOptions) Agg
 	if opts == nil {
 		opts = NewAggregatedIteratorOptions()
 	}
-	readerBufferSize := opts.ReaderBufferSize()
+	baseIteratorOpts := opts.BaseIteratorOptions()
 	return &aggregatedIterator{
 		ignoreHigherVersion: opts.IgnoreHigherVersion(),
-		iteratorBase:        newBaseIterator(reader, readerBufferSize),
-		metric:              NewRawMetric(nil, readerBufferSize),
+		iteratorBase:        newBaseIterator(reader, baseIteratorOpts),
+		metric:              NewRawMetric(nil, baseIteratorOpts),
 		iteratorPool:        opts.IteratorPool(),
 	}
 }

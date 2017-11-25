@@ -82,6 +82,7 @@ func (enc *baseEncoder) encodeRawID(id id.RawID)                    { enc.encode
 func (enc *baseEncoder) encodeVarint(value int64)                   { enc.encodeVarintFn(value) }
 func (enc *baseEncoder) encodeBool(value bool)                      { enc.encodeBoolFn(value) }
 func (enc *baseEncoder) encodeFloat64(value float64)                { enc.encodeFloat64Fn(value) }
+func (enc *baseEncoder) encodeFloat64Slice(values []float64)        { enc.encodeFloat64SliceFn(values) }
 func (enc *baseEncoder) encodeBytes(value []byte)                   { enc.encodeBytesFn(value) }
 func (enc *baseEncoder) encodeBytesLen(value int)                   { enc.encodeBytesLenFn(value) }
 func (enc *baseEncoder) encodeArrayLen(value int)                   { enc.encodeArrayLenFn(value) }
