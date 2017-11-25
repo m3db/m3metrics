@@ -45,7 +45,7 @@ var (
 
 // nolint: deadcode
 const (
-	unknownType objectType = iota
+	unknownType objectType = iota // nolint: varcheck, megacheck
 
 	// Root object type.
 	rootObjectType
