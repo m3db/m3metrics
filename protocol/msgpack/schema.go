@@ -82,7 +82,7 @@ const (
 )
 
 const (
-	numRootObjectFields                              = 3
+	numRootObjectFields                              = 2
 	numCounterWithPoliciesListFields                 = 2
 	numBatchTimerWithPoliciesListFields              = 2
 	numGaugeWithPoliciesListFields                   = 2

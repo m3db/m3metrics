@@ -26,6 +26,7 @@ import (
 )
 
 // Various object-level encoding functions to facilitate testing.
+type versionFn func() int
 type encodeRootObjectFn func(objType objectType)
 type encodeCounterWithPoliciesListFn func(cp unaggregated.CounterWithPoliciesList)
 type encodeBatchTimerWithPoliciesListFn func(btp unaggregated.BatchTimerWithPoliciesList)
@@ -40,6 +41,7 @@ type encodePoliciesListFn func(spl policy.PoliciesList)
 type unaggregatedEncoder struct {
 	encoderBase
 
+	versionFn                          versionFn
 	encodeRootObjectFn                 encodeRootObjectFn
 	encodeCounterWithPoliciesListFn    encodeCounterWithPoliciesListFn
 	encodeBatchTimerWithPoliciesListFn encodeBatchTimerWithPoliciesListFn
@@ -54,6 +56,7 @@ type unaggregatedEncoder struct {
 func NewUnaggregatedEncoder(encoder BufferedEncoder) UnaggregatedEncoder {
 	enc := &unaggregatedEncoder{encoderBase: newBaseEncoder(encoder)}
 
+	enc.versionFn = enc.version
 	enc.encodeRootObjectFn = enc.encodeRootObject
 	enc.encodeCounterWithPoliciesListFn = enc.encodeCounterWithPoliciesList
 	enc.encodeBatchTimerWithPoliciesListFn = enc.encodeBatchTimerWithPoliciesList
@@ -123,8 +126,10 @@ func (enc *unaggregatedEncoder) EncodeGaugeWithPoliciesList(gp unaggregated.Gaug
 	return enc.err()
 }
 
+func (enc *unaggregatedEncoder) version() int { return unaggregatedVersion }
+
 func (enc *unaggregatedEncoder) encodeRootObject(objType objectType) {
-	enc.encodeVersion(unaggregatedVersion)
+	enc.encodeVersion(enc.versionFn())
 	enc.encodeNumObjectFields(numFieldsForType(rootObjectType))
 	enc.encodeObjectType(objType)
 }
@@ -156,10 +161,6 @@ func (enc *unaggregatedEncoder) encodeCounter(c unaggregated.Counter) {
 func (enc *unaggregatedEncoder) encodeBatchTimer(bt unaggregated.BatchTimer) {
 	enc.encodeNumObjectFields(numFieldsForType(batchTimerType))
 	enc.encodeRawID(bt.ID)
-	if unaggregatedVersion <= 1 {
-		enc.encodeFloat64Slice(bt.Values, nonPackedEncoding)
-		return
-	}
 	enc.encodeFloat64Slice(bt.Values, packedEncoding)
 }
 

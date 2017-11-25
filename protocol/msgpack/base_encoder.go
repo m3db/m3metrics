@@ -30,6 +30,7 @@ import (
 type encodeVarintFn func(value int64)
 type encodeBoolFn func(value bool)
 type encodeFloat64Fn func(value float64)
+type encodeFloat64SliceFn func(value []float64, encodingType encodingType)
 type encodeBytesFn func(value []byte)
 type encodeBytesLenFn func(value int)
 type encodeArrayLenFn func(value int)
@@ -44,6 +45,7 @@ type baseEncoder struct {
 	encodeVarintFn        encodeVarintFn
 	encodeBoolFn          encodeBoolFn
 	encodeFloat64Fn       encodeFloat64Fn
+	encodeFloat64SliceFn  encodeFloat64SliceFn
 	encodeBytesFn         encodeBytesFn
 	encodeBytesLenFn      encodeBytesLenFn
 	encodeArrayLenFn      encodeArrayLenFn
@@ -60,6 +62,7 @@ func newBaseEncoder(encoder BufferedEncoder) encoderBase {
 	enc.encodeVarintFn = enc.encodeVarintInternal
 	enc.encodeBoolFn = enc.encodeBoolInternal
 	enc.encodeFloat64Fn = enc.encodeFloat64Internal
+	enc.encodeFloat64SliceFn = enc.encodeFloat64SliceInternal
 	enc.encodeBytesFn = enc.encodeBytesInternal
 	enc.encodeBytesLenFn = enc.encodeBytesLenInternal
 	enc.encodeArrayLenFn = enc.encodeArrayLenInternal
@@ -70,7 +73,6 @@ func newBaseEncoder(encoder BufferedEncoder) encoderBase {
 }
 
 func (enc *baseEncoder) encoder() BufferedEncoder                   { return enc.bufEncoder }
-func (enc *baseEncoder) version() int                               { return baseVersion }
 func (enc *baseEncoder) err() error                                 { return enc.encodeErr }
 func (enc *baseEncoder) resetData()                                 { enc.bufEncoder.Reset() }
 func (enc *baseEncoder) encodeVersion(version int)                  { enc.encodeVarint(int64(version)) }
@@ -85,6 +87,10 @@ func (enc *baseEncoder) encodeBytesLen(value int)                   { enc.encode
 func (enc *baseEncoder) encodeArrayLen(value int)                   { enc.encodeArrayLenFn(value) }
 func (enc *baseEncoder) encodeStoragePolicy(p policy.StoragePolicy) { enc.encodeStoragePolicyFn(p) }
 func (enc *baseEncoder) encodePolicy(p policy.Policy)               { enc.encodePolicyFn(p) }
+
+func (enc *baseEncoder) encodeFloat64Slice(values []float64, encodingType encodingType) {
+	enc.encodeFloat64SliceFn(values, encodingType)
+}
 
 func (enc *baseEncoder) reset(encoder BufferedEncoder) {
 	enc.bufEncoder = encoder
@@ -194,7 +200,7 @@ func (enc *baseEncoder) encodeFloat64Internal(value float64) {
 	enc.encodeErr = enc.bufEncoder.EncodeFloat64(value)
 }
 
-func (enc *baseEncoder) encodeFloat64Slice(values []float64, encodingType encodingType) {
+func (enc *baseEncoder) encodeFloat64SliceInternal(values []float64, encodingType encodingType) {
 	if encodingType == nonPackedEncoding {
 		enc.encodeFloat64SliceNative(values)
 		return
@@ -219,7 +225,7 @@ func (enc *baseEncoder) encodeFloat64SliceNative(values []float64) {
 }
 
 // encodeFloat64SliceNative encodes a slice of float64 values using
-// more compact encoding by encoding the float64 values as a byte slice.
+// more compact encoding by encoding the float64 values as byte.
 func (enc *baseEncoder) encodeFloat64SlicePacked(values []float64) {
 	if enc.encodeErr != nil {
 		return
