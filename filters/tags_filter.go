@@ -37,16 +37,12 @@ const (
 var (
 	unknownFilterSeparator tagFilterSeparator
 
-	// negateFilterSeparator represents a separator indicating negation of filter pattern.
-	negateFilterSeparator = tagFilterSeparator{str: "!:", negate: true}
-
 	// defaultFilterSeparator represents the default filter separator with no negation.
 	defaultFilterSeparator = tagFilterSeparator{str: ":", negate: false}
 
 	// validFilterSeparators represent a list of valid filter separators.
 	// NB: the separators here are tried in order during parsing.
 	validFilterSeparators = []tagFilterSeparator{
-		negateFilterSeparator,
 		defaultFilterSeparator,
 	}
 )
@@ -84,9 +80,16 @@ func ParseTagFilterValueMap(str string) (TagFilterValueMap, error) {
 }
 
 func parseTagFilter(str string) ([]string, tagFilterSeparator, error) {
+	// TODO(xichen): support negation of glob patterns.
 	for _, separator := range validFilterSeparators {
 		items := strings.Split(str, separator.str)
 		if len(items) == 2 {
+			if items[0] == "" {
+				return nil, unknownFilterSeparator, fmt.Errorf("invalid filter %s: empty tag name", str)
+			}
+			if items[1] == "" {
+				return nil, unknownFilterSeparator, fmt.Errorf("invalid filter %s: empty filter pattern", str)
+			}
 			return items, separator, nil
 		}
 	}

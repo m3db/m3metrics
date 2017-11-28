@@ -47,11 +47,11 @@ func TestParseTagFilterValueMap(t *testing.T) {
 			},
 		},
 		{
-			str: "  tagName1!:tagValue1    tagName2:tagValue2   tagName3!:tagValue3  tagName4:tagValue4",
+			str: "  tagName1:tagValue1    tagName2:tagValue2   tagName3:tagValue3  tagName4:tagValue4",
 			expected: TagFilterValueMap{
-				"tagName1": FilterValue{Pattern: "tagValue1", Negate: true},
+				"tagName1": FilterValue{Pattern: "tagValue1", Negate: false},
 				"tagName2": FilterValue{Pattern: "tagValue2", Negate: false},
-				"tagName3": FilterValue{Pattern: "tagValue3", Negate: true},
+				"tagName3": FilterValue{Pattern: "tagValue3", Negate: false},
 				"tagName4": FilterValue{Pattern: "tagValue4", Negate: false},
 			},
 		},
@@ -69,6 +69,8 @@ func TestParseTagFilterValueMapErrors(t *testing.T) {
 		"tagName1=tagValue1",
 		"tagName1:tagValue1 tagName2~=tagValue2",
 		"tagName1:tagValue1  tagName2:tagValue2 tagName1:tagValue3",
+		"tagName:",
+		":tagValue",
 	}
 
 	for _, input := range inputs {
