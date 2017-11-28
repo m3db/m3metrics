@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
 	xtime "github.com/m3db/m3x/time"
@@ -42,10 +41,7 @@ var (
 				CutoverNanos:       12345,
 				LastUpdatedAtNanos: 1234,
 				LastUpdatedBy:      "someone",
-				TagFilters: map[string]*schema.FilterValue{
-					"tag1": &schema.FilterValue{Pattern: "value1"},
-					"tag2": &schema.FilterValue{Pattern: "value2"},
-				},
+				Filter:             "tag1:value1 tag2:value2",
 				Policies: []*schema.Policy{
 					&schema.Policy{
 						StoragePolicy: &schema.StoragePolicy{
@@ -69,10 +65,7 @@ var (
 				CutoverNanos:       67890,
 				LastUpdatedAtNanos: 1234,
 				LastUpdatedBy:      "someone",
-				TagFilters: map[string]*schema.FilterValue{
-					"tag3": &schema.FilterValue{Pattern: "value3"},
-					"tag4": &schema.FilterValue{Pattern: "value4"},
-				},
+				Filter:             "tag3:value3 tag4:value4",
 				Policies: []*schema.Policy{
 					&schema.Policy{
 						StoragePolicy: &schema.StoragePolicy{
@@ -206,10 +199,10 @@ func TestMappingRuleSchema(t *testing.T) {
 }
 
 func TestNewMappingRuleFromFields(t *testing.T) {
-	rawFilters := filters.TagFilterValueMap{"tag3": filters.FilterValue{Pattern: "value3"}}
+	rawFilter := "tag3:value3"
 	mr, err := newMappingRuleFromFields(
 		"bar",
-		rawFilters,
+		rawFilter,
 		[]policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(10*time.Second, xtime.Second, time.Hour), policy.DefaultAggregationID)},
 		UpdateMetadata{12345, 12345, "test_user"},
 	)
@@ -219,7 +212,7 @@ func TestNewMappingRuleFromFields(t *testing.T) {
 		tombstoned:   false,
 		cutoverNanos: 12345,
 		filter:       nil,
-		rawFilters:   rawFilters,
+		rawFilter:    rawFilter,
 		policies:     []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(10*time.Second, xtime.Second, time.Hour), policy.DefaultAggregationID)},
 	}
 
@@ -231,7 +224,7 @@ func TestNewMappingRuleFromFields(t *testing.T) {
 	require.False(t, mr.Tombstoned())
 	require.Len(t, mr.snapshots, 1)
 	require.Equal(t, mr.snapshots[0].cutoverNanos, expectedSnapshot.cutoverNanos)
-	require.Equal(t, mr.snapshots[0].rawFilters, expectedSnapshot.rawFilters)
+	require.Equal(t, mr.snapshots[0].rawFilter, expectedSnapshot.rawFilter)
 	require.Equal(t, mr.snapshots[0].policies, expectedSnapshot.policies)
 }
 
@@ -279,8 +272,8 @@ func TestMappingRuleSnapshotClone(t *testing.T) {
 	require.Equal(t, *s1, s1Clone)
 	require.False(t, s1 == &s1Clone)
 
-	s1Clone.rawFilters["blah"] = filters.FilterValue{Pattern: "foo"}
-	require.NotContains(t, s1.rawFilters, "blah")
+	s1Clone.rawFilter = "blah:foo"
+	require.NotEqual(t, s1.rawFilter, "blah:foo")
 
 	s1Clone.policies = append(s1Clone.policies, s1Clone.policies[0])
 	require.NotEqual(t, s1.policies, s1Clone.policies)
@@ -299,27 +292,21 @@ func TestMappingRuleHistory(t *testing.T) {
 
 	expectedViews := []*MappingRuleView{
 		&MappingRuleView{
-			ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
-			Name:         "bar",
-			CutoverNanos: 67890,
-			Tombstoned:   true,
-			Filters: filters.TagFilterValueMap{
-				"tag3": filters.FilterValue{Pattern: "value3"},
-				"tag4": filters.FilterValue{Pattern: "value4"},
-			},
+			ID:                 "12669817-13ae-40e6-ba2f-33087b262c68",
+			Name:               "bar",
+			CutoverNanos:       67890,
+			Tombstoned:         true,
+			Filter:             "tag3:value3 tag4:value4",
 			Policies:           []policy.Policy{p1, p2},
 			LastUpdatedAtNanos: 1234,
 			LastUpdatedBy:      "someone",
 		},
 		&MappingRuleView{
-			ID:           "12669817-13ae-40e6-ba2f-33087b262c68",
-			Name:         "foo",
-			CutoverNanos: 12345,
-			Tombstoned:   false,
-			Filters: filters.TagFilterValueMap{
-				"tag1": filters.FilterValue{Pattern: "value1"},
-				"tag2": filters.FilterValue{Pattern: "value2"},
-			},
+			ID:                 "12669817-13ae-40e6-ba2f-33087b262c68",
+			Name:               "foo",
+			CutoverNanos:       12345,
+			Tombstoned:         false,
+			Filter:             "tag1:value1 tag2:value2",
 			Policies:           []policy.Policy{p0},
 			LastUpdatedAtNanos: 1234,
 			LastUpdatedBy:      "someone",

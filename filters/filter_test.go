@@ -24,24 +24,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/m3db/m3metrics/generated/proto/schema"
-
 	"github.com/stretchr/testify/require"
 )
-
-func TestNewFilterValueFromSchemanNilSchema(t *testing.T) {
-	_, err := NewFilterValueFromSchema(nil)
-	require.Equal(t, errNilFilterValueSchema, err)
-}
-
-func TestNewFilterValueFromSchema(t *testing.T) {
-	fv, err := NewFilterValueFromSchema(&schema.FilterValue{
-		Pattern: "abcdef",
-		Negate:  true,
-	})
-	require.NoError(t, err)
-	require.Equal(t, FilterValue{Pattern: "abcdef", Negate: true}, fv)
-}
 
 func TestNewFilterFromFilterValueInvalidPattern(t *testing.T) {
 	inputs := []string{"ab]c[sdf", "abc[z-a]", "*con[tT]ains*"}

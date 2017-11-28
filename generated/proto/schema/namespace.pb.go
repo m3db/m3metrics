@@ -38,7 +38,6 @@ It has these top-level messages:
 	Retention
 	StoragePolicy
 	Policy
-	FilterValue
 	MappingRuleSnapshot
 	MappingRule
 	RollupTarget

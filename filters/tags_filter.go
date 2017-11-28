@@ -24,36 +24,73 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 
-	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/metric/id"
 )
+
+const (
+	// tagFilterListSeparator splits key:value pairs in a tag filter list.
+	tagFilterListSeparator = " "
+)
+
+var (
+	unknownFilterSeparator tagFilterSeparator
+
+	// negateFilterSeparator represents a separator indicating negation of filter pattern.
+	negateFilterSeparator = tagFilterSeparator{str: "!:", negate: true}
+
+	// defaultFilterSeparator represents the default filter separator with no negation.
+	defaultFilterSeparator = tagFilterSeparator{str: ":", negate: false}
+
+	// validFilterSeparators represent a list of valid filter separators.
+	// NB: the separators here are tried in order during parsing.
+	validFilterSeparators = []tagFilterSeparator{
+		negateFilterSeparator,
+		defaultFilterSeparator,
+	}
+)
+
+type tagFilterSeparator struct {
+	str    string
+	negate bool
+}
 
 // TagFilterValueMap is a map containing mappings from tag names to filter values.
 type TagFilterValueMap map[string]FilterValue
 
-// NewTagFilterValueMapFromSchema creates a tag filter value map from a given schema.
-func NewTagFilterValueMapFromSchema(
-	filterValues map[string]*schema.FilterValue,
-) (TagFilterValueMap, error) {
-	m := make(TagFilterValueMap, len(filterValues))
-	for name, value := range filterValues {
-		fv, err := NewFilterValueFromSchema(value)
+// ParseTagFilterValueMap parses the input string and creates a tag filter value map.
+func ParseTagFilterValueMap(str string) (TagFilterValueMap, error) {
+	trimmed := strings.TrimSpace(str)
+	tagPairs := strings.Split(trimmed, tagFilterListSeparator)
+	res := make(map[string]FilterValue, len(tagPairs))
+	for _, p := range tagPairs {
+		sanitized := strings.TrimSpace(p)
+		if sanitized == "" {
+			continue
+		}
+		parts, separator, err := parseTagFilter(sanitized)
 		if err != nil {
 			return nil, err
 		}
-		m[name] = fv
+		// NB: we do not allow duplicate tags at the moment.
+		_, exists := res[parts[0]]
+		if exists {
+			return nil, fmt.Errorf("invalid filter %s: duplicate tag %s found", str, parts[0])
+		}
+		res[parts[0]] = FilterValue{Pattern: parts[1], Negate: separator.negate}
 	}
-	return m, nil
+	return res, nil
 }
 
-// Schema returns a schema object created from the tag filter values map.
-func (m TagFilterValueMap) Schema() map[string]*schema.FilterValue {
-	sm := make(map[string]*schema.FilterValue, len(m))
-	for name, value := range m {
-		sm[name] = &schema.FilterValue{Pattern: value.Pattern, Negate: value.Negate}
+func parseTagFilter(str string) ([]string, tagFilterSeparator, error) {
+	for _, separator := range validFilterSeparators {
+		items := strings.Split(str, separator.str)
+		if len(items) == 2 {
+			return items, separator, nil
+		}
 	}
-	return sm
+	return nil, unknownFilterSeparator, fmt.Errorf("invalid filter %s: expecting tag pattern pairs", str)
 }
 
 // tagFilter is a filter associated with a given tag.

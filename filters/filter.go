@@ -24,12 +24,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
-	"github.com/m3db/m3metrics/generated/proto/schema"
 )
 
 var (
-	errNilFilterValueSchema                  = errors.New("nil filter value schema")
 	errInvalidFilterPattern                  = errors.New("invalid filter pattern defined")
 	allowAllFilter               filter      = allowFilter{}
 	singleAnyCharFilterForwards  chainFilter = &singleAnyCharFilter{backwards: false}
@@ -73,14 +70,6 @@ var (
 type FilterValue struct {
 	Pattern string
 	Negate  bool
-}
-
-// NewFilterValueFromSchema creates a new filter value from the filter value schema.
-func NewFilterValueFromSchema(v *schema.FilterValue) (FilterValue, error) {
-	if v == nil {
-		return FilterValue{}, errNilFilterValueSchema
-	}
-	return FilterValue{Pattern: v.Pattern, Negate: v.Negate}, nil
 }
 
 // Filter matches a string against certain conditions.
