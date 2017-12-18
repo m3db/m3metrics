@@ -32,6 +32,9 @@ import (
 type Validator interface {
 	// Validate validates a ruleset.
 	Validate(rs RuleSet) error
+
+	// ValidateSnapshot validates a ruleset snapshot.
+	ValidateSnapshot(snapshot *RuleSetSnapshot) error
 }
 
 type validator struct {
@@ -44,23 +47,30 @@ func NewValidator(opts ValidatorOptions) Validator {
 }
 
 func (v *validator) Validate(rs RuleSet) error {
-	if err := v.validate(rs); err != nil {
+	// Only the latest (a.k.a. the first) view needs to be validated
+	// because that is the view that may be invalid due to latest update.
+	latest, err := rs.Latest()
+	if err != nil {
+		return v.wrapError(fmt.Errorf("could not get the latest ruleset snapshot: %v", err))
+	}
+	return v.ValidateSnapshot(latest)
+}
+
+func (v *validator) ValidateSnapshot(snapshot *RuleSetSnapshot) error {
+	if snapshot == nil {
+		return nil
+	}
+	if err := v.validateSnapshot(snapshot); err != nil {
 		return v.wrapError(err)
 	}
 	return nil
 }
 
-func (v *validator) validate(rs RuleSet) error {
-	// Only the latest (a.k.a. the first) view needs to be validated
-	// because that is the view that may be invalid due to latest update.
-	latest, err := rs.Latest()
-	if err != nil {
-		return fmt.Errorf("could not get the latest ruleset snapshot: %v", err)
-	}
-	if err := v.validateMappingRules(latest.MappingRules); err != nil {
+func (v *validator) validateSnapshot(snapshot *RuleSetSnapshot) error {
+	if err := v.validateMappingRules(snapshot.MappingRules); err != nil {
 		return err
 	}
-	return v.validateRollupRules(latest.RollupRules)
+	return v.validateRollupRules(snapshot.RollupRules)
 }
 
 func (v *validator) validateMappingRules(mrv map[string]*MappingRuleView) error {
