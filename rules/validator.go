@@ -182,10 +182,21 @@ func (v *validator) validateFilter(ruleName string, f string) (filters.TagFilter
 }
 
 func (v *validator) validatePolicies(ruleName string, policies []policy.Policy, types []metric.Type) error {
+	// Validating that at least one policy is provided.
 	if len(policies) == 0 {
 		return fmt.Errorf("rule %s has no policies", ruleName)
 	}
 
+	// Validating that no duplicate policies exist.
+	seen := make(map[policy.Policy]struct{}, len(policies))
+	for _, p := range policies {
+		if _, exists := seen[p]; exists {
+			return fmt.Errorf("rule %s has duplicate policy %s, provided policies are %v", ruleName, p.String(), policies)
+		}
+		seen[p] = struct{}{}
+	}
+
+	// Validating that provided policies are allowed for the specified metric type.
 	for _, t := range types {
 		for _, p := range policies {
 			if err := v.validatePolicy(t, p); err != nil {
@@ -204,14 +215,19 @@ func (v *validator) validateRollupTags(ruleName string, tags []string) error {
 		}
 	}
 
+	// Validating that there are no duplicate rollup tags.
+	rollupTags := make(map[string]struct{}, len(tags))
+	for _, tag := range tags {
+		if _, exists := rollupTags[tag]; exists {
+			return fmt.Errorf("rollup rule %s has duplicate rollup tag: %s, provided rollup tags are %v", ruleName, tag, tags)
+		}
+		rollupTags[tag] = struct{}{}
+	}
+
 	// Validating the list of rollup tags in the rule contain all required tags.
 	requiredTags := v.opts.RequiredRollupTags()
 	if len(requiredTags) == 0 {
 		return nil
-	}
-	rollupTags := make(map[string]struct{}, len(tags))
-	for _, tag := range tags {
-		rollupTags[tag] = struct{}{}
 	}
 	for _, requiredTag := range requiredTags {
 		if _, exists := rollupTags[requiredTag]; !exists {
