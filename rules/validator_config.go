@@ -9,8 +9,8 @@ import (
 // ValidationConfiguration is the configuration for rules validation.
 type ValidationConfiguration struct {
 	RequiredRollupTags     []string                           `yaml:"requiredRollupTags"`
-	MetricTypes            MetricTypesValidationConfiguration `yaml:"metricTypes"`
-	Policies               PoliciesValidationConfiguration    `yaml:"policies"`
+	MetricTypes            metricTypesValidationConfiguration `yaml:"metricTypes"`
+	Policies               policiesValidationConfiguration    `yaml:"policies"`
 	TagNameInvalidChars    string                             `yaml:"tagNameInvalidChars"`
 	MetricNameInvalidChars string                             `yaml:"metricNameInvalidChars"`
 }
@@ -32,8 +32,8 @@ func (c ValidationConfiguration) NewValidator() Validator {
 	return NewValidator(opts)
 }
 
-// MetricTypesValidationConfiguration is th configuration for metric types validation.
-type MetricTypesValidationConfiguration struct {
+// metricTypesValidationConfiguration is th configuration for metric types validation.
+type metricTypesValidationConfiguration struct {
 	// Metric type tag.
 	TypeTag string `yaml:"typeTag"`
 
@@ -42,7 +42,7 @@ type MetricTypesValidationConfiguration struct {
 }
 
 // NewMetricTypesFn creates a new metric types fn from the given configuration.
-func (c MetricTypesValidationConfiguration) NewMetricTypesFn() MetricTypesFn {
+func (c metricTypesValidationConfiguration) NewMetricTypesFn() MetricTypesFn {
 	return func(tagFilters filters.TagFilterValueMap) ([]metric.Type, error) {
 		allowed := make([]metric.Type, 0, len(c.Allowed))
 		filterValue, exists := tagFilters[c.TypeTag]
@@ -64,23 +64,23 @@ func (c MetricTypesValidationConfiguration) NewMetricTypesFn() MetricTypesFn {
 	}
 }
 
-// PoliciesValidationConfiguration is the configuration for policies validation.
-type PoliciesValidationConfiguration struct {
+// policiesValidationConfiguration is the configuration for policies validation.
+type policiesValidationConfiguration struct {
 	// DefaultAllowed defines the policies allowed by default.
-	DefaultAllowed PoliciesConfiguration `yaml:"defaultAllowed"`
+	DefaultAllowed policiesConfiguration `yaml:"defaultAllowed"`
 
 	// Overrides define the metric type specific policy overrides.
-	Overrides []PoliciesOverrideConfiguration `yaml:"overrides"`
+	Overrides []policiesOverrideConfiguration `yaml:"overrides"`
 }
 
-// PoliciesOverrideConfiguration is the configuration for metric type specific policy overrides.
-type PoliciesOverrideConfiguration struct {
+// policiesOverrideConfiguration is the configuration for metric type specific policy overrides.
+type policiesOverrideConfiguration struct {
 	Type    metric.Type           `yaml:"type"`
-	Allowed PoliciesConfiguration `yaml:"allowed"`
+	Allowed policiesConfiguration `yaml:"allowed"`
 }
 
-// PoliciesConfiguration is the configuration for storage policies and aggregation types.
-type PoliciesConfiguration struct {
+// policiesConfiguration is the configuration for storage policies and aggregation types.
+type policiesConfiguration struct {
 	StoragePolicies  []policy.StoragePolicy   `yaml:"storagePolicies"`
 	AggregationTypes []policy.AggregationType `yaml:"aggregationTypes"`
 }
