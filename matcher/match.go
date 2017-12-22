@@ -57,7 +57,7 @@ func NewMatcher(cache Cache, opts Options) (Matcher, error) {
 			cache.Unregister(namespace)
 		}).
 		SetOnRuleSetUpdatedFn(func(namespace []byte, ruleSet RuleSet) {
-			cache.Register(namespace, ruleSet)
+			cache.Update(namespace, ruleSet)
 		})
 	key := opts.NamespacesKey()
 	namespaces := NewNamespaces(key, namespacesOpts)

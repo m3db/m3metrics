@@ -22,6 +22,7 @@ package matcher
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -268,10 +269,24 @@ func (c *memCache) Register(namespace []byte, source Source) {
 			results: make(map[string]rules.MatchResult),
 			source:  source,
 		}
-	} else {
-		results.source = source
+		c.namespaces[string(namespace)] = results
+		return
 	}
-	c.namespaces[string(namespace)] = results
+	panic(fmt.Errorf("re-registering existing namespace %s", namespace))
+}
+
+func (c *memCache) Update(namespace []byte, source Source) {
+	c.Lock()
+	defer c.Unlock()
+
+	results, exists := c.namespaces[string(namespace)]
+	if !exists || results.source != source {
+		return
+	}
+	c.namespaces[string(namespace)] = memResults{
+		results: make(map[string]rules.MatchResult),
+		source:  source,
+	}
 }
 
 func (c *memCache) Unregister(namespace []byte) {

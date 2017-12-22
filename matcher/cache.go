@@ -35,8 +35,11 @@ type Cache interface {
 	// between [fromNanos, toNanos).
 	ForwardMatch(namespace, id []byte, fromNanos, toNanos int64) rules.MatchResult
 
-	// Register sets the result source for a given namespace.
+	// Register sets the source for a given namespace.
 	Register(namespace []byte, source Source)
+
+	// Update updates the source for a given namespace.
+	Update(namespace []byte, source Source)
 
 	// Unregister deletes the cached results for a given namespace.
 	Unregister(namespace []byte)

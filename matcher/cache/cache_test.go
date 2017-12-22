@@ -416,6 +416,60 @@ func TestCacheRegisterNamespaceExists(t *testing.T) {
 	require.Equal(t, source, c.namespaces[nsHash].source)
 }
 
+func TestCacheUpdateNamespaceDoesNotExist(t *testing.T) {
+	opts := testCacheOptions()
+	c := NewCache(opts).(*cache)
+	require.Equal(t, 0, len(c.namespaces))
+
+	var (
+		ns     = []byte("ns")
+		source = newMockSource()
+	)
+	c.Update(ns, source)
+	require.Equal(t, 0, len(c.namespaces))
+}
+
+func TestCacheUpdateStaleSource(t *testing.T) {
+	opts := testCacheOptions()
+	c := NewCache(opts).(*cache)
+	require.Equal(t, 0, len(c.namespaces))
+
+	var (
+		ns      = []byte("ns")
+		nsHash  = xid.HashFn(ns)
+		source1 = newMockSource()
+		source2 = newMockSource()
+	)
+	c.Register(ns, source1)
+	require.Equal(t, 1, len(c.namespaces))
+
+	c.Update(ns, source2)
+	require.Equal(t, 1, len(c.namespaces))
+	require.Equal(t, source1, c.namespaces[nsHash].source)
+}
+
+func TestCacheUpdateSuccess(t *testing.T) {
+	opts := testCacheOptions()
+	c := NewCache(opts).(*cache)
+	now := time.Now()
+	c.nowFn = func() time.Time { return now }
+
+	var (
+		ns     = testValues[0].namespace
+		nsHash = xid.HashFn(ns)
+		src    = newMockSource()
+	)
+	populateCache(c, []testValue{testValues[0]}, now, src, populateBoth)
+	require.Equal(t, 1, len(c.namespaces))
+	require.Equal(t, 1, len(c.namespaces[nsHash].elems))
+	require.Equal(t, src, c.namespaces[nsHash].source)
+
+	c.Update(ns, src)
+	require.Equal(t, 1, len(c.namespaces))
+	require.Equal(t, 0, len(c.namespaces[nsHash].elems))
+	require.Equal(t, src, c.namespaces[nsHash].source)
+}
+
 func TestCacheUnregisterNamespaceDoesNotExist(t *testing.T) {
 	opts := testCacheOptions()
 	c := NewCache(opts).(*cache)

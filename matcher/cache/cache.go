@@ -64,26 +64,36 @@ func newResults(source matcher.Source) results {
 }
 
 type cacheMetrics struct {
-	hits        tally.Counter
-	misses      tally.Counter
-	expires     tally.Counter
-	registers   tally.Counter
-	unregisters tally.Counter
-	promotions  tally.Counter
-	evictions   tally.Counter
-	deletions   tally.Counter
+	hits                tally.Counter
+	misses              tally.Counter
+	expires             tally.Counter
+	registers           tally.Counter
+	registerExists      tally.Counter
+	updates             tally.Counter
+	updateNotExists     tally.Counter
+	updateStaleSource   tally.Counter
+	unregisters         tally.Counter
+	unregisterNotExists tally.Counter
+	promotions          tally.Counter
+	evictions           tally.Counter
+	deletions           tally.Counter
 }
 
 func newCacheMetrics(scope tally.Scope) cacheMetrics {
 	return cacheMetrics{
-		hits:        scope.Counter("hits"),
-		misses:      scope.Counter("misses"),
-		expires:     scope.Counter("expires"),
-		registers:   scope.Counter("registers"),
-		unregisters: scope.Counter("unregisters"),
-		promotions:  scope.Counter("promotions"),
-		evictions:   scope.Counter("evictions"),
-		deletions:   scope.Counter("deletions"),
+		hits:                scope.Counter("hits"),
+		misses:              scope.Counter("misses"),
+		expires:             scope.Counter("expires"),
+		registers:           scope.Counter("registers"),
+		registerExists:      scope.Counter("register-exists"),
+		updates:             scope.Counter("updates"),
+		updateNotExists:     scope.Counter("update-not-exists"),
+		updateStaleSource:   scope.Counter("update-stale-source"),
+		unregisters:         scope.Counter("unregisters"),
+		unregisterNotExists: scope.Counter("unregister-not-exists"),
+		promotions:          scope.Counter("promotions"),
+		evictions:           scope.Counter("evictions"),
+		deletions:           scope.Counter("deletions"),
 	}
 }
 
@@ -155,34 +165,55 @@ func (c *cache) ForwardMatch(namespace, id []byte, fromNanos, toNanos int64) rul
 
 func (c *cache) Register(namespace []byte, source matcher.Source) {
 	c.Lock()
+	defer c.Unlock()
+
+	nsHash := xid.HashFn(namespace)
+	if results, exist := c.namespaces[nsHash]; !exist {
+		c.namespaces[nsHash] = newResults(source)
+		c.metrics.registers.Inc(1)
+	} else {
+		c.updateWithLock(nsHash, source, results)
+		c.metrics.registerExists.Inc(1)
+	}
+}
+
+func (c *cache) Update(namespace []byte, source matcher.Source) {
+	c.Lock()
+	defer c.Unlock()
+
 	nsHash := xid.HashFn(namespace)
 	results, exist := c.namespaces[nsHash]
+	// NB: The namespace does not exist yet. This could happen if the source update came
+	// before its namespace is registered. It is safe to ignore this premature update
+	// because the namespace will eventually register itself and refreshes the cache.
 	if !exist {
-		results = newResults(source)
-	} else {
-		// Invalidate existing cached results.
-		c.toDelete = append(c.toDelete, results.elems)
-		c.notifyDeletion()
-		results.source = source
-		results.elems = make(elemMap)
+		c.metrics.updateNotExists.Inc(1)
+		return
 	}
-	c.namespaces[nsHash] = results
-	c.Unlock()
-	c.metrics.registers.Inc(1)
+	// NB: The source to update is different from what's stored in the cache. This could
+	// happen if the namespace is changed, removed, and then revived before the rule change
+	// could be processed. It is safe to ignore this stale update because the last rule
+	// change update will eventually be processed and the cache will be refreshed.
+	if results.source != source {
+		c.metrics.updateStaleSource.Inc(1)
+		return
+	}
+	c.updateWithLock(nsHash, source, results)
+	c.metrics.updates.Inc(1)
 }
 
 func (c *cache) Unregister(namespace []byte) {
 	c.Lock()
+	defer c.Unlock()
+
 	nsHash := xid.HashFn(namespace)
 	results, exists := c.namespaces[nsHash]
 	if !exists {
-		c.Unlock()
+		c.metrics.unregisterNotExists.Inc(1)
 		return
 	}
 	delete(c.namespaces, nsHash)
 	c.toDelete = append(c.toDelete, results.elems)
-	c.Unlock()
-
 	c.notifyDeletion()
 	c.metrics.unregisters.Inc(1)
 }
@@ -274,6 +305,16 @@ func (c *cache) setWithLock(
 	}
 	c.metrics.misses.Inc(1)
 	return res
+}
+
+// updateWithLock clears the existing cached results for namespace nsHash
+// and associates the namespace results with a new source.
+func (c *cache) updateWithLock(nsHash xid.Hash, source matcher.Source, results results) {
+	c.toDelete = append(c.toDelete, results.elems)
+	c.notifyDeletion()
+	results.source = source
+	results.elems = make(elemMap)
+	c.namespaces[nsHash] = results
 }
 
 func (c *cache) add(elem *element) int {
