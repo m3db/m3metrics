@@ -26,7 +26,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/m3db/m3metrics/matcher"
 	"github.com/m3db/m3metrics/rules"
 	"github.com/m3db/m3x/clock"
 	xid "github.com/m3db/m3x/id"
@@ -43,6 +42,32 @@ var (
 	errCacheClosed = errors.New("cache is already closed")
 )
 
+// Source is a datasource providing match results.
+type Source interface {
+	// ForwardMatch returns the match result for a given id within time range
+	// [fromNanos, toNanos).
+	ForwardMatch(id []byte, fromNanos, toNanos int64) rules.MatchResult
+}
+
+// Cache caches the rule matching result associated with metrics.
+type Cache interface {
+	// ForwardMatch returns the rule matching result associated with a metric id
+	// between [fromNanos, toNanos).
+	ForwardMatch(namespace, id []byte, fromNanos, toNanos int64) rules.MatchResult
+
+	// Register sets the source for a given namespace.
+	Register(namespace []byte, source Source)
+
+	// Refresh clears the cached results for the given source for a given namespace.
+	Refresh(namespace []byte, source Source)
+
+	// Unregister deletes the cached results for a given namespace.
+	Unregister(namespace []byte)
+
+	// Close closes the cache.
+	Close() error
+}
+
 type setType int
 
 const (
@@ -56,10 +81,10 @@ type elemMap map[xid.Hash]*element
 
 type results struct {
 	elems  elemMap
-	source matcher.Source
+	source Source
 }
 
-func newResults(source matcher.Source) results {
+func newResults(source Source) results {
 	return results{elems: make(elemMap), source: source}
 }
 
@@ -122,7 +147,7 @@ type cache struct {
 }
 
 // NewCache creates a new cache.
-func NewCache(opts Options) matcher.Cache {
+func NewCache(opts Options) Cache {
 	clockOpts := opts.ClockOptions()
 	instrumentOpts := opts.InstrumentOptions()
 	c := &cache{
@@ -163,7 +188,7 @@ func (c *cache) ForwardMatch(namespace, id []byte, fromNanos, toNanos int64) rul
 	return res
 }
 
-func (c *cache) Register(namespace []byte, source matcher.Source) {
+func (c *cache) Register(namespace []byte, source Source) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -172,12 +197,12 @@ func (c *cache) Register(namespace []byte, source matcher.Source) {
 		c.namespaces[nsHash] = newResults(source)
 		c.metrics.registers.Inc(1)
 	} else {
-		c.updateWithLock(nsHash, source, results)
+		c.refreshWithLock(nsHash, source, results)
 		c.metrics.registerExists.Inc(1)
 	}
 }
 
-func (c *cache) Update(namespace []byte, source matcher.Source) {
+func (c *cache) Refresh(namespace []byte, source Source) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -198,7 +223,7 @@ func (c *cache) Update(namespace []byte, source matcher.Source) {
 		c.metrics.updateStaleSource.Inc(1)
 		return
 	}
-	c.updateWithLock(nsHash, source, results)
+	c.refreshWithLock(nsHash, source, results)
 	c.metrics.updates.Inc(1)
 }
 
@@ -307,9 +332,9 @@ func (c *cache) setWithLock(
 	return res
 }
 
-// updateWithLock clears the existing cached results for namespace nsHash
+// refreshWithLock clears the existing cached results for namespace nsHash
 // and associates the namespace results with a new source.
-func (c *cache) updateWithLock(nsHash xid.Hash, source matcher.Source, results results) {
+func (c *cache) refreshWithLock(nsHash xid.Hash, source Source, results results) {
 	c.toDelete = append(c.toDelete, results.elems)
 	c.notifyDeletion()
 	results.source = source

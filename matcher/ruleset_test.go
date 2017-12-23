@@ -28,6 +28,7 @@ import (
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/generated/proto/schema"
+	"github.com/m3db/m3metrics/matcher/cache"
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules"
@@ -267,14 +268,14 @@ func (r *mockRuleSet) RollupRules() (rules.RollupRules, error)   { return nil, n
 func (r *mockRuleSet) Latest() (*rules.RuleSetSnapshot, error)   { return nil, nil }
 func (r *mockRuleSet) Validate(rules.Validator) error            { return nil }
 
-func testRuleSet() (kv.Store, Cache, *ruleSet) {
+func testRuleSet() (kv.Store, cache.Cache, *ruleSet) {
 	store := mem.NewStore()
 	cache := newMemCache()
 	opts := NewOptions().
 		SetInitWatchTimeout(100 * time.Millisecond).
 		SetKVStore(store).
 		SetRuleSetKeyFn(func(ns []byte) string { return fmt.Sprintf("/rules/%s", ns) }).
-		SetOnRuleSetUpdatedFn(func(namespace []byte, ruleSet RuleSet) { cache.Update(namespace, ruleSet) }).
+		SetOnRuleSetUpdatedFn(func(namespace []byte, ruleSet RuleSet) { cache.Refresh(namespace, ruleSet) }).
 		SetMatchRangePast(0)
 	return store, cache, newRuleSet(testNamespace, testNamespacesKey, opts).(*ruleSet)
 }

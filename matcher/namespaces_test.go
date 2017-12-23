@@ -31,6 +31,7 @@ import (
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/generated/proto/schema"
+	"github.com/m3db/m3metrics/matcher/cache"
 	"github.com/m3db/m3metrics/rules"
 	xid "github.com/m3db/m3x/id"
 
@@ -215,7 +216,7 @@ func TestNamespacesProcess(t *testing.T) {
 	}
 }
 
-func testNamespaces() (kv.Store, Cache, *namespaces, Options) {
+func testNamespaces() (kv.Store, cache.Cache, *namespaces, Options) {
 	store := mem.NewStore()
 	cache := newMemCache()
 	opts := NewOptions().
@@ -237,7 +238,7 @@ func testNamespaces() (kv.Store, Cache, *namespaces, Options) {
 
 type memResults struct {
 	results map[string]rules.MatchResult
-	source  Source
+	source  cache.Source
 }
 
 type memCache struct {
@@ -246,7 +247,7 @@ type memCache struct {
 	namespaces map[string]memResults
 }
 
-func newMemCache() Cache {
+func newMemCache() cache.Cache {
 	return &memCache{namespaces: make(map[string]memResults)}
 }
 
@@ -259,7 +260,7 @@ func (c *memCache) ForwardMatch(namespace, id []byte, fromNanos, toNanos int64) 
 	return rules.EmptyMatchResult
 }
 
-func (c *memCache) Register(namespace []byte, source Source) {
+func (c *memCache) Register(namespace []byte, source cache.Source) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -275,7 +276,7 @@ func (c *memCache) Register(namespace []byte, source Source) {
 	panic(fmt.Errorf("re-registering existing namespace %s", namespace))
 }
 
-func (c *memCache) Update(namespace []byte, source Source) {
+func (c *memCache) Refresh(namespace []byte, source cache.Source) {
 	c.Lock()
 	defer c.Unlock()
 

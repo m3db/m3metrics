@@ -28,7 +28,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3metrics/matcher"
 	"github.com/m3db/m3metrics/rules"
 	"github.com/m3db/m3x/clock"
 	xid "github.com/m3db/m3x/id"
@@ -416,7 +415,7 @@ func TestCacheRegisterNamespaceExists(t *testing.T) {
 	require.Equal(t, source, c.namespaces[nsHash].source)
 }
 
-func TestCacheUpdateNamespaceDoesNotExist(t *testing.T) {
+func TestCacheRefreshNamespaceDoesNotExist(t *testing.T) {
 	opts := testCacheOptions()
 	c := NewCache(opts).(*cache)
 	require.Equal(t, 0, len(c.namespaces))
@@ -425,11 +424,11 @@ func TestCacheUpdateNamespaceDoesNotExist(t *testing.T) {
 		ns     = []byte("ns")
 		source = newMockSource()
 	)
-	c.Update(ns, source)
+	c.Refresh(ns, source)
 	require.Equal(t, 0, len(c.namespaces))
 }
 
-func TestCacheUpdateStaleSource(t *testing.T) {
+func TestCacheRefreshStaleSource(t *testing.T) {
 	opts := testCacheOptions()
 	c := NewCache(opts).(*cache)
 	require.Equal(t, 0, len(c.namespaces))
@@ -443,12 +442,12 @@ func TestCacheUpdateStaleSource(t *testing.T) {
 	c.Register(ns, source1)
 	require.Equal(t, 1, len(c.namespaces))
 
-	c.Update(ns, source2)
+	c.Refresh(ns, source2)
 	require.Equal(t, 1, len(c.namespaces))
 	require.Equal(t, source1, c.namespaces[nsHash].source)
 }
 
-func TestCacheUpdateSuccess(t *testing.T) {
+func TestCacheRefreshSuccess(t *testing.T) {
 	opts := testCacheOptions()
 	c := NewCache(opts).(*cache)
 	now := time.Now()
@@ -464,7 +463,7 @@ func TestCacheUpdateSuccess(t *testing.T) {
 	require.Equal(t, 1, len(c.namespaces[nsHash].elems))
 	require.Equal(t, src, c.namespaces[nsHash].source)
 
-	c.Update(ns, src)
+	c.Refresh(ns, src)
 	require.Equal(t, 1, len(c.namespaces))
 	require.Equal(t, 0, len(c.namespaces[nsHash].elems))
 	require.Equal(t, src, c.namespaces[nsHash].source)
@@ -665,7 +664,7 @@ func populateCache(
 	source *mockSource,
 	mode populationMode,
 ) {
-	var resultSource matcher.Source
+	var resultSource Source
 	if source != nil {
 		resultSource = source
 	}
