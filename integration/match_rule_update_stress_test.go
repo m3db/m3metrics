@@ -104,7 +104,7 @@ func TestMatchWithRuleUpdatesStress(t *testing.T) {
 		},
 		{
 			idFn: func(i int) id.ID {
-				return m3.NewID([]byte(fmt.Sprintf("m3+matchmapping%d+namespace=stress,rtagName1=rtagValue1", i)), iterPool)
+				return m3.NewID([]byte(fmt.Sprintf("m3+matchrollup%d+namespace=stress,rtagName1=rtagValue1", i)), iterPool)
 			},
 			fromNanos: 2000,
 			toNanos:   math.MaxInt64,
@@ -132,7 +132,7 @@ func TestMatchWithRuleUpdatesStress(t *testing.T) {
 		},
 		{
 			idFn: func(i int) id.ID {
-				return m3.NewID([]byte(fmt.Sprintf("m3+matchmapping%d+mtagName1=mtagValue1,namespace=stress,rtagName1=rtagValue1", i)), iterPool)
+				return m3.NewID([]byte(fmt.Sprintf("m3+matchmappingrollup%d+mtagName1=mtagValue1,namespace=stress,rtagName1=rtagValue1", i)), iterPool)
 			},
 			fromNanos: 2000,
 			toNanos:   math.MaxInt64,
