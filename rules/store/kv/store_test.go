@@ -16,9 +16,9 @@
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE
+// THE SOFTWARE.
 
-package rules
+package kv
 
 import (
 	"fmt"
@@ -27,6 +27,8 @@ import (
 
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/generated/proto/schema"
+	"github.com/m3db/m3metrics/rules"
+	rstore "github.com/m3db/m3metrics/rules/store"
 
 	"github.com/stretchr/testify/require"
 )
@@ -398,10 +400,8 @@ func TestWrite(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	mutable, err := newMutableRuleSetFromSchema(0, testRuleSet)
-	require.NoError(t, err)
-
-	namespaces, err := NewNamespaces(0, testNamespaces)
+	mutable := newMutableRuleSetFromSchema(t, 0, testRuleSet)
+	namespaces, err := rules.NewNamespaces(0, testNamespaces)
 	require.NoError(t, err)
 
 	err = s.WriteAll(&namespaces, mutable)
@@ -431,18 +431,16 @@ func TestWriteErrorAll(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	mutable, err := newMutableRuleSetFromSchema(1, testRuleSet)
-	require.NoError(t, err)
-
-	namespaces, err := NewNamespaces(0, testNamespaces)
+	mutable := newMutableRuleSetFromSchema(t, 1, testRuleSet)
+	namespaces, err := rules.NewNamespaces(0, testNamespaces)
 	require.NoError(t, err)
 
 	type dataPair struct {
-		nss *Namespaces
-		rs  MutableRuleSet
+		nss *rules.Namespaces
+		rs  rules.MutableRuleSet
 	}
 
-	otherNss, err := NewNamespaces(1, testNamespaces)
+	otherNss, err := rules.NewNamespaces(1, testNamespaces)
 	require.NoError(t, err)
 
 	badPairs := []dataPair{
@@ -475,10 +473,8 @@ func TestWriteErrorRuleSet(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	mutable, err := newMutableRuleSetFromSchema(1, testRuleSet)
-	require.NoError(t, err)
-
-	badRuleSets := []MutableRuleSet{mutable, nil}
+	mutable := newMutableRuleSetFromSchema(t, 1, testRuleSet)
+	badRuleSets := []rules.MutableRuleSet{mutable, nil}
 	for _, rs := range badRuleSets {
 		err = s.WriteRuleSet(rs)
 		require.Error(t, err)
@@ -502,10 +498,8 @@ func TestWriteNoNamespace(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	mutable, err := newMutableRuleSetFromSchema(0, testRuleSet)
-	require.NoError(t, err)
-
-	namespaces, err := NewNamespaces(0, testNamespaces)
+	mutable := newMutableRuleSetFromSchema(t, 0, testRuleSet)
+	namespaces, err := rules.NewNamespaces(0, testNamespaces)
 	require.NoError(t, err)
 
 	err = s.WriteAll(&namespaces, mutable)
@@ -528,8 +522,20 @@ func TestWriteNoNamespace(t *testing.T) {
 	require.Equal(t, rs.Version(), 2)
 }
 
-func testStore() Store {
+func testStore() rstore.Store {
 	opts := NewStoreOptions(testNamespaceKey, testRuleSetKeyFmt, nil)
 	kvStore := mem.NewStore()
 	return NewStore(kvStore, opts)
+}
+
+// newMutableRuleSetFromSchema creates a new MutableRuleSet from a schema object.
+func newMutableRuleSetFromSchema(
+	t *testing.T,
+	version int,
+	rs *schema.RuleSet,
+) rules.MutableRuleSet {
+	// Takes a blank Options stuct because none of the mutation functions need the options.
+	roRuleSet, err := rules.NewRuleSetFromSchema(version, rs, rules.NewOptions())
+	require.NoError(t, err)
+	return roRuleSet.ToMutableRuleSet()
 }

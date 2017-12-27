@@ -20,17 +20,19 @@
 
 package rules
 
-// RuleConflictError is returned when a rule modification is made that would
-// result in a conflict with the existing set of rules in the ruleset.
-type RuleConflictError string
+import "github.com/m3db/m3metrics/rules"
 
-// NewRuleConflictError creates a new rule conflict error.
-func NewRuleConflictError(str string) error { return RuleConflictError(str) }
-func (e RuleConflictError) Error() string   { return string(e) }
+// Store performs read/write operations for rules and namespaces.
+type Store interface {
+	// WriteRuleSet saves the given ruleset to the backing store.
+	WriteRuleSet(rs rules.MutableRuleSet) error
 
-// ValidationError is returned when validation failed for a ruleset.
-type ValidationError string
+	// WriteAll saves both the given ruleset and namespace to the backing store.
+	WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error
 
-// NewValidationError creates a new validation error.
-func NewValidationError(str string) error { return ValidationError(str) }
-func (e ValidationError) Error() string   { return string(e) }
+	// ReadNamespaces returns the persisted namespaces in kv store.
+	ReadNamespaces() (*rules.Namespaces, error)
+
+	// ReadRuleSet returns the persisted ruleset in kv store.
+	ReadRuleSet(nsName string) (rules.RuleSet, error)
+}

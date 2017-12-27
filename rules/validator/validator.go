@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rules
+package validator
 
 import (
 	"fmt"
@@ -26,27 +26,19 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules"
 )
 
-// Validator validates a ruleset.
-type Validator interface {
-	// Validate validates a ruleset.
-	Validate(rs RuleSet) error
-
-	// ValidateSnapshot validates a ruleset snapshot.
-	ValidateSnapshot(snapshot *RuleSetSnapshot) error
-}
-
 type validator struct {
-	opts ValidatorOptions
+	opts Options
 }
 
 // NewValidator creates a new validator.
-func NewValidator(opts ValidatorOptions) Validator {
+func NewValidator(opts Options) Validator {
 	return &validator{opts: opts}
 }
 
-func (v *validator) Validate(rs RuleSet) error {
+func (v *validator) Validate(rs rules.RuleSet) error {
 	// Only the latest (a.k.a. the first) view needs to be validated
 	// because that is the view that may be invalid due to latest update.
 	latest, err := rs.Latest()
@@ -56,7 +48,7 @@ func (v *validator) Validate(rs RuleSet) error {
 	return v.ValidateSnapshot(latest)
 }
 
-func (v *validator) ValidateSnapshot(snapshot *RuleSetSnapshot) error {
+func (v *validator) ValidateSnapshot(snapshot *rules.RuleSetSnapshot) error {
 	if snapshot == nil {
 		return nil
 	}
@@ -66,14 +58,14 @@ func (v *validator) ValidateSnapshot(snapshot *RuleSetSnapshot) error {
 	return nil
 }
 
-func (v *validator) validateSnapshot(snapshot *RuleSetSnapshot) error {
+func (v *validator) validateSnapshot(snapshot *rules.RuleSetSnapshot) error {
 	if err := v.validateMappingRules(snapshot.MappingRules); err != nil {
 		return err
 	}
 	return v.validateRollupRules(snapshot.RollupRules)
 }
 
-func (v *validator) validateMappingRules(mrv map[string]*MappingRuleView) error {
+func (v *validator) validateMappingRules(mrv map[string]*rules.MappingRuleView) error {
 	namesSeen := make(map[string]struct{}, len(mrv))
 	for _, view := range mrv {
 		// Validate that no rules with the same name exist.
@@ -105,10 +97,10 @@ func (v *validator) validateMappingRules(mrv map[string]*MappingRuleView) error 
 	return nil
 }
 
-func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
+func (v *validator) validateRollupRules(rrv map[string]*rules.RollupRuleView) error {
 	var (
 		namesSeen   = make(map[string]struct{}, len(rrv))
-		targetsSeen = make([]RollupTarget, 0, len(rrv))
+		targetsSeen = make([]rules.RollupTarget, 0, len(rrv))
 	)
 	for _, view := range rrv {
 		// Validate that no rules with the same name exist.
@@ -149,9 +141,9 @@ func (v *validator) validateRollupRules(rrv map[string]*RollupRuleView) error {
 			}
 
 			// Validate that there are no conflicting rollup targets.
-			current := target.rollupTarget()
+			current := target.RollupTarget()
 			for _, seenTarget := range targetsSeen {
-				if current.sameTransform(seenTarget) {
+				if current.SameTransform(seenTarget) {
 					return NewRuleConflictError(fmt.Sprintf("rollup target with name %s and tags %s already exists", current.Name, current.Tags))
 				}
 			}

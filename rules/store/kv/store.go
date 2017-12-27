@@ -16,9 +16,9 @@
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE
+// THE SOFTWARE.
 
-package rules
+package kv
 
 import (
 	"errors"
@@ -26,6 +26,8 @@ import (
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/generated/proto/schema"
+	"github.com/m3db/m3metrics/rules"
+	rstore "github.com/m3db/m3metrics/rules/store"
 )
 
 var (
@@ -33,52 +35,17 @@ var (
 	errNilNamespaces = errors.New("nil namespaces")
 )
 
-// Store facilitates read/write operations to the backing kv store.
-type Store interface {
-	// WriteRuleSet saves the given ruleset to the backing store.
-	WriteRuleSet(MutableRuleSet) error
-
-	// WriteAll saves both the given ruleset and namespace to the backing store.
-	WriteAll(*Namespaces, MutableRuleSet) error
-
-	// ReadNamespaces returns the version and the persisted namespaces in kv store.
-	ReadNamespaces() (*Namespaces, error)
-
-	// ReadRuleSet returns the version and the persisted ruleset data in kv store.
-	ReadRuleSet(namespaceName string) (RuleSet, error)
-}
-
-// StoreOptions is a configuration for the rules r/w store.
-type StoreOptions struct {
-	NamespacesKey string
-	RuleSetKeyFmt string
-	Validator     Validator
-}
-
-// NewStoreOptions creates a new store options struct.
-func NewStoreOptions(
-	namespacesKey string,
-	rulesetKeyFmt string,
-	validator Validator,
-) StoreOptions {
-	return StoreOptions{
-		NamespacesKey: namespacesKey,
-		RuleSetKeyFmt: rulesetKeyFmt,
-		Validator:     validator,
-	}
-}
-
 type store struct {
 	kvStore kv.TxnStore
 	opts    StoreOptions
 }
 
 // NewStore creates a new Store.
-func NewStore(kvStore kv.TxnStore, opts StoreOptions) Store {
+func NewStore(kvStore kv.TxnStore, opts StoreOptions) rstore.Store {
 	return store{kvStore: kvStore, opts: opts}
 }
 
-func (s store) ReadNamespaces() (*Namespaces, error) {
+func (s store) ReadNamespaces() (*rules.Namespaces, error) {
 	value, err := s.kvStore.Get(s.opts.NamespacesKey)
 	if err != nil {
 		return nil, err
@@ -90,14 +57,14 @@ func (s store) ReadNamespaces() (*Namespaces, error) {
 		return nil, err
 	}
 
-	nss, err := NewNamespaces(version, &namespaces)
+	nss, err := rules.NewNamespaces(version, &namespaces)
 	if err != nil {
 		return nil, err
 	}
 	return &nss, err
 }
 
-func (s store) ReadRuleSet(nsName string) (RuleSet, error) {
+func (s store) ReadRuleSet(nsName string) (rules.RuleSet, error) {
 	ruleSetKey := s.ruleSetKey(nsName)
 	value, err := s.kvStore.Get(ruleSetKey)
 
@@ -111,14 +78,14 @@ func (s store) ReadRuleSet(nsName string) (RuleSet, error) {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
 
-	rs, err := NewRuleSetFromSchema(version, &ruleSet, NewOptions())
+	rs, err := rules.NewRuleSetFromSchema(version, &ruleSet, rules.NewOptions())
 	if err != nil {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
 	return rs, err
 }
 
-func (s store) WriteRuleSet(rs MutableRuleSet) error {
+func (s store) WriteRuleSet(rs rules.MutableRuleSet) error {
 	if s.opts.Validator != nil {
 		if err := s.opts.Validator.Validate(rs); err != nil {
 			return err
@@ -133,7 +100,7 @@ func (s store) WriteRuleSet(rs MutableRuleSet) error {
 	return err
 }
 
-func (s store) WriteAll(nss *Namespaces, rs MutableRuleSet) error {
+func (s store) WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error {
 	if s.opts.Validator != nil {
 		if err := s.opts.Validator.Validate(rs); err != nil {
 			return err
@@ -165,7 +132,7 @@ func (s store) ruleSetKey(ns string) string {
 	return fmt.Sprintf(s.opts.RuleSetKeyFmt, ns)
 }
 
-func (s store) ruleSetTransaction(rs MutableRuleSet) (kv.Condition, kv.Op, error) {
+func (s store) ruleSetTransaction(rs rules.MutableRuleSet) (kv.Condition, kv.Op, error) {
 	if rs == nil {
 		return nil, nil, errNilRuleSet
 	}
@@ -185,7 +152,7 @@ func (s store) ruleSetTransaction(rs MutableRuleSet) (kv.Condition, kv.Op, error
 	return ruleSetCond, kv.NewSetOp(ruleSetKey, rsSchema), nil
 }
 
-func (s store) namespacesTransaction(nss *Namespaces) (kv.Condition, kv.Op, error) {
+func (s store) namespacesTransaction(nss *rules.Namespaces) (kv.Condition, kv.Op, error) {
 	if nss == nil {
 		return nil, nil, errNilNamespaces
 	}
