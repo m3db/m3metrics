@@ -27,7 +27,6 @@ import (
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/rules"
-	rstore "github.com/m3db/m3metrics/rules/store"
 )
 
 var (
@@ -41,11 +40,11 @@ type store struct {
 }
 
 // NewStore creates a new Store.
-func NewStore(kvStore kv.TxnStore, opts StoreOptions) rstore.Store {
-	return store{kvStore: kvStore, opts: opts}
+func NewStore(kvStore kv.TxnStore, opts StoreOptions) rules.Store {
+	return &store{kvStore: kvStore, opts: opts}
 }
 
-func (s store) ReadNamespaces() (*rules.Namespaces, error) {
+func (s *store) ReadNamespaces() (*rules.Namespaces, error) {
 	value, err := s.kvStore.Get(s.opts.NamespacesKey)
 	if err != nil {
 		return nil, err
@@ -64,7 +63,7 @@ func (s store) ReadNamespaces() (*rules.Namespaces, error) {
 	return &nss, err
 }
 
-func (s store) ReadRuleSet(nsName string) (rules.RuleSet, error) {
+func (s *store) ReadRuleSet(nsName string) (rules.RuleSet, error) {
 	ruleSetKey := s.ruleSetKey(nsName)
 	value, err := s.kvStore.Get(ruleSetKey)
 
@@ -85,7 +84,7 @@ func (s store) ReadRuleSet(nsName string) (rules.RuleSet, error) {
 	return rs, err
 }
 
-func (s store) WriteRuleSet(rs rules.MutableRuleSet) error {
+func (s *store) WriteRuleSet(rs rules.MutableRuleSet) error {
 	if s.opts.Validator != nil {
 		if err := s.opts.Validator.Validate(rs); err != nil {
 			return err
@@ -100,7 +99,7 @@ func (s store) WriteRuleSet(rs rules.MutableRuleSet) error {
 	return err
 }
 
-func (s store) WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error {
+func (s *store) WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error {
 	if s.opts.Validator != nil {
 		if err := s.opts.Validator.Validate(rs); err != nil {
 			return err
@@ -128,11 +127,11 @@ func (s store) WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error {
 	return err
 }
 
-func (s store) ruleSetKey(ns string) string {
+func (s *store) ruleSetKey(ns string) string {
 	return fmt.Sprintf(s.opts.RuleSetKeyFmt, ns)
 }
 
-func (s store) ruleSetTransaction(rs rules.MutableRuleSet) (kv.Condition, kv.Op, error) {
+func (s *store) ruleSetTransaction(rs rules.MutableRuleSet) (kv.Condition, kv.Op, error) {
 	if rs == nil {
 		return nil, nil, errNilRuleSet
 	}
@@ -152,7 +151,7 @@ func (s store) ruleSetTransaction(rs rules.MutableRuleSet) (kv.Condition, kv.Op,
 	return ruleSetCond, kv.NewSetOp(ruleSetKey, rsSchema), nil
 }
 
-func (s store) namespacesTransaction(nss *rules.Namespaces) (kv.Condition, kv.Op, error) {
+func (s *store) namespacesTransaction(nss *rules.Namespaces) (kv.Condition, kv.Op, error) {
 	if nss == nil {
 		return nil, nil, errNilNamespaces
 	}

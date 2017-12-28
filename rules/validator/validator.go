@@ -34,7 +34,7 @@ type validator struct {
 }
 
 // NewValidator creates a new validator.
-func NewValidator(opts Options) Validator {
+func NewValidator(opts Options) rules.Validator {
 	return &validator{opts: opts}
 }
 

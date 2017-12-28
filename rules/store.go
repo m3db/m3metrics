@@ -20,19 +20,17 @@
 
 package rules
 
-import "github.com/m3db/m3metrics/rules"
-
 // Store performs read/write operations for rules and namespaces.
 type Store interface {
 	// WriteRuleSet saves the given ruleset to the backing store.
-	WriteRuleSet(rs rules.MutableRuleSet) error
+	WriteRuleSet(rs MutableRuleSet) error
 
 	// WriteAll saves both the given ruleset and namespace to the backing store.
-	WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error
+	WriteAll(nss *Namespaces, rs MutableRuleSet) error
 
 	// ReadNamespaces returns the persisted namespaces in kv store.
-	ReadNamespaces() (*rules.Namespaces, error)
+	ReadNamespaces() (*Namespaces, error)
 
 	// ReadRuleSet returns the persisted ruleset in kv store.
-	ReadRuleSet(nsName string) (rules.RuleSet, error)
+	ReadRuleSet(nsName string) (RuleSet, error)
 }

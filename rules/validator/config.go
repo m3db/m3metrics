@@ -24,6 +24,7 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules"
 )
 
 // Configuration is the configuration for rules validation.
@@ -36,7 +37,7 @@ type Configuration struct {
 }
 
 // NewValidator creates a new rules validator based on the given configuration.
-func (c Configuration) NewValidator() Validator {
+func (c Configuration) NewValidator() rules.Validator {
 	opts := NewOptions().
 		SetRequiredRollupTags(c.RequiredRollupTags).
 		SetMetricTypesFn(c.MetricTypes.NewMetricTypesFn()).

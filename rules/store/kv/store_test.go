@@ -28,7 +28,6 @@ import (
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/rules"
-	rstore "github.com/m3db/m3metrics/rules/store"
 
 	"github.com/stretchr/testify/require"
 )
@@ -340,14 +339,14 @@ var (
 
 func TestRuleSetKey(t *testing.T) {
 	s := testStore()
-	key := s.(store).ruleSetKey(testNamespace)
+	key := s.(*store).ruleSetKey(testNamespace)
 	require.Equal(t, "rules/fooNs", key)
 }
 
 func TestNewStore(t *testing.T) {
 	opts := NewStoreOptions(testNamespaceKey, testRuleSetKeyFmt, nil)
 	kvStore := mem.NewStore()
-	s := NewStore(kvStore, opts).(store)
+	s := NewStore(kvStore, opts).(*store)
 
 	require.Equal(t, s.kvStore, kvStore)
 	require.Equal(t, s.opts, opts)
@@ -355,7 +354,7 @@ func TestNewStore(t *testing.T) {
 
 func TestReadNamespaces(t *testing.T) {
 	s := testStore()
-	_, e := s.(store).kvStore.Set(testNamespaceKey, testNamespaces)
+	_, e := s.(*store).kvStore.Set(testNamespaceKey, testNamespaces)
 	require.NoError(t, e)
 	nss, err := s.ReadNamespaces()
 	require.NoError(t, err)
@@ -364,7 +363,7 @@ func TestReadNamespaces(t *testing.T) {
 
 func TestNamespacesError(t *testing.T) {
 	s := testStore()
-	_, e := s.(store).kvStore.Set(testNamespaceKey, &schema.RollupRule{Uuid: "x"})
+	_, e := s.(*store).kvStore.Set(testNamespaceKey, &schema.RollupRule{Uuid: "x"})
 	require.NoError(t, e)
 	nss, err := s.ReadNamespaces()
 	require.Error(t, err)
@@ -373,7 +372,7 @@ func TestNamespacesError(t *testing.T) {
 
 func TestReadRuleSet(t *testing.T) {
 	s := testStore()
-	_, e := s.(store).kvStore.Set(testRuleSetKey, testRuleSet)
+	_, e := s.(*store).kvStore.Set(testRuleSetKey, testRuleSet)
 	require.NoError(t, e)
 	rs, err := s.ReadRuleSet(testNamespace)
 	require.NoError(t, err)
@@ -382,7 +381,7 @@ func TestReadRuleSet(t *testing.T) {
 
 func TestRuleSetError(t *testing.T) {
 	s := testStore()
-	_, e := s.(store).kvStore.Set(testRuleSetKey, &schema.Namespace{Name: "x"})
+	_, e := s.(*store).kvStore.Set(testRuleSetKey, &schema.Namespace{Name: "x"})
 	require.NoError(t, e)
 	rs, err := s.ReadRuleSet("blah")
 	require.Error(t, err)
@@ -522,7 +521,7 @@ func TestWriteNoNamespace(t *testing.T) {
 	require.Equal(t, rs.Version(), 2)
 }
 
-func testStore() rstore.Store {
+func testStore() rules.Store {
 	opts := NewStoreOptions(testNamespaceKey, testRuleSetKeyFmt, nil)
 	kvStore := mem.NewStore()
 	return NewStore(kvStore, opts)

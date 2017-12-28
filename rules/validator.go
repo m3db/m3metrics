@@ -18,15 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package validator
-
-import "github.com/m3db/m3metrics/rules"
+package rules
 
 // Validator validates a ruleset.
 type Validator interface {
 	// Validate validates a ruleset.
-	Validate(rs rules.RuleSet) error
+	Validate(rs RuleSet) error
 
 	// ValidateSnapshot validates a ruleset snapshot.
-	ValidateSnapshot(snapshot *rules.RuleSetSnapshot) error
+	ValidateSnapshot(snapshot *RuleSetSnapshot) error
 }

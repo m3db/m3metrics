@@ -20,20 +20,22 @@
 
 package kv
 
-import "github.com/m3db/m3metrics/rules/validator"
+import (
+	"github.com/m3db/m3metrics/rules"
+)
 
 // StoreOptions provide a set of options for KV-backed rules store.
 type StoreOptions struct {
 	NamespacesKey string
 	RuleSetKeyFmt string
-	Validator     validator.Validator
+	Validator     rules.Validator
 }
 
 // NewStoreOptions creates a new store options struct.
 func NewStoreOptions(
 	namespacesKey string,
 	rulesetKeyFmt string,
-	validator validator.Validator,
+	validator rules.Validator,
 ) StoreOptions {
 	return StoreOptions{
 		NamespacesKey: namespacesKey,
