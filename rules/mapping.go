@@ -82,6 +82,7 @@ func newMappingRuleSnapshot(
 	), nil
 }
 
+// nolint: unparam
 func newMappingRuleSnapshotFromFields(
 	name string,
 	tombstoned bool,

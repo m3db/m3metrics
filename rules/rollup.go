@@ -203,6 +203,7 @@ func newRollupRuleSnapshot(
 	), nil
 }
 
+// nolint: unparam
 func newRollupRuleSnapshotFromFields(
 	name string,
 	tombstoned bool,
