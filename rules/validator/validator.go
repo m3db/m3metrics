@@ -171,19 +171,14 @@ func (v *validator) validateRollupRules(rrv map[string]*rules.RollupRuleView) er
 }
 
 func (v *validator) validateFilter(ruleName string, f string) (filters.TagFilterValueMap, error) {
-	filterValues, err := filters.ParseTagFilterValueMap(f)
+	filterValues, err := filters.ValidateTagsFilter(f)
 	if err != nil {
 		return nil, fmt.Errorf("rule %s has invalid rule filter %s: %v", ruleName, f, err)
 	}
-	for tag, filterValue := range filterValues {
+	for tag := range filterValues {
 		// Validating the filter tag name does not contain invalid chars.
 		if err := v.opts.CheckInvalidCharactersForTagName(tag); err != nil {
 			return nil, fmt.Errorf("rule %s has invalid rule filter %s: tag name %s contains invalid character, err: %v", ruleName, f, tag, err)
-		}
-
-		// Validating the filter expression by actually constructing the filter.
-		if _, err := filters.NewFilterFromFilterValue(filterValue); err != nil {
-			return nil, fmt.Errorf("rule %s has invalid rule filter %s: filter pattern for tag %s is invalid, err: %v", ruleName, f, tag, err)
 		}
 	}
 	return filterValues, nil

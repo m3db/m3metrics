@@ -70,7 +70,7 @@ func newMappingRuleSnapshot(
 		return nil, err
 	}
 
-	return newMappingRuleSnapshotFromFields(
+	return newMappingRuleSnapshotFromFieldsInternal(
 		r.Name,
 		r.Tombstoned,
 		r.CutoverNanos,
@@ -83,6 +83,33 @@ func newMappingRuleSnapshot(
 }
 
 func newMappingRuleSnapshotFromFields(
+	name string,
+	tombstoned bool,
+	cutoverNanos int64,
+	rawFilter string,
+	policies []policy.Policy,
+	filter filters.Filter,
+	lastUpdatedAtNanos int64,
+	lastUpdatedBy string,
+) (*mappingRuleSnapshot, error) {
+	if _, err := filters.ValidateTagsFilter(rawFilter); err != nil {
+		return nil, err
+	}
+	return newMappingRuleSnapshotFromFieldsInternal(
+		name,
+		tombstoned,
+		cutoverNanos,
+		rawFilter,
+		policies,
+		filter,
+		lastUpdatedAtNanos,
+		lastUpdatedBy,
+	), nil
+}
+
+// newMappingRuleSnapshotFromFieldsInternal creates a new mapping rule snapshot
+// from various given fields assuming the filter has already been validated.
+func newMappingRuleSnapshotFromFieldsInternal(
 	name string,
 	tombstoned bool,
 	cutoverNanos int64,
@@ -251,7 +278,7 @@ func (mc *mappingRule) addSnapshot(
 	policies []policy.Policy,
 	meta UpdateMetadata,
 ) error {
-	snapshot := newMappingRuleSnapshotFromFields(
+	snapshot, err := newMappingRuleSnapshotFromFields(
 		name,
 		false,
 		meta.cutoverNanos,
@@ -261,6 +288,9 @@ func (mc *mappingRule) addSnapshot(
 		meta.updatedAtNanos,
 		meta.updatedBy,
 	)
+	if err != nil {
+		return err
+	}
 	mc.snapshots = append(mc.snapshots, snapshot)
 	return nil
 }
