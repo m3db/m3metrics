@@ -68,19 +68,19 @@ func newNamespaceSnapshot(snapshot *schema.NamespaceSnapshot) (NamespaceSnapshot
 }
 
 // ForRuleSetVersion is the ruleset version this namespace change is related to.
-func (s *NamespaceSnapshot) ForRuleSetVersion() int { return s.forRuleSetVersion }
+func (s NamespaceSnapshot) ForRuleSetVersion() int { return s.forRuleSetVersion }
 
 // Tombstoned determines whether the namespace has been tombstoned.
-func (s *NamespaceSnapshot) Tombstoned() bool { return s.tombstoned }
+func (s NamespaceSnapshot) Tombstoned() bool { return s.tombstoned }
 
 // LastUpdatedAtNanos returns the time when the namespace is last updated in nanoseconds.
-func (s *NamespaceSnapshot) LastUpdatedAtNanos() int64 { return s.lastUpdatedAtNanos }
+func (s NamespaceSnapshot) LastUpdatedAtNanos() int64 { return s.lastUpdatedAtNanos }
 
 // LastUpdatedBy returns the user who last updated the namespace.
-func (s *NamespaceSnapshot) LastUpdatedBy() string { return s.lastUpdatedBy }
+func (s NamespaceSnapshot) LastUpdatedBy() string { return s.lastUpdatedBy }
 
 // Schema returns the given Namespace in protobuf form
-func (s *NamespaceSnapshot) Schema() *schema.NamespaceSnapshot {
+func (s NamespaceSnapshot) Schema() *schema.NamespaceSnapshot {
 	return &schema.NamespaceSnapshot{
 		ForRulesetVersion:  int32(s.forRuleSetVersion),
 		Tombstoned:         s.tombstoned,
