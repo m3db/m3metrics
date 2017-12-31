@@ -23,6 +23,7 @@ package validator
 import (
 	"fmt"
 
+	"github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/policy"
@@ -86,7 +87,7 @@ func (v *validator) validateMappingRules(mrv map[string]*rules.MappingRuleView) 
 	for _, view := range mrv {
 		// Validate that no rules with the same name exist.
 		if _, exists := namesSeen[view.Name]; exists {
-			return NewRuleConflictError(fmt.Sprintf("mapping rule %s already exists", view.Name))
+			return errors.NewRuleConflictError(fmt.Sprintf("mapping rule %s already exists", view.Name))
 		}
 		namesSeen[view.Name] = struct{}{}
 
@@ -121,7 +122,7 @@ func (v *validator) validateRollupRules(rrv map[string]*rules.RollupRuleView) er
 	for _, view := range rrv {
 		// Validate that no rules with the same name exist.
 		if _, exists := namesSeen[view.Name]; exists {
-			return NewRuleConflictError(fmt.Sprintf("rollup rule %s already exists", view.Name))
+			return errors.NewRuleConflictError(fmt.Sprintf("rollup rule %s already exists", view.Name))
 		}
 		namesSeen[view.Name] = struct{}{}
 
@@ -160,7 +161,7 @@ func (v *validator) validateRollupRules(rrv map[string]*rules.RollupRuleView) er
 			current := target.RollupTarget()
 			for _, seenTarget := range targetsSeen {
 				if current.SameTransform(seenTarget) {
-					return NewRuleConflictError(fmt.Sprintf("rollup target with name %s and tags %s already exists", current.Name, current.Tags))
+					return errors.NewRuleConflictError(fmt.Sprintf("rollup target with name %s and tags %s already exists", current.Name, current.Tags))
 				}
 			}
 			targetsSeen = append(targetsSeen, current)
@@ -283,11 +284,11 @@ func (v *validator) wrapError(err error) error {
 		return nil
 	}
 	switch err.(type) {
-	// Do not wrap error for these error types so caller can take actions based on the correct
-	// error type.
-	case RuleConflictError:
+	// Do not wrap error for these error types so caller can take actions
+	// based on the correct error type.
+	case errors.RuleConflictError, errors.ValidationError:
 		return err
 	default:
-		return NewValidationError(err.Error())
+		return errors.NewValidationError(err.Error())
 	}
 }

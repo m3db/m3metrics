@@ -82,10 +82,8 @@ func newMappingRuleSnapshot(
 	), nil
 }
 
-// nolint: unparam
 func newMappingRuleSnapshotFromFields(
 	name string,
-	tombstoned bool,
 	cutoverNanos int64,
 	rawFilter string,
 	policies []policy.Policy,
@@ -98,7 +96,7 @@ func newMappingRuleSnapshotFromFields(
 	}
 	return newMappingRuleSnapshotFromFieldsInternal(
 		name,
-		tombstoned,
+		false,
 		cutoverNanos,
 		rawFilter,
 		policies,
@@ -281,7 +279,6 @@ func (mc *mappingRule) addSnapshot(
 ) error {
 	snapshot, err := newMappingRuleSnapshotFromFields(
 		name,
-		false,
 		meta.cutoverNanos,
 		rawFilter,
 		policies,

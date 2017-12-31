@@ -203,10 +203,8 @@ func newRollupRuleSnapshot(
 	), nil
 }
 
-// nolint: unparam
 func newRollupRuleSnapshotFromFields(
 	name string,
-	tombstoned bool,
 	cutoverNanos int64,
 	rawFilter string,
 	targets []RollupTarget,
@@ -219,7 +217,7 @@ func newRollupRuleSnapshotFromFields(
 	}
 	return newRollupRuleSnapshotFromFieldsInternal(
 		name,
-		tombstoned,
+		false,
 		cutoverNanos,
 		rawFilter,
 		targets,
@@ -440,7 +438,6 @@ func (rc *rollupRule) addSnapshot(
 ) error {
 	snapshot, err := newRollupRuleSnapshotFromFields(
 		name,
-		false,
 		meta.cutoverNanos,
 		rawFilter,
 		rollupTargets,
