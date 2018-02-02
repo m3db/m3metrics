@@ -2612,7 +2612,7 @@ func TestAddMappingRule(t *testing.T) {
 	mutable, rs, helper, err := initMutableTest()
 	require.NoError(t, err)
 	_, err = rs.getMappingRuleByName("foo")
-	require.EqualError(t, err, errRuleNotFound.Error())
+	require.Equal(t, err, errRuleNotFound)
 
 	newFilter := "tag1:value tag2:value"
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
@@ -2791,7 +2791,7 @@ func TestAddRollupRule(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = rs.getRollupRuleByID("foo")
-	require.EqualError(t, err, errRuleNotFound.Error())
+	require.Equal(t, err, errRuleNotFound)
 
 	newFilter := "tag1:value tag2:value"
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
