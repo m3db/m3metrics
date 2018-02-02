@@ -2791,7 +2791,7 @@ func TestAddRollupRule(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = rs.getRollupRuleByID("foo")
-	require.Error(t, err)
+	require.EqualError(t, err, errRuleNotFound.Error())
 
 	newFilter := "tag1:value tag2:value"
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
