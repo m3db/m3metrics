@@ -2675,10 +2675,11 @@ func TestAddMappingRuleDup(t *testing.T) {
 	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(time.Now().UnixNano(), testUser))
 	require.Empty(t, newID)
 	require.Error(t, err)
-	if containedErr, ok := err.(xerrors.ContainedError); ok {
-		err = containedErr.InnerError()
-	}
-	require.EqualValues(t, err.(errors.RuleConflictError), err)
+	containedErr, ok := err.(xerrors.ContainedError)
+	require.True(t, ok)
+	err = containedErr.InnerError()
+	_, ok = err.(errors.RuleConflictError)
+	require.True(t, ok)
 }
 
 func TestAddMappingRuleRevive(t *testing.T) {
@@ -2853,10 +2854,11 @@ func TestAddRollupRuleDup(t *testing.T) {
 	uuid, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.Empty(t, uuid)
 	require.Error(t, err)
-	if containedErr, ok := err.(xerrors.ContainedError); ok {
-		err = containedErr.InnerError()
-	}
-	require.EqualValues(t, err.(errors.RuleConflictError), err)
+	containedErr, ok := err.(xerrors.ContainedError)
+	require.True(t, ok)
+	err = containedErr.InnerError()
+	_, ok = err.(errors.RuleConflictError)
+	require.True(t, ok)
 }
 
 func TestReviveRollupRule(t *testing.T) {
