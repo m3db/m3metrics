@@ -2612,7 +2612,7 @@ func TestAddMappingRule(t *testing.T) {
 	mutable, rs, helper, err := initMutableTest()
 	require.NoError(t, err)
 	_, err = rs.getMappingRuleByName("foo")
-	require.Error(t, err)
+	require.EqualError(t, err, errRuleNotFound.Error())
 
 	newFilter := "tag1:value tag2:value"
 	p := []policy.Policy{policy.NewPolicy(policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour), policy.DefaultAggregationID)}
@@ -2675,6 +2675,10 @@ func TestAddMappingRuleDup(t *testing.T) {
 	newID, err := mutable.AddMappingRule(view, helper.NewUpdateMetadata(time.Now().UnixNano(), testUser))
 	require.Empty(t, newID)
 	require.Error(t, err)
+	if containedErr, ok := err.(xerrors.ContainedError); ok {
+		err = containedErr.InnerError()
+	}
+	require.EqualValues(t, err.(errors.RuleConflictError), err)
 }
 
 func TestAddMappingRuleRevive(t *testing.T) {
@@ -2849,6 +2853,10 @@ func TestAddRollupRuleDup(t *testing.T) {
 	uuid, err := mutable.AddRollupRule(view, helper.NewUpdateMetadata(now, testUser))
 	require.Empty(t, uuid)
 	require.Error(t, err)
+	if containedErr, ok := err.(xerrors.ContainedError); ok {
+		err = containedErr.InnerError()
+	}
+	require.EqualValues(t, err.(errors.RuleConflictError), err)
 }
 
 func TestReviveRollupRule(t *testing.T) {
