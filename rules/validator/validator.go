@@ -103,11 +103,7 @@ func (v *validator) validateMappingRules(mrv map[string]*rules.MappingRuleView) 
 			return err
 		}
 		if len(types) == 0 {
-			return fmt.Errorf(
-				"mapping rule '%s' does not match any allowed metric types, filter=%s",
-				view.Name,
-				view.Filter,
-			)
+			return fmt.Errorf("mapping rule '%s' does not match any allowed metric types, filter=%s", view.Name, view.Filter)
 		}
 
 		// Validate that the policies are valid.
@@ -142,11 +138,7 @@ func (v *validator) validateRollupRules(rrv map[string]*rules.RollupRuleView) er
 			return err
 		}
 		if len(types) == 0 {
-			return fmt.Errorf(
-				"rollup rule '%s' does not match any allowed metric types, filter=%s",
-				view.Name,
-				view.Filter,
-			)
+			return fmt.Errorf("rollup rule '%s' does not match any allowed metric types, filter=%s", view.Name, view.Filter)
 		}
 
 		for _, target := range view.Targets {
@@ -169,13 +161,7 @@ func (v *validator) validateRollupRules(rrv map[string]*rules.RollupRuleView) er
 			current := target.RollupTarget()
 			for _, seenTarget := range targetsSeen {
 				if current.SameTransform(seenTarget) {
-					return errors.NewRuleConflictError(
-						fmt.Sprintf(
-							"rollup target with name '%s' and tags '%s' already exists",
-							current.Name,
-							current.Tags,
-						),
-					)
+					return errors.NewRuleConflictError(fmt.Sprintf("rollup target with name '%s' and tags '%s' already exists", current.Name, current.Tags))
 				}
 			}
 			targetsSeen = append(targetsSeen, current)
@@ -193,10 +179,7 @@ func (v *validator) validateFilter(ruleName string, f string) (filters.TagFilter
 	for tag := range filterValues {
 		// Validating the filter tag name does not contain invalid chars.
 		if err := v.opts.CheckInvalidCharactersForTagName(tag); err != nil {
-			return nil, fmt.Errorf(
-				"rule '%s' has invalid rule filter '%s': tag name '%s' contains invalid character, err: %v",
-				ruleName, f, tag, err,
-			)
+			return nil, fmt.Errorf("rule '%s' has invalid rule filter '%s': tag name '%s' contains invalid character, err: %v", ruleName, f, tag, err)
 		}
 	}
 	return filterValues, nil
