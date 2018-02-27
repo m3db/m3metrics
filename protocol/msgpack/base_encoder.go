@@ -21,6 +21,8 @@
 package msgpack
 
 import (
+	"math"
+
 	"github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
 )
@@ -28,6 +30,7 @@ import (
 type encodeVarintFn func(value int64)
 type encodeBoolFn func(value bool)
 type encodeFloat64Fn func(value float64)
+type encodeFloat64SliceFn func(value []float64, encodingType encodingType)
 type encodeBytesFn func(value []byte)
 type encodeBytesLenFn func(value int)
 type encodeArrayLenFn func(value int)
@@ -37,10 +40,12 @@ type encodePolicyFn func(p policy.Policy)
 // baseEncoder is the base encoder that provides common encoding APIs.
 type baseEncoder struct {
 	bufEncoder            BufferedEncoder
+	tmpBuf                []byte
 	encodeErr             error
 	encodeVarintFn        encodeVarintFn
 	encodeBoolFn          encodeBoolFn
 	encodeFloat64Fn       encodeFloat64Fn
+	encodeFloat64SliceFn  encodeFloat64SliceFn
 	encodeBytesFn         encodeBytesFn
 	encodeBytesLenFn      encodeBytesLenFn
 	encodeArrayLenFn      encodeArrayLenFn
@@ -49,11 +54,15 @@ type baseEncoder struct {
 }
 
 func newBaseEncoder(encoder BufferedEncoder) encoderBase {
-	enc := &baseEncoder{bufEncoder: encoder}
+	enc := &baseEncoder{
+		bufEncoder: encoder,
+		tmpBuf:     make([]byte, numBytesInFloat64),
+	}
 
 	enc.encodeVarintFn = enc.encodeVarintInternal
 	enc.encodeBoolFn = enc.encodeBoolInternal
 	enc.encodeFloat64Fn = enc.encodeFloat64Internal
+	enc.encodeFloat64SliceFn = enc.encodeFloat64SliceInternal
 	enc.encodeBytesFn = enc.encodeBytesInternal
 	enc.encodeBytesLenFn = enc.encodeBytesLenInternal
 	enc.encodeArrayLenFn = enc.encodeArrayLenInternal
@@ -78,6 +87,10 @@ func (enc *baseEncoder) encodeBytesLen(value int)                   { enc.encode
 func (enc *baseEncoder) encodeArrayLen(value int)                   { enc.encodeArrayLenFn(value) }
 func (enc *baseEncoder) encodeStoragePolicy(p policy.StoragePolicy) { enc.encodeStoragePolicyFn(p) }
 func (enc *baseEncoder) encodePolicy(p policy.Policy)               { enc.encodePolicyFn(p) }
+
+func (enc *baseEncoder) encodeFloat64Slice(values []float64, encodingType encodingType) {
+	enc.encodeFloat64SliceFn(values, encodingType)
+}
 
 func (enc *baseEncoder) reset(encoder BufferedEncoder) {
 	enc.bufEncoder = encoder
@@ -185,6 +198,50 @@ func (enc *baseEncoder) encodeFloat64Internal(value float64) {
 		return
 	}
 	enc.encodeErr = enc.bufEncoder.EncodeFloat64(value)
+}
+
+func (enc *baseEncoder) encodeFloat64SliceInternal(values []float64, encodingType encodingType) {
+	if encodingType == nonPackedEncoding {
+		enc.encodeFloat64SliceNative(values)
+		return
+	}
+	enc.encodeFloat64SlicePacked(values)
+}
+
+// encodeFloat64SliceNative encodes a slice of float64 values using
+// native MessagePack encoding.
+func (enc *baseEncoder) encodeFloat64SliceNative(values []float64) {
+	if enc.encodeErr != nil {
+		return
+	}
+	if enc.encodeErr = enc.bufEncoder.EncodeArrayLen(len(values)); enc.encodeErr != nil {
+		return
+	}
+	for _, v := range values {
+		if enc.encodeErr = enc.bufEncoder.EncodeFloat64(v); enc.encodeErr != nil {
+			return
+		}
+	}
+}
+
+// encodeFloat64SliceNative encodes a slice of float64 values using
+// more compact encoding by encoding the float64 values as byte.
+func (enc *baseEncoder) encodeFloat64SlicePacked(values []float64) {
+	if enc.encodeErr != nil {
+		return
+	}
+	numValues := len(values)
+	numBytes := numValues * numBytesInFloat64
+	if enc.encodeErr = enc.bufEncoder.EncodeBytesLen(numBytes); enc.encodeErr != nil {
+		return
+	}
+	for i := 0; i < numValues; i++ {
+		byteOrder.PutUint64(enc.tmpBuf, math.Float64bits(values[i]))
+		_, enc.encodeErr = enc.bufEncoder.Buffer().Write(enc.tmpBuf)
+		if enc.encodeErr != nil {
+			return
+		}
+	}
 }
 
 func (enc *baseEncoder) encodeBytesInternal(value []byte) {

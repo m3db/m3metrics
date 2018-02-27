@@ -31,6 +31,13 @@ import (
 	"github.com/m3db/m3x/pool"
 )
 
+type encodingType int
+
+const (
+	nonPackedEncoding encodingType = iota
+	packedEncoding
+)
+
 // Buffer is a byte buffer.
 type Buffer interface {
 	// Buffer returns the bytes buffer.
@@ -147,6 +154,11 @@ type encoderBase interface {
 	// encodeFloat64 encodes a float64 value.
 	encodeFloat64(value float64)
 
+	// encodeFloat64Slice encodes a slice of float64 values.
+	// If packed is false, the encoder uses native MessagePack encoding.
+	// If packed is true, the encoder uses more compact encoding.
+	encodeFloat64Slice(values []float64, encodingType encodingType)
+
 	// encodeBytes encodes a byte slice.
 	encodeBytes(value []byte)
 
@@ -155,6 +167,9 @@ type encoderBase interface {
 
 	// encodeArrayLen encodes the length of an array.
 	encodeArrayLen(value int)
+
+	// writeRaw writes raw bytes into the encoder.
+	writeRaw(buf []byte)
 }
 
 // iteratorBase is the base iterator interface.
@@ -197,6 +212,11 @@ type iteratorBase interface {
 
 	// decodeFloat64 decodes a float64 value.
 	decodeFloat64() float64
+
+	// decodeFloat64Slice decodes a float64 slice, returning the
+	// decoded value, and the pool that allocated the decoded value
+	// if applicable.
+	decodeFloat64Slice(encodingType encodingType) ([]float64, pool.FloatsPool)
 
 	// decodeBytes decodes a byte slice.
 	decodeBytes() []byte
@@ -269,8 +289,37 @@ type UnaggregatedIterator interface {
 	Close()
 }
 
+// BaseIteratorOptions provide options for base iterators.
+type BaseIteratorOptions interface {
+	// SetReaderBufferSize sets the reader buffer size.
+	SetReaderBufferSize(value int) BaseIteratorOptions
+
+	// ReaderBufferSize returns the reader buffer size.
+	ReaderBufferSize() int
+
+	// SetLargeFloatsSize determines whether a float slice is considered a "large"
+	// slice and therefore resort to the pool for allocating that slice.
+	SetLargeFloatsSize(value int) BaseIteratorOptions
+
+	// LargeFloatsSize returns whether a float slice is considered a "large"
+	// slice and therefore resort to the pool for allocating that slice.
+	LargeFloatsSize() int
+
+	// SetLargeFloatsPool sets the large floats pool.
+	SetLargeFloatsPool(value pool.FloatsPool) BaseIteratorOptions
+
+	// LargeFloatsPool returns the large floats pool.
+	LargeFloatsPool() pool.FloatsPool
+}
+
 // UnaggregatedIteratorOptions provide options for unaggregated iterators.
 type UnaggregatedIteratorOptions interface {
+	// SetBaseIteratorOptions sets the base iterator options.
+	SetBaseIteratorOptions(value BaseIteratorOptions) UnaggregatedIteratorOptions
+
+	// BaseIteratorOptions returns the base iterator options.
+	BaseIteratorOptions() BaseIteratorOptions
+
 	// SetIgnoreHigherVersion determines whether the iterator ignores messages
 	// with higher-than-supported version.
 	SetIgnoreHigherVersion(value bool) UnaggregatedIteratorOptions
@@ -278,26 +327,6 @@ type UnaggregatedIteratorOptions interface {
 	// IgnoreHigherVersion returns whether the iterator ignores messages with
 	// higher-than-supported version.
 	IgnoreHigherVersion() bool
-
-	// SetReaderBufferSize sets the reader buffer size.
-	SetReaderBufferSize(value int) UnaggregatedIteratorOptions
-
-	// ReaderBufferSize returns the reader buffer size.
-	ReaderBufferSize() int
-
-	// SetLargeFloatsSize determines whether a float slice is considered a "large"
-	// slice and therefore resort to the pool for allocating that slice.
-	SetLargeFloatsSize(value int) UnaggregatedIteratorOptions
-
-	// LargeFloatsSize returns whether a float slice is considered a "large"
-	// slice and therefore resort to the pool for allocating that slice.
-	LargeFloatsSize() int
-
-	// SetLargeFloatsPool sets the large floats pool.
-	SetLargeFloatsPool(value pool.FloatsPool) UnaggregatedIteratorOptions
-
-	// LargeFloatsPool returns the large floats pool.
-	LargeFloatsPool() pool.FloatsPool
 
 	// SetIteratorPool sets the unaggregated iterator pool.
 	SetIteratorPool(value UnaggregatedIteratorPool) UnaggregatedIteratorOptions
@@ -371,6 +400,12 @@ type AggregatedIterator interface {
 
 // AggregatedIteratorOptions provide options for aggregated iterators.
 type AggregatedIteratorOptions interface {
+	// SetBaseIteratorOptions sets the base iterator options.
+	SetBaseIteratorOptions(value BaseIteratorOptions) AggregatedIteratorOptions
+
+	// BaseIteratorOptions returns the base iterator options.
+	BaseIteratorOptions() BaseIteratorOptions
+
 	// SetIgnoreHigherVersion determines whether the iterator ignores messages
 	// with higher-than-supported version.
 	SetIgnoreHigherVersion(value bool) AggregatedIteratorOptions
@@ -378,12 +413,6 @@ type AggregatedIteratorOptions interface {
 	// IgnoreHigherVersion returns whether the iterator ignores messages with
 	// higher-than-supported version.
 	IgnoreHigherVersion() bool
-
-	// SetReaderBufferSize sets the reader buffer size.
-	SetReaderBufferSize(value int) AggregatedIteratorOptions
-
-	// ReaderBufferSize returns the reader buffer size.
-	ReaderBufferSize() int
 
 	// SetIteratorPool sets the aggregated iterator pool.
 	SetIteratorPool(value AggregatedIteratorPool) AggregatedIteratorOptions

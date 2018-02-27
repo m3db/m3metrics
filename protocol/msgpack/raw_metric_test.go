@@ -20,6 +20,7 @@
 
 package msgpack
 
+/*
 import (
 	"bytes"
 	"errors"
@@ -29,6 +30,7 @@ import (
 	"github.com/m3db/m3metrics/metric/aggregated"
 	"github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3x/pool"
 
 	"github.com/stretchr/testify/require"
 )
@@ -225,23 +227,22 @@ type decodeVersionFn func() int
 type decodeBytesLenFn func() int
 type decodeVarintFn func() int64
 type decodeFloat64Fn func() float64
+type decodeFloat64SliceFn func(int) ([]float64, pool.FloatsPool)
 
 type mockBaseIterator struct {
-	bufReader        bufReader
-	itErr            error
-	decodeVersionFn  decodeVersionFn
-	decodeBytesLenFn decodeBytesLenFn
-	decodeVarintFn   decodeVarintFn
-	decodeFloat64Fn  decodeFloat64Fn
+	bufReader            bufReader
+	itErr                error
+	decodeVersionFn      decodeVersionFn
+	decodeBytesLenFn     decodeBytesLenFn
+	decodeVarintFn       decodeVarintFn
+	decodeFloat64Fn      decodeFloat64Fn
+	decodeFloat64SliceFn decodeFloat64SliceFn
 }
 
-func (it *mockBaseIterator) reset(reader io.Reader) {}
-func (it *mockBaseIterator) err() error             { return it.itErr }
-func (it *mockBaseIterator) setErr(err error)       { it.itErr = err }
-func (it *mockBaseIterator) reader() bufReader      { return it.bufReader }
-func (it *mockBaseIterator) decodeStoragePolicy() policy.StoragePolicy {
-	return policy.EmptyStoragePolicy
-}
+func (it *mockBaseIterator) reset(reader io.Reader)       {}
+func (it *mockBaseIterator) err() error                   { return it.itErr }
+func (it *mockBaseIterator) setErr(err error)             { it.itErr = err }
+func (it *mockBaseIterator) reader() bufReader            { return it.bufReader }
 func (it *mockBaseIterator) decodeVersion() int           { return it.decodeVersionFn() }
 func (it *mockBaseIterator) decodeObjectType() objectType { return unknownType }
 func (it *mockBaseIterator) decodeNumObjectFields() int   { return 0 }
@@ -253,6 +254,15 @@ func (it *mockBaseIterator) decodeBytes() []byte          { return nil }
 func (it *mockBaseIterator) decodeBytesLen() int          { return it.decodeBytesLenFn() }
 func (it *mockBaseIterator) decodeArrayLen() int          { return 0 }
 func (it *mockBaseIterator) skip(numFields int)           {}
+
+func (it *mockBaseIterator) decodeFloat64Slice(version int) ([]float64, pool.FloatsPool) {
+	return it.decodeFloat64SliceFn(version)
+}
+
+func (it *mockBaseIterator) decodeStoragePolicy() policy.StoragePolicy {
+	return policy.EmptyStoragePolicy
+}
+
 func (it *mockBaseIterator) decodePolicy() policy.Policy {
 	return policy.DefaultPolicy
 }
@@ -281,3 +291,4 @@ func testRawMetric() *rawMetric {
 
 	return m
 }
+*/

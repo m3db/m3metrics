@@ -31,23 +31,20 @@ const (
 	// encoder pool.
 	defaultBufferedEncoderPoolMaxCapacity = math.MaxInt64
 
-	// Whether the iterator should ignore higher-than-supported version
-	// by default for unaggregated iterator.
-	defaultUnaggregatedIgnoreHigherVersion = false
-
-	// Default reader buffer size for the unaggregated iterator.
-	defaultUnaggregatedReaderBufferSize = 1440
+	// Default reader buffer size for the base iterator.
+	defaultBaseReaderBufferSize = 1440
 
 	// Whether a float slice is considered a "large" slice and therefore
 	// resort to the pool for allocating that slice.
 	defaultLargeFloatsSize = 1024
 
 	// Whether the iterator should ignore higher-than-supported version
+	// by default for unaggregated iterator.
+	defaultUnaggregatedIgnoreHigherVersion = false
+
+	// Whether the iterator should ignore higher-than-supported version
 	// by default for aggregated iterator.
 	defaultAggregatedIgnoreHigherVersion = false
-
-	// Default reader buffer size for the aggregated iterator.
-	defaultAggregatedReaderBufferSize = 1440
 )
 
 type bufferedEncoderPoolOptions struct {
@@ -83,25 +80,75 @@ func (o *bufferedEncoderPoolOptions) ObjectPoolOptions() xpool.ObjectPoolOptions
 	return o.poolOpts
 }
 
+type baseIteratorOptions struct {
+	readerBufferSize int
+	largeFloatsSize  int
+	largeFloatsPool  xpool.FloatsPool
+}
+
+// NewBaseIteratorOptions creates a new set of base iterator options.
+func NewBaseIteratorOptions() BaseIteratorOptions {
+	largeFloatsPool := xpool.NewFloatsPool(nil, nil)
+	largeFloatsPool.Init()
+	return &baseIteratorOptions{
+		readerBufferSize: defaultBaseReaderBufferSize,
+		largeFloatsSize:  defaultLargeFloatsSize,
+		largeFloatsPool:  largeFloatsPool,
+	}
+}
+
+func (o *baseIteratorOptions) SetReaderBufferSize(value int) BaseIteratorOptions {
+	opts := *o
+	opts.readerBufferSize = value
+	return &opts
+}
+
+func (o *baseIteratorOptions) ReaderBufferSize() int {
+	return o.readerBufferSize
+}
+
+func (o *baseIteratorOptions) SetLargeFloatsSize(value int) BaseIteratorOptions {
+	opts := *o
+	opts.largeFloatsSize = value
+	return &opts
+}
+
+func (o *baseIteratorOptions) LargeFloatsSize() int {
+	return o.largeFloatsSize
+}
+
+func (o *baseIteratorOptions) SetLargeFloatsPool(value xpool.FloatsPool) BaseIteratorOptions {
+	opts := *o
+	opts.largeFloatsPool = value
+	return &opts
+}
+
+func (o *baseIteratorOptions) LargeFloatsPool() xpool.FloatsPool {
+	return o.largeFloatsPool
+}
+
 type unaggregatedIteratorOptions struct {
+	baseIteratorOpts    BaseIteratorOptions
 	ignoreHigherVersion bool
-	readerBufferSize    int
-	largeFloatsSize     int
-	largeFloatsPool     xpool.FloatsPool
 	iteratorPool        UnaggregatedIteratorPool
 }
 
 // NewUnaggregatedIteratorOptions creates a new set of unaggregated iterator options.
 func NewUnaggregatedIteratorOptions() UnaggregatedIteratorOptions {
-	largeFloatsPool := xpool.NewFloatsPool(nil, nil)
-	largeFloatsPool.Init()
-
 	return &unaggregatedIteratorOptions{
+		baseIteratorOpts:    NewBaseIteratorOptions(),
 		ignoreHigherVersion: defaultUnaggregatedIgnoreHigherVersion,
-		readerBufferSize:    defaultUnaggregatedReaderBufferSize,
-		largeFloatsSize:     defaultLargeFloatsSize,
-		largeFloatsPool:     largeFloatsPool,
 	}
+}
+
+func (o *unaggregatedIteratorOptions) SetBaseIteratorOptions(value BaseIteratorOptions) UnaggregatedIteratorOptions {
+	opts := *o
+	opts.baseIteratorOpts = value
+	return &opts
+}
+
+func (o *unaggregatedIteratorOptions) BaseIteratorOptions() BaseIteratorOptions {
+	return o.baseIteratorOpts
 }
 
 func (o *unaggregatedIteratorOptions) SetIgnoreHigherVersion(value bool) UnaggregatedIteratorOptions {
@@ -112,36 +159,6 @@ func (o *unaggregatedIteratorOptions) SetIgnoreHigherVersion(value bool) Unaggre
 
 func (o *unaggregatedIteratorOptions) IgnoreHigherVersion() bool {
 	return o.ignoreHigherVersion
-}
-
-func (o *unaggregatedIteratorOptions) SetReaderBufferSize(value int) UnaggregatedIteratorOptions {
-	opts := *o
-	opts.readerBufferSize = value
-	return &opts
-}
-
-func (o *unaggregatedIteratorOptions) ReaderBufferSize() int {
-	return o.readerBufferSize
-}
-
-func (o *unaggregatedIteratorOptions) SetLargeFloatsSize(value int) UnaggregatedIteratorOptions {
-	opts := *o
-	opts.largeFloatsSize = value
-	return &opts
-}
-
-func (o *unaggregatedIteratorOptions) LargeFloatsSize() int {
-	return o.largeFloatsSize
-}
-
-func (o *unaggregatedIteratorOptions) SetLargeFloatsPool(value xpool.FloatsPool) UnaggregatedIteratorOptions {
-	opts := *o
-	opts.largeFloatsPool = value
-	return &opts
-}
-
-func (o *unaggregatedIteratorOptions) LargeFloatsPool() xpool.FloatsPool {
-	return o.largeFloatsPool
 }
 
 func (o *unaggregatedIteratorOptions) SetIteratorPool(value UnaggregatedIteratorPool) UnaggregatedIteratorOptions {
@@ -155,17 +172,27 @@ func (o *unaggregatedIteratorOptions) IteratorPool() UnaggregatedIteratorPool {
 }
 
 type aggregatedIteratorOptions struct {
+	baseIteratorOpts    BaseIteratorOptions
 	ignoreHigherVersion bool
-	readerBufferSize    int
 	iteratorPool        AggregatedIteratorPool
 }
 
 // NewAggregatedIteratorOptions creates a new set of aggregated iterator options.
 func NewAggregatedIteratorOptions() AggregatedIteratorOptions {
 	return &aggregatedIteratorOptions{
+		baseIteratorOpts:    NewBaseIteratorOptions(),
 		ignoreHigherVersion: defaultAggregatedIgnoreHigherVersion,
-		readerBufferSize:    defaultAggregatedReaderBufferSize,
 	}
+}
+
+func (o *aggregatedIteratorOptions) SetBaseIteratorOptions(value BaseIteratorOptions) AggregatedIteratorOptions {
+	opts := *o
+	opts.baseIteratorOpts = value
+	return &opts
+}
+
+func (o *aggregatedIteratorOptions) BaseIteratorOptions() BaseIteratorOptions {
+	return o.baseIteratorOpts
 }
 
 func (o *aggregatedIteratorOptions) SetIgnoreHigherVersion(value bool) AggregatedIteratorOptions {
@@ -176,16 +203,6 @@ func (o *aggregatedIteratorOptions) SetIgnoreHigherVersion(value bool) Aggregate
 
 func (o *aggregatedIteratorOptions) IgnoreHigherVersion() bool {
 	return o.ignoreHigherVersion
-}
-
-func (o *aggregatedIteratorOptions) SetReaderBufferSize(value int) AggregatedIteratorOptions {
-	opts := *o
-	opts.readerBufferSize = value
-	return &opts
-}
-
-func (o *aggregatedIteratorOptions) ReaderBufferSize() int {
-	return o.readerBufferSize
 }
 
 func (o *aggregatedIteratorOptions) SetIteratorPool(value AggregatedIteratorPool) AggregatedIteratorOptions {

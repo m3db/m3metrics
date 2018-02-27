@@ -25,13 +25,19 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"time"
 
 	"github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3x/pool"
 	xtime "github.com/m3db/m3x/time"
 
 	msgpack "gopkg.in/vmihailenco/msgpack.v2"
+)
+
+const (
+	defaultInitFloat64SliceCapacity = 16
 )
 
 var (
@@ -41,21 +47,34 @@ var (
 // baseIterator is the base iterator that provides common decoding APIs.
 type baseIterator struct {
 	readerBufferSize int
-	bufReader        bufReader
-	decoder          *msgpack.Decoder
-	decodeErr        error
+	largeFloatsSize  int
+	largeFloatsPool  pool.FloatsPool
+
+	bufReader      bufReader
+	decoder        *msgpack.Decoder
+	cachedFloat64s []float64
+	tmpBuf         []byte
+	decodeErr      error
 }
 
-func newBaseIterator(reader io.Reader, readerBufferSize int) iteratorBase {
+func newBaseIterator(reader io.Reader, opts BaseIteratorOptions) iteratorBase {
+	if opts == nil {
+		opts = NewBaseIteratorOptions()
+	}
 	// NB(xichen): if reader is not a bufReader, the underlying msgpack decoder
 	// creates a bufio.Reader wrapping the reader. By converting the reader to a
 	// bufReader, it is guaranteed that the reader passed to the decoder is the one
 	// used for reading and buffering the underlying data.
+	readerBufferSize := opts.ReaderBufferSize()
 	bufReader := toBufReader(reader, readerBufferSize)
 	return &baseIterator{
 		readerBufferSize: readerBufferSize,
+		largeFloatsSize:  opts.LargeFloatsSize(),
+		largeFloatsPool:  opts.LargeFloatsPool(),
 		bufReader:        bufReader,
 		decoder:          msgpack.NewDecoder(bufReader),
+		cachedFloat64s:   make([]float64, 0, defaultInitFloat64SliceCapacity),
+		tmpBuf:           make([]byte, numBytesInFloat64),
 	}
 }
 
@@ -249,6 +268,69 @@ func (it *baseIterator) decodeFloat64() float64 {
 	value, err := it.decoder.DecodeFloat64()
 	it.decodeErr = err
 	return value
+}
+
+func (it *baseIterator) decodeFloat64Slice(encodingType encodingType) ([]float64, pool.FloatsPool) {
+	if encodingType == nonPackedEncoding {
+		return it.decodeFloat64SliceNative()
+	}
+	return it.decodeFloat64SlicePacked()
+}
+
+func (it *baseIterator) decodeFloat64SliceNative() ([]float64, pool.FloatsPool) {
+	numValues := it.decodeArrayLen()
+	if it.decodeErr != nil {
+		return nil, nil
+	}
+	decoded, pool := it.getFloat64SliceFor(numValues)
+	for i := 0; i < numValues; i++ {
+		decoded = append(decoded, it.decodeFloat64())
+	}
+	if it.decodeErr != nil && pool != nil {
+		pool.Put(decoded)
+		return nil, nil
+	}
+	return decoded, pool
+}
+
+func (it *baseIterator) decodeFloat64SlicePacked() ([]float64, pool.FloatsPool) {
+	numBytes := it.decodeBytesLen()
+	if it.decodeErr != nil {
+		return nil, nil
+	}
+	numValues := numBytes / numBytesInFloat64
+	decoded, pool := it.getFloat64SliceFor(numValues)
+	for i := 0; i < numValues; i++ {
+		_, err := it.reader().Read(it.tmpBuf)
+		if err != nil {
+			it.decodeErr = err
+			if pool != nil {
+				pool.Put(decoded)
+			}
+			return nil, nil
+		}
+		decoded = append(decoded, math.Float64frombits(byteOrder.Uint64(it.tmpBuf)))
+	}
+	return decoded, pool
+}
+
+// getFloat64SliceFor prepares a zero-length slice with sufficient capacity
+// for numValues floating point numbers.
+func (it *baseIterator) getFloat64SliceFor(numValues int) ([]float64, pool.FloatsPool) {
+	if cap(it.cachedFloat64s) >= numValues {
+		it.cachedFloat64s = it.cachedFloat64s[:0]
+		return it.cachedFloat64s, nil
+	}
+	if numValues <= it.largeFloatsSize {
+		newCapcity := int(math.Max(float64(numValues), float64(cap(it.cachedFloat64s)*2)))
+		if newCapcity > it.largeFloatsSize {
+			newCapcity = it.largeFloatsSize
+		}
+		it.cachedFloat64s = make([]float64, 0, newCapcity)
+		return it.cachedFloat64s, nil
+	}
+	res := it.largeFloatsPool.Get(numValues)
+	return res, it.largeFloatsPool
 }
 
 func (it *baseIterator) decodeBytes() []byte {

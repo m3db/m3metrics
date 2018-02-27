@@ -358,6 +358,9 @@ func testCapturingBaseEncoder(encoder encoderBase) *[]interface{} {
 	baseEncoder.encodeFloat64Fn = func(value float64) {
 		result = append(result, value)
 	}
+	baseEncoder.encodeFloat64SliceFn = func(values []float64, encodingType encodingType) {
+		result = append(result, values, encodingType)
+	}
 	baseEncoder.encodeBytesFn = func(value []byte) {
 		result = append(result, value)
 	}

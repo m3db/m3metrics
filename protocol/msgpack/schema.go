@@ -20,22 +20,32 @@
 
 package msgpack
 
+import "encoding/binary"
+
 type objectType int
 
 const (
 	// Current version for encoding unaggregated metrics.
-	unaggregatedVersion int = 1
+	unaggregatedVersion int = 2
 
 	// Current version for encoding aggregated metrics.
 	aggregatedVersion int = 1
 
 	// Current metric version.
 	metricVersion int = 1
+
+	// Number of bytes in a float64 value.
+	numBytesInFloat64 = 8
+)
+
+var (
+	// Byte ordering.
+	byteOrder = binary.LittleEndian
 )
 
 // nolint: deadcode
 const (
-	unknownType objectType = iota
+	unknownType objectType = iota // nolint: varcheck, megacheck
 
 	// Root object type.
 	rootObjectType

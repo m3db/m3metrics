@@ -47,11 +47,11 @@ type rawMetric struct {
 }
 
 // NewRawMetric creates a new raw metric.
-func NewRawMetric(data []byte, readerBufferSize int) aggregated.RawMetric {
+func NewRawMetric(data []byte, opts BaseIteratorOptions) aggregated.RawMetric {
 	reader := bytes.NewReader(data)
 	m := &rawMetric{
 		data: data,
-		it:   newBaseIterator(reader, readerBufferSize),
+		it:   newBaseIterator(reader, opts),
 	}
 	m.readBytesFn = m.readBytes
 	return m
