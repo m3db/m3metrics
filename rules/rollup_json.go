@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Uber Technologies, Inc.
+// Copyright (c) 2018 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ import (
 	"github.com/m3db/m3metrics/policy"
 )
 
-// RollupTargetJSON is a common json serializable rollup target. Implements Sort interface.
+// RollupTargetJSON is a common json serializable rollup target.
 type RollupTargetJSON struct {
 	Name     string          `json:"name" validate:"required"`
 	Tags     []string        `json:"tags" validate:"required"`
@@ -49,6 +49,39 @@ func NewRollupTargetJSON(t RollupTargetView) RollupTargetJSON {
 	return RollupTargetJSON(t)
 }
 
+// ToRollupTargetView returns the equivalent ToRollupTargetView.
+func (t RollupTargetJSON) ToRollupTargetView() RollupTargetView {
+	return RollupTargetView(t)
+}
+
+// Sort sorts the policies inside the rollup target.
+func (t *RollupTargetJSON) Sort() {
+	sort.Strings(t.Tags)
+	sort.Sort(policy.ByResolutionAscRetentionDesc(t.Policies))
+}
+
+// Equals determines whether two rollup targets are equal.
+func (t *RollupTargetJSON) Equals(other *RollupTargetJSON) bool {
+	if t == nil && other == nil {
+		return true
+	}
+	if t == nil || other == nil {
+		return false
+	}
+	if t.Name != other.Name {
+		return false
+	}
+	if len(t.Tags) != len(other.Tags) {
+		return false
+	}
+	for i := 0; i < len(t.Tags); i++ {
+		if t.Tags[i] != other.Tags[i] {
+			return false
+		}
+	}
+	return policy.Policies(t.Policies).Equals(policy.Policies(other.Policies))
+}
+
 // NewRollupRuleJSON takes a RollupRuleView and returns the equivalent RollupRuleJSON.
 func NewRollupRuleJSON(rrv *RollupRuleView) RollupRuleJSON {
 	targets := make([]RollupTargetJSON, len(rrv.Targets))
@@ -66,16 +99,11 @@ func NewRollupRuleJSON(rrv *RollupRuleView) RollupRuleJSON {
 	}
 }
 
-// RollupTargetView returns the equivalent RollupTargetView.
-func (t RollupTargetJSON) RollupTargetView() RollupTargetView {
-	return RollupTargetView(t)
-}
-
-// RollupRuleView returns the equivalent RollupRuleView.
-func (r RollupRuleJSON) RollupRuleView() *RollupRuleView {
+// ToRollupRuleView returns the equivalent ToRollupRuleView.
+func (r RollupRuleJSON) ToRollupRuleView() *RollupRuleView {
 	targets := make([]RollupTargetView, len(r.Targets))
 	for i, t := range r.Targets {
-		targets[i] = t.RollupTargetView()
+		targets[i] = t.ToRollupTargetView()
 	}
 
 	return &RollupRuleView{
@@ -86,18 +114,25 @@ func (r RollupRuleJSON) RollupRuleView() *RollupRuleView {
 	}
 }
 
-type rollupTargets []RollupTargetJSON
-
-func (t rollupTargets) Equals(other rollupTargets) bool {
-	if len(t) != len(other) {
+// Equals determines whether two rollup rules are equal.
+func (r *RollupRuleJSON) Equals(other *RollupRuleJSON) bool {
+	if r == nil && other == nil {
+		return true
+	}
+	if r == nil || other == nil {
 		return false
 	}
-	for i := 0; i < len(t); i++ {
-		if !t[i].Equals(&other[i]) {
-			return false
-		}
+	return r.Name == other.Name &&
+		r.Filter == other.Filter &&
+		rollupTargetsJSON(r.Targets).Equals(other.Targets)
+}
+
+// Sort sorts the rollup targets inside the rollup rule.
+func (r *RollupRuleJSON) Sort() {
+	for i := range r.Targets {
+		r.Targets[i].Sort()
 	}
-	return true
+	sort.Sort(rollupTargetsByNameTagsAsc(r.Targets))
 }
 
 type rollupTargetsByNameTagsAsc []RollupTargetJSON
@@ -126,6 +161,8 @@ func (a rollupTargetsByNameTagsAsc) Less(i, j int) bool {
 	return len(a[i].Tags) < len(a[j].Tags)
 }
 
+type rollupTargetsJSON []RollupTargetJSON
+
 func (t rollupTargetsJSON) Equals(other rollupTargetsJSON) bool {
 	if len(t) != len(other) {
 		return false
@@ -138,59 +175,22 @@ func (t rollupTargetsJSON) Equals(other rollupTargetsJSON) bool {
 	return true
 }
 
-type rollupTargetsJSON []RollupTargetJSON
+type rollupTargets []RollupTargetJSON
 
-// Equals determines whether two rollup targets are equal.
-func (t *RollupTargetJSON) Equals(other *RollupTargetJSON) bool {
-	if t == nil && other == nil {
-		return true
-	}
-	if t == nil || other == nil {
+func (t rollupTargets) Equals(other rollupTargets) bool {
+	if len(t) != len(other) {
 		return false
 	}
-	if t.Name != other.Name {
-		return false
-	}
-	if len(t.Tags) != len(other.Tags) {
-		return false
-	}
-	for i := 0; i < len(t.Tags); i++ {
-		if t.Tags[i] != other.Tags[i] {
+	for i := 0; i < len(t); i++ {
+		if !t[i].Equals(&other[i]) {
 			return false
 		}
 	}
-	return policies(t.Policies).Equals(policies(other.Policies))
+	return true
 }
 
-type rollupRulesByNameAsc []RollupRuleJSON
+type rollupRuleJSONsByNameAsc []RollupRuleJSON
 
-func (a rollupRulesByNameAsc) Len() int           { return len(a) }
-func (a rollupRulesByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a rollupRulesByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }
-
-// Equals determines whether two rollup rules are equal.
-func (r *RollupRuleJSON) Equals(other *RollupRuleJSON) bool {
-	if r == nil && other == nil {
-		return true
-	}
-	if r == nil || other == nil {
-		return false
-	}
-	return r.Name == other.Name &&
-		r.Filter == other.Filter &&
-		rollupTargetsJSON(r.Targets).Equals(other.Targets)
-}
-
-// Sort sorts the rollup targets inside the rollup rule.
-func (r *RollupRuleJSON) Sort() {
-	for i := range r.Targets {
-		r.Targets[i].Sort()
-	}
-	sort.Sort(rollupTargetsByNameTagsAsc(r.Targets))
-}
-
-// Sort sorts the policies inside the rollup target.
-func (t *RollupTargetJSON) Sort() {
-	sort.Strings(t.Tags)
-	sort.Sort(policy.ByResolutionAscRetentionDesc(t.Policies))
-}
+func (a rollupRuleJSONsByNameAsc) Len() int           { return len(a) }
+func (a rollupRuleJSONsByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a rollupRuleJSONsByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }

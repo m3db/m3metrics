@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Uber Technologies, Inc.
+// Copyright (c) 2018 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ func TestRollupTargetView(t *testing.T) {
 		Tags:     []string{"tag"},
 		Policies: []policy.Policy{},
 	}
-	require.EqualValues(t, expected, fixture.RollupTargetView())
+	require.EqualValues(t, expected, fixture.ToRollupTargetView())
 }
 
 func TestNewRollupTargetJSON(t *testing.T) {
@@ -77,7 +77,7 @@ func TestNewRollupRuleJSON(t *testing.T) {
 	require.EqualValues(t, expected, NewRollupRuleJSON(fixture))
 }
 
-func TestRollupRuleView(t *testing.T) {
+func TestToRollupRuleView(t *testing.T) {
 	targets := []RollupTargetJSON{
 		*testRollupTargetJSON("target1"),
 		*testRollupTargetJSON("target2"),
@@ -100,10 +100,10 @@ func TestRollupRuleView(t *testing.T) {
 			},
 		},
 	}
-	require.EqualValues(t, expected, fixture.RollupRuleView())
+	require.EqualValues(t, expected, fixture.ToRollupRuleView())
 }
 
-func TestRollupRuleSort(t *testing.T) {
+func TestRollupRuleJSONSort(t *testing.T) {
 	rollupRule := `
 		{
 			"name":"sample_mapping_rule_1",
@@ -151,7 +151,7 @@ func TestRollupRuleSort(t *testing.T) {
 	require.Equal(t, expected, string(actual2))
 }
 
-func TestRollupRuleSortTargetByNameAsc(t *testing.T) {
+func TestRollupRuleJSONSortTargetByNameAsc(t *testing.T) {
 	rollupRule := `
 		{
 			"name":"sample_mapping_rule_1",
@@ -210,7 +210,7 @@ func TestRollupRuleSortTargetByNameAsc(t *testing.T) {
 	require.Equal(t, expected, rr)
 }
 
-func TestRollupRuleEqual(t *testing.T) {
+func TestRollupRuleJSONEqual(t *testing.T) {
 	rrJSON := `
 		{
 			"name":"rollup_rule_1",
@@ -239,7 +239,7 @@ func TestRollupRuleEqual(t *testing.T) {
 	require.True(t, rr1.Equals(&rr2))
 }
 
-func TestRollupRuleNotEqual(t *testing.T) {
+func TestRollupRuleJSONNotEqual(t *testing.T) {
 	rrJSON1 := `
 		{
 			"name":"rollup_rule_1",
@@ -307,7 +307,7 @@ func TestRollupRuleNotEqual(t *testing.T) {
 	require.False(t, rr2.Equals(&rr3))
 }
 
-func TestRollupRuleNilCases(t *testing.T) {
+func TestRollupRuleJSONNilCases(t *testing.T) {
 	var rr1 *RollupRuleJSON
 
 	require.True(t, rr1.Equals(nil))
@@ -317,7 +317,7 @@ func TestRollupRuleNilCases(t *testing.T) {
 	require.False(t, rollupRule.Equals(rr1))
 }
 
-func TestRollupTargetsEqual(t *testing.T) {
+func TestRollupTargetJSONsEqual(t *testing.T) {
 	rtJSON := `
 		[
 			{
@@ -350,7 +350,7 @@ func TestRollupTargetsEqual(t *testing.T) {
 	require.True(t, rollupTargets(rt1).Equals(rollupTargets(rt2)))
 }
 
-func TestRollupTargetsNotEqual(t *testing.T) {
+func TestRollupTargetJSONsNotEqual(t *testing.T) {
 	rtJSON1 := `
 		[
 			{
@@ -405,7 +405,7 @@ func TestRollupTargetsNotEqual(t *testing.T) {
 	require.False(t, rollupTargets(rt1).Equals(rollupTargets(rt2)))
 }
 
-func TestRollupTargetEqual(t *testing.T) {
+func TestRollupTargetJSONEqual(t *testing.T) {
 	rtJSON1 := `
 		{
 			"name": "rollup_target_1",
@@ -438,7 +438,7 @@ func TestRollupTargetEqual(t *testing.T) {
 	require.True(t, rt1.Equals(&rt2))
 }
 
-func TestRollupTargetNotEqual(t *testing.T) {
+func TestRollupTargetJSONNotEqual(t *testing.T) {
 	rtJSONs := []string{
 		`
 		{
@@ -507,7 +507,7 @@ func TestRollupTargetNotEqual(t *testing.T) {
 	}
 }
 
-func TestRollupTargetSort(t *testing.T) {
+func TestRollupTargetJSONSort(t *testing.T) {
 	rtJSON1 := `
 		{
 			"name": "rollup_target_1",
@@ -540,7 +540,7 @@ func TestRollupTargetSort(t *testing.T) {
 	require.True(t, rt1.Equals(&rt2))
 }
 
-func TestRollupTargetNilCases(t *testing.T) {
+func TestRollupTargetJSONNilCases(t *testing.T) {
 	var rt1 *RollupTargetJSON
 
 	require.True(t, rt1.Equals(nil))

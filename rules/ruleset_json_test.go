@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Uber Technologies, Inc.
+// Copyright (c) 2018 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -84,9 +84,14 @@ func TestRuleSetSnapshot(t *testing.T) {
 			},
 		},
 	}
-	actual, err := fixture.RuleSetSnapshot(GenerateID)
+	actual, err := fixture.ToRuleSetSnapshot(GenerateID)
 	require.NoError(t, err)
 	require.EqualValues(t, expected, actual)
+
+	rsJSON := NewRuleSetJSON(expected)
+	rsJSON.Sort()
+	fixture.Sort()
+	require.Equal(t, rsJSON, *fixture)
 }
 
 func TestRuleSetSnapshotGenerateMissingID(t *testing.T) {
@@ -100,7 +105,7 @@ func TestRuleSetSnapshotGenerateMissingID(t *testing.T) {
 	}
 	fixture := testRuleSetJSON("namespace", mappingRules, rollupRules)
 
-	actual, err := fixture.RuleSetSnapshot(GenerateID)
+	actual, err := fixture.ToRuleSetSnapshot(GenerateID)
 	require.NoError(t, err)
 	mrIDs := []string{}
 	rrIDs := []string{}
@@ -174,7 +179,7 @@ func TestRuleSetSnapshotFailMissingMappingRuleID(t *testing.T) {
 	}
 	fixture := testRuleSetJSON("namespace", mappingRules, rollupRules)
 
-	_, err := fixture.RuleSetSnapshot(DontGenerateID)
+	_, err := fixture.ToRuleSetSnapshot(DontGenerateID)
 	require.Error(t, err)
 }
 
@@ -189,7 +194,7 @@ func TestRuleSetSnapshotFailMissingRollupRuleID(t *testing.T) {
 	}
 	fixture := testRuleSetJSON("namespace", mappingRules, rollupRules)
 
-	_, err := fixture.RuleSetSnapshot(DontGenerateID)
+	_, err := fixture.ToRuleSetSnapshot(DontGenerateID)
 	require.Error(t, err)
 }
 
@@ -306,7 +311,7 @@ func TestRuleSetsSort(t *testing.T) {
 	require.Equal(t, expected, *rulesets["rs2"])
 }
 
-func TestRuleSetSort(t *testing.T) {
+func TestRuleSetJSONSort(t *testing.T) {
 	rulesetJSON := `
 		{
 			"id": "namespace",
@@ -411,7 +416,7 @@ func TestRuleSetSort(t *testing.T) {
 	require.Equal(t, expected, rs)
 }
 
-func TestRuleSetSortByRollupRuleNameAsc(t *testing.T) {
+func TestRuleSetJSONSortByRollupRuleNameAsc(t *testing.T) {
 	rulesetJSON := `
 		{
 			"id": "namespace",
@@ -458,7 +463,7 @@ func TestRuleSetSortByRollupRuleNameAsc(t *testing.T) {
 	require.Equal(t, expected, rs)
 }
 
-func TestRuleSetSortByMappingNameAsc(t *testing.T) {
+func TestRuleSetJSONSortByMappingNameAsc(t *testing.T) {
 	rulesetJSON := `
 		{
 			"id": "namespace",

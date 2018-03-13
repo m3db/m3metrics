@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Uber Technologies, Inc.
+// Copyright (c) 2018 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/m3db/m3metrics/policy"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,9 +55,9 @@ func TestMappingRuleView(t *testing.T) {
 		Filter:   "filter",
 		Policies: []policy.Policy{},
 	}
-	require.EqualValues(t, expected, fixture.MappingRuleView())
+	require.EqualValues(t, expected, fixture.ToMappingRuleView())
 }
-func TestMappingRuleEqual(t *testing.T) {
+func TestMappingRuleJSONEqual(t *testing.T) {
 	mappingRule1 := `
 		{
 			"name": "sample_mapping_rule_1",
@@ -85,7 +86,7 @@ func TestMappingRuleEqual(t *testing.T) {
 	require.True(t, mr1.Equals(&mr2))
 }
 
-func TestMappingRuleNotEqual(t *testing.T) {
+func TestMappingRuleJSONNotEqual(t *testing.T) {
 	mappingRule1 := `
 		{
 			"name": "sample_mapping_rule_1",
@@ -128,7 +129,7 @@ func TestMappingRuleNotEqual(t *testing.T) {
 	require.False(t, mr2.Equals(&mr3))
 }
 
-func TestMappingRuleNilCases(t *testing.T) {
+func TestMappingRuleJSONNilCases(t *testing.T) {
 	var mr1 *MappingRuleJSON
 
 	require.True(t, mr1.Equals(nil))
@@ -138,7 +139,7 @@ func TestMappingRuleNilCases(t *testing.T) {
 	require.False(t, mappingRule.Equals(mr1))
 }
 
-func TestMappingRuleSort(t *testing.T) {
+func TestMappingRuleJSONSort(t *testing.T) {
 	mappingRule := `
 		{
 			"name":"sample_mapping_rule_1",
