@@ -18,50 +18,51 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rules
+package json
 
 import (
 	"sort"
 
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules"
 )
 
-// RollupTargetJSON is a common json serializable rollup target.
-type RollupTargetJSON struct {
+// RollupTarget is a common json serializable rollup target.
+type RollupTarget struct {
 	Name     string          `json:"name" validate:"required"`
 	Tags     []string        `json:"tags" validate:"required"`
 	Policies []policy.Policy `json:"policies" validate:"required"`
 }
 
-// RollupRuleJSON is a common json serializable rollup rule. Implements Sort interface.
-type RollupRuleJSON struct {
-	ID                  string             `json:"id,omitempty"`
-	Name                string             `json:"name" validate:"required"`
-	Filter              string             `json:"filter" validate:"required"`
-	Targets             []RollupTargetJSON `json:"targets" validate:"required,dive,required"`
-	CutoverMillis       int64              `json:"cutoverMillis,omitempty"`
-	LastUpdatedBy       string             `json:"lastUpdatedBy"`
-	LastUpdatedAtMillis int64              `json:"lastUpdatedAtMillis"`
+// RollupRule is a common json serializable rollup rule. Implements Sort interface.
+type RollupRule struct {
+	ID                  string         `json:"id,omitempty"`
+	Name                string         `json:"name" validate:"required"`
+	Filter              string         `json:"filter" validate:"required"`
+	Targets             []RollupTarget `json:"targets" validate:"required,dive,required"`
+	CutoverMillis       int64          `json:"cutoverMillis,omitempty"`
+	LastUpdatedBy       string         `json:"lastUpdatedBy"`
+	LastUpdatedAtMillis int64          `json:"lastUpdatedAtMillis"`
 }
 
-// NewRollupTargetJSON takes a RollupTargetView and returns the equivalent RollupTargetJSON.
-func NewRollupTargetJSON(t RollupTargetView) RollupTargetJSON {
-	return RollupTargetJSON(t)
+// NewRollupTarget takes a rules.RollupTargetView and returns the equivalent RollupTarget.
+func NewRollupTarget(t rules.RollupTargetView) RollupTarget {
+	return RollupTarget(t)
 }
 
 // ToRollupTargetView returns the equivalent ToRollupTargetView.
-func (t RollupTargetJSON) ToRollupTargetView() RollupTargetView {
-	return RollupTargetView(t)
+func (t RollupTarget) ToRollupTargetView() rules.RollupTargetView {
+	return rules.RollupTargetView(t)
 }
 
 // Sort sorts the policies inside the rollup target.
-func (t *RollupTargetJSON) Sort() {
+func (t *RollupTarget) Sort() {
 	sort.Strings(t.Tags)
 	sort.Sort(policy.ByResolutionAscRetentionDesc(t.Policies))
 }
 
 // Equals determines whether two rollup targets are equal.
-func (t *RollupTargetJSON) Equals(other *RollupTargetJSON) bool {
+func (t *RollupTarget) Equals(other *RollupTarget) bool {
 	if t == nil && other == nil {
 		return true
 	}
@@ -82,13 +83,13 @@ func (t *RollupTargetJSON) Equals(other *RollupTargetJSON) bool {
 	return policy.Policies(t.Policies).Equals(policy.Policies(other.Policies))
 }
 
-// NewRollupRuleJSON takes a RollupRuleView and returns the equivalent RollupRuleJSON.
-func NewRollupRuleJSON(rrv *RollupRuleView) RollupRuleJSON {
-	targets := make([]RollupTargetJSON, len(rrv.Targets))
+// NewRollupRule takes a rules.RollupRuleView and returns the equivalent RollupRule.
+func NewRollupRule(rrv *rules.RollupRuleView) RollupRule {
+	targets := make([]RollupTarget, len(rrv.Targets))
 	for i, t := range rrv.Targets {
-		targets[i] = NewRollupTargetJSON(t)
+		targets[i] = NewRollupTarget(t)
 	}
-	return RollupRuleJSON{
+	return RollupRule{
 		ID:                  rrv.ID,
 		Name:                rrv.Name,
 		Filter:              rrv.Filter,
@@ -100,13 +101,13 @@ func NewRollupRuleJSON(rrv *RollupRuleView) RollupRuleJSON {
 }
 
 // ToRollupRuleView returns the equivalent ToRollupRuleView.
-func (r RollupRuleJSON) ToRollupRuleView() *RollupRuleView {
-	targets := make([]RollupTargetView, len(r.Targets))
+func (r RollupRule) ToRollupRuleView() *rules.RollupRuleView {
+	targets := make([]rules.RollupTargetView, len(r.Targets))
 	for i, t := range r.Targets {
 		targets[i] = t.ToRollupTargetView()
 	}
 
-	return &RollupRuleView{
+	return &rules.RollupRuleView{
 		ID:      r.ID,
 		Name:    r.Name,
 		Filter:  r.Filter,
@@ -115,7 +116,7 @@ func (r RollupRuleJSON) ToRollupRuleView() *RollupRuleView {
 }
 
 // Equals determines whether two rollup rules are equal.
-func (r *RollupRuleJSON) Equals(other *RollupRuleJSON) bool {
+func (r *RollupRule) Equals(other *RollupRule) bool {
 	if r == nil && other == nil {
 		return true
 	}
@@ -124,22 +125,22 @@ func (r *RollupRuleJSON) Equals(other *RollupRuleJSON) bool {
 	}
 	return r.Name == other.Name &&
 		r.Filter == other.Filter &&
-		rollupTargetJSONs(r.Targets).Equals(other.Targets)
+		rollupTargets(r.Targets).Equals(other.Targets)
 }
 
 // Sort sorts the rollup targets inside the rollup rule.
-func (r *RollupRuleJSON) Sort() {
+func (r *RollupRule) Sort() {
 	for i := range r.Targets {
 		r.Targets[i].Sort()
 	}
-	sort.Sort(rollupTargetJSONsByNameTagsAsc(r.Targets))
+	sort.Sort(rollupTargetsByNameTagsAsc(r.Targets))
 }
 
-type rollupTargetJSONsByNameTagsAsc []RollupTargetJSON
+type rollupTargetsByNameTagsAsc []RollupTarget
 
-func (a rollupTargetJSONsByNameTagsAsc) Len() int      { return len(a) }
-func (a rollupTargetJSONsByNameTagsAsc) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a rollupTargetJSONsByNameTagsAsc) Less(i, j int) bool {
+func (a rollupTargetsByNameTagsAsc) Len() int      { return len(a) }
+func (a rollupTargetsByNameTagsAsc) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a rollupTargetsByNameTagsAsc) Less(i, j int) bool {
 	if a[i].Name < a[j].Name {
 		return true
 	}
@@ -161,9 +162,9 @@ func (a rollupTargetJSONsByNameTagsAsc) Less(i, j int) bool {
 	return len(a[i].Tags) < len(a[j].Tags)
 }
 
-type rollupTargetJSONs []RollupTargetJSON
+type rollupTargets []RollupTarget
 
-func (t rollupTargetJSONs) Equals(other rollupTargetJSONs) bool {
+func (t rollupTargets) Equals(other rollupTargets) bool {
 	if len(t) != len(other) {
 		return false
 	}
@@ -175,8 +176,8 @@ func (t rollupTargetJSONs) Equals(other rollupTargetJSONs) bool {
 	return true
 }
 
-type rollupRuleJSONsByNameAsc []RollupRuleJSON
+type rollupRulesByNameAsc []RollupRule
 
-func (a rollupRuleJSONsByNameAsc) Len() int           { return len(a) }
-func (a rollupRuleJSONsByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a rollupRuleJSONsByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }
+func (a rollupRulesByNameAsc) Len() int           { return len(a) }
+func (a rollupRulesByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a rollupRulesByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }

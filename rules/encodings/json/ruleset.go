@@ -18,13 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rules
+package json
 
 import (
 	"fmt"
 	"sort"
 	"time"
 
+	"github.com/m3db/m3metrics/rules"
 	"github.com/pborman/uuid"
 )
 
@@ -32,7 +33,7 @@ const (
 	nanosPerMilli = int64(time.Millisecond / time.Nanosecond)
 )
 
-// IDGenType describes the scheme for generating IDs in rule snapshots from RuleSetJSON structs
+// IDGenType describes the scheme for generating IDs in rule snapshots from RuleSet structs
 // which dont have a ID.
 type IDGenType int
 
@@ -43,44 +44,44 @@ const (
 	DontGenerateID
 )
 
-// RuleSetJSON is a common json serializable rule set.
-type RuleSetJSON struct {
-	Namespace     string            `json:"id"`
-	Version       int               `json:"version"`
-	CutoverMillis int64             `json:"cutoverMillis"`
-	MappingRules  []MappingRuleJSON `json:"mappingRules"`
-	RollupRules   []RollupRuleJSON  `json:"rollupRules"`
+// RuleSet is a common json serializable rule set.
+type RuleSet struct {
+	Namespace     string        `json:"id"`
+	Version       int           `json:"version"`
+	CutoverMillis int64         `json:"cutoverMillis"`
+	MappingRules  []MappingRule `json:"mappingRules"`
+	RollupRules   []RollupRule  `json:"rollupRules"`
 }
 
-// NewRuleSetJSON takes a RuleSetSnapshot and returns the equivalent RuleSetJSON.
-func NewRuleSetJSON(latest *RuleSetSnapshot) RuleSetJSON {
-	mrJSON := make([]MappingRuleJSON, 0, len(latest.MappingRules))
+// NewRuleSet takes a RuleSetSnapshot and returns the equivalent RuleSet.
+func NewRuleSet(latest *rules.RuleSetSnapshot) RuleSet {
+	mr := make([]MappingRule, 0, len(latest.MappingRules))
 	for _, m := range latest.MappingRules {
-		mrJSON = append(mrJSON, NewMappingRuleJSON(m))
+		mr = append(mr, NewMappingRule(m))
 	}
-	rrJSON := make([]RollupRuleJSON, 0, len(latest.RollupRules))
+	rr := make([]RollupRule, 0, len(latest.RollupRules))
 	for _, r := range latest.RollupRules {
-		rrJSON = append(rrJSON, NewRollupRuleJSON(r))
+		rr = append(rr, NewRollupRule(r))
 	}
-	return RuleSetJSON{
+	return RuleSet{
 		Namespace:     latest.Namespace,
 		Version:       latest.Version,
 		CutoverMillis: latest.CutoverNanos / nanosPerMilli,
-		MappingRules:  mrJSON,
-		RollupRules:   rrJSON,
+		MappingRules:  mr,
+		RollupRules:   rr,
 	}
 }
 
-// ToRuleSetSnapshot create a ToRuleSetSnapshot from a RuleSetJSON. If the RuleSetJSON has no IDs
+// ToRuleSetSnapshot create a ToRuleSetSnapshot from a RuleSet. If the RuleSet has no IDs
 // for any of its mapping rules or rollup rules, it generates missing IDs and sets as a string UUID
 // string so they can be stored in a mapping (id -> rule).
-func (r RuleSetJSON) ToRuleSetSnapshot(IDGenType IDGenType) (*RuleSetSnapshot, error) {
-	mappingRules := make(map[string]*MappingRuleView, len(r.MappingRules))
+func (r RuleSet) ToRuleSetSnapshot(IDGenType IDGenType) (*rules.RuleSetSnapshot, error) {
+	mappingRules := make(map[string]*rules.MappingRuleView, len(r.MappingRules))
 	for _, mr := range r.MappingRules {
 		id := mr.ID
 		if id == "" {
 			if IDGenType == DontGenerateID {
-				return nil, fmt.Errorf("can't convert RuleSetJSON to ruleSetSnapshot, no mapping rule id for %v", mr)
+				return nil, fmt.Errorf("can't convert RuleSet to ruleSetSnapshot, no mapping rule id for %v", mr)
 			}
 			id = uuid.New()
 			mr.ID = id
@@ -88,12 +89,12 @@ func (r RuleSetJSON) ToRuleSetSnapshot(IDGenType IDGenType) (*RuleSetSnapshot, e
 		mappingRules[id] = mr.ToMappingRuleView()
 	}
 
-	rollupRules := make(map[string]*RollupRuleView, len(r.RollupRules))
+	rollupRules := make(map[string]*rules.RollupRuleView, len(r.RollupRules))
 	for _, rr := range r.RollupRules {
 		id := rr.ID
 		if id == "" {
 			if IDGenType == DontGenerateID {
-				return nil, fmt.Errorf("can't convert RuleSetJSON to ruleSetSnapshot, no rollup rule id for %v", rr)
+				return nil, fmt.Errorf("can't convert RuleSet to ruleSetSnapshot, no rollup rule id for %v", rr)
 			}
 			id = uuid.New()
 			rr.ID = id
@@ -101,7 +102,7 @@ func (r RuleSetJSON) ToRuleSetSnapshot(IDGenType IDGenType) (*RuleSetSnapshot, e
 		rollupRules[id] = rr.ToRollupRuleView()
 	}
 
-	return &RuleSetSnapshot{
+	return &rules.RuleSetSnapshot{
 		Namespace:    r.Namespace,
 		Version:      r.Version,
 		MappingRules: mappingRules,
@@ -110,23 +111,23 @@ func (r RuleSetJSON) ToRuleSetSnapshot(IDGenType IDGenType) (*RuleSetSnapshot, e
 }
 
 // Sort sorts the rules in the ruleset.
-func (r *RuleSetJSON) Sort() {
+func (r *RuleSet) Sort() {
 	for i := range r.MappingRules {
 		r.MappingRules[i].Sort()
 	}
-	sort.Sort(mappingRuleJSONsByNameAsc(r.MappingRules))
+	sort.Sort(mappingRulesByNameAsc(r.MappingRules))
 
 	for i := range r.RollupRules {
 		r.RollupRules[i].Sort()
 	}
-	sort.Sort(rollupRuleJSONsByNameAsc(r.RollupRules))
+	sort.Sort(rollupRulesByNameAsc(r.RollupRules))
 }
 
-// RuleSetJSONs is a collection of rulesets.
-type RuleSetJSONs map[string]*RuleSetJSON
+// RuleSets is a collection of rulesets.
+type RuleSets map[string]*RuleSet
 
 // Sort sorts each ruleset based on it's own sort method.
-func (rss RuleSetJSONs) Sort() {
+func (rss RuleSets) Sort() {
 	for _, rs := range rss {
 		rs.Sort()
 	}

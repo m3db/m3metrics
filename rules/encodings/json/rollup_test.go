@@ -18,20 +18,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rules
+package json
 
 import (
 	"encoding/json"
 	"testing"
 
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestToRollupTargetView(t *testing.T) {
-	fixture := testRollupTargetJSON("name")
-	expected := RollupTargetView{
+	fixture := testRollupTarget("name")
+	expected := rules.RollupTargetView{
 		Name:     "name",
 		Tags:     []string{"tag"},
 		Policies: []policy.Policy{},
@@ -39,27 +40,27 @@ func TestToRollupTargetView(t *testing.T) {
 	require.EqualValues(t, expected, fixture.ToRollupTargetView())
 }
 
-func TestNewRollupTargetJSON(t *testing.T) {
+func TestNewRollupTarget(t *testing.T) {
 	fixture := testRollupTargetView("name")
-	expected := RollupTargetJSON{
+	expected := RollupTarget{
 		Name:     "name",
 		Tags:     []string{"tag"},
 		Policies: []policy.Policy{},
 	}
-	require.EqualValues(t, expected, NewRollupTargetJSON(*fixture))
+	require.EqualValues(t, expected, NewRollupTarget(*fixture))
 }
 
-func TestNewRollupRuleJSON(t *testing.T) {
-	targets := []RollupTargetView{
+func TestNewRollupRule(t *testing.T) {
+	targets := []rules.RollupTargetView{
 		*testRollupTargetView("target1"),
 		*testRollupTargetView("target2"),
 	}
 	fixture := testRollupRuleView("rr_id", "rr_name", targets)
-	expected := RollupRuleJSON{
+	expected := RollupRule{
 		ID:     "rr_id",
 		Name:   "rr_name",
 		Filter: "filter",
-		Targets: []RollupTargetJSON{
+		Targets: []RollupTarget{
 			{
 				Name:     "target1",
 				Tags:     []string{"tag"},
@@ -75,20 +76,20 @@ func TestNewRollupRuleJSON(t *testing.T) {
 		LastUpdatedBy:       "",
 		LastUpdatedAtMillis: 0,
 	}
-	require.EqualValues(t, expected, NewRollupRuleJSON(fixture))
+	require.EqualValues(t, expected, NewRollupRule(fixture))
 }
 
 func TestToRollupRuleView(t *testing.T) {
-	targets := []RollupTargetJSON{
-		*testRollupTargetJSON("target1"),
-		*testRollupTargetJSON("target2"),
+	targets := []RollupTarget{
+		*testRollupTarget("target1"),
+		*testRollupTarget("target2"),
 	}
-	fixture := testRollupRuleJSON("id", "name", targets)
-	expected := &RollupRuleView{
+	fixture := testRollupRule("id", "name", targets)
+	expected := &rules.RollupRuleView{
 		ID:     "id",
 		Name:   "name",
 		Filter: "filter",
-		Targets: []RollupTargetView{
+		Targets: []rules.RollupTargetView{
 			{
 				Name:     "target1",
 				Tags:     []string{"tag"},
@@ -104,7 +105,7 @@ func TestToRollupRuleView(t *testing.T) {
 	require.EqualValues(t, expected, fixture.ToRollupRuleView())
 }
 
-func TestRollupRuleJSONSort(t *testing.T) {
+func TestRollupRuleSort(t *testing.T) {
 	rollupRule := `
 		{
 			"name":"sample_mapping_rule_1",
@@ -135,7 +136,7 @@ func TestRollupRuleJSONSort(t *testing.T) {
 			]
 		}
 	`
-	var rr RollupRuleJSON
+	var rr RollupRule
 	err := json.Unmarshal([]byte(rollupRule), &rr)
 	require.NoError(t, err)
 
@@ -152,7 +153,7 @@ func TestRollupRuleJSONSort(t *testing.T) {
 	require.Equal(t, expected, string(actual2))
 }
 
-func TestRollupRuleJSONSortTargetByNameAsc(t *testing.T) {
+func TestRollupRuleSortTargetByNameAsc(t *testing.T) {
 	rollupRule := `
 		{
 			"name":"sample_mapping_rule_1",
@@ -175,7 +176,7 @@ func TestRollupRuleJSONSortTargetByNameAsc(t *testing.T) {
 			]
 		}
 	`
-	var rr RollupRuleJSON
+	var rr RollupRule
 	err := json.Unmarshal([]byte(rollupRule), &rr)
 	require.NoError(t, err)
 
@@ -202,7 +203,7 @@ func TestRollupRuleJSONSortTargetByNameAsc(t *testing.T) {
 		}
 	`
 
-	var expected RollupRuleJSON
+	var expected RollupRule
 	err = json.Unmarshal([]byte(expectedJSON), &expected)
 	require.NoError(t, err)
 
@@ -211,7 +212,7 @@ func TestRollupRuleJSONSortTargetByNameAsc(t *testing.T) {
 	require.Equal(t, expected, rr)
 }
 
-func TestRollupRuleJSONEqual(t *testing.T) {
+func TestRollupRuleEqual(t *testing.T) {
 	rrJSON := `
 		{
 			"name":"rollup_rule_1",
@@ -230,17 +231,17 @@ func TestRollupRuleJSONEqual(t *testing.T) {
 		}
 	`
 
-	var rr1 RollupRuleJSON
+	var rr1 RollupRule
 	err := json.Unmarshal([]byte(rrJSON), &rr1)
 	require.NoError(t, err)
-	var rr2 RollupRuleJSON
+	var rr2 RollupRule
 	err = json.Unmarshal([]byte(rrJSON), &rr2)
 	require.NoError(t, err)
 
 	require.True(t, rr1.Equals(&rr2))
 }
 
-func TestRollupRuleJSONNotEqual(t *testing.T) {
+func TestRollupRuleNotEqual(t *testing.T) {
 	rrJSON1 := `
 		{
 			"name":"rollup_rule_1",
@@ -293,13 +294,13 @@ func TestRollupRuleJSONNotEqual(t *testing.T) {
 		}
 	`
 
-	var rr1 RollupRuleJSON
+	var rr1 RollupRule
 	err := json.Unmarshal([]byte(rrJSON1), &rr1)
 	require.NoError(t, err)
-	var rr2 RollupRuleJSON
+	var rr2 RollupRule
 	err = json.Unmarshal([]byte(rrJSON2), &rr2)
 	require.NoError(t, err)
-	var rr3 RollupRuleJSON
+	var rr3 RollupRule
 	err = json.Unmarshal([]byte(rrJSON3), &rr3)
 	require.NoError(t, err)
 
@@ -308,17 +309,17 @@ func TestRollupRuleJSONNotEqual(t *testing.T) {
 	require.False(t, rr2.Equals(&rr3))
 }
 
-func TestRollupRuleJSONNilCases(t *testing.T) {
-	var rr1 *RollupRuleJSON
+func TestRollupRuleNilCases(t *testing.T) {
+	var rr1 *RollupRule
 
 	require.True(t, rr1.Equals(nil))
 
-	var rr2 RollupRuleJSON
+	var rr2 RollupRule
 	rollupRule := &rr2
 	require.False(t, rollupRule.Equals(rr1))
 }
 
-func TestRollupTargetJSONsEqual(t *testing.T) {
+func TestRollupTargetsEqual(t *testing.T) {
 	rtJSON := `
 		[
 			{
@@ -341,17 +342,17 @@ func TestRollupTargetJSONsEqual(t *testing.T) {
 			}
 		]
 	`
-	var rt1 []RollupTargetJSON
+	var rt1 []RollupTarget
 	err := json.Unmarshal([]byte(rtJSON), &rt1)
 	require.NoError(t, err)
-	var rt2 []RollupTargetJSON
+	var rt2 []RollupTarget
 	err = json.Unmarshal([]byte(rtJSON), &rt2)
 	require.NoError(t, err)
 
-	require.True(t, rollupTargetJSONs(rt1).Equals(rollupTargetJSONs(rt2)))
+	require.True(t, rollupTargets(rt1).Equals(rollupTargets(rt2)))
 }
 
-func TestRollupTargetJSONsNotEqual(t *testing.T) {
+func TestRollupTargetsNotEqual(t *testing.T) {
 	rtJSON1 := `
 		[
 			{
@@ -396,17 +397,17 @@ func TestRollupTargetJSONsNotEqual(t *testing.T) {
 			}
 		]
 	`
-	var rt1 []RollupTargetJSON
+	var rt1 []RollupTarget
 	err := json.Unmarshal([]byte(rtJSON1), &rt1)
 	require.NoError(t, err)
-	var rt2 []RollupTargetJSON
+	var rt2 []RollupTarget
 	err = json.Unmarshal([]byte(rtJSON2), &rt2)
 	require.NoError(t, err)
 
-	require.False(t, rollupTargetJSONs(rt1).Equals(rollupTargetJSONs(rt2)))
+	require.False(t, rollupTargets(rt1).Equals(rollupTargets(rt2)))
 }
 
-func TestRollupTargetJSONEqual(t *testing.T) {
+func TestRollupTargetEqual(t *testing.T) {
 	rtJSON1 := `
 		{
 			"name": "rollup_target_1",
@@ -429,17 +430,17 @@ func TestRollupTargetJSONEqual(t *testing.T) {
 			]
 		}
 	`
-	var rt1 RollupTargetJSON
+	var rt1 RollupTarget
 	err := json.Unmarshal([]byte(rtJSON1), &rt1)
 	require.NoError(t, err)
-	var rt2 RollupTargetJSON
+	var rt2 RollupTarget
 	err = json.Unmarshal([]byte(rtJSON2), &rt2)
 	require.NoError(t, err)
 
 	require.True(t, rt1.Equals(&rt2))
 }
 
-func TestRollupTargetJSONNotEqual(t *testing.T) {
+func TestRollupTargetNotEqual(t *testing.T) {
 	rtJSONs := []string{
 		`
 		{
@@ -498,7 +499,7 @@ func TestRollupTargetJSONNotEqual(t *testing.T) {
 	`,
 	}
 
-	targets := make([]RollupTargetJSON, len(rtJSONs))
+	targets := make([]RollupTarget, len(rtJSONs))
 	for i, rtJSON := range rtJSONs {
 		require.NoError(t, json.Unmarshal([]byte(rtJSON), &targets[i]))
 	}
@@ -508,7 +509,7 @@ func TestRollupTargetJSONNotEqual(t *testing.T) {
 	}
 }
 
-func TestRollupTargetJSONSort(t *testing.T) {
+func TestRollupTargetSort(t *testing.T) {
 	rtJSON1 := `
 		{
 			"name": "rollup_target_1",
@@ -531,44 +532,44 @@ func TestRollupTargetJSONSort(t *testing.T) {
 			]
 		}
 	`
-	var rt1 RollupTargetJSON
+	var rt1 RollupTarget
 	err := json.Unmarshal([]byte(rtJSON1), &rt1)
 	require.NoError(t, err)
-	var rt2 RollupTargetJSON
+	var rt2 RollupTarget
 	err = json.Unmarshal([]byte(rtJSON2), &rt2)
 	require.NoError(t, err)
 
 	require.True(t, rt1.Equals(&rt2))
 }
 
-func TestRollupTargetJSONNilCases(t *testing.T) {
-	var rt1 *RollupTargetJSON
+func TestRollupTargetNilCases(t *testing.T) {
+	var rt1 *RollupTarget
 
 	require.True(t, rt1.Equals(nil))
 
-	var rt2 RollupTargetJSON
+	var rt2 RollupTarget
 	rollupTarget := &rt2
 	require.False(t, rollupTarget.Equals(rt1))
 }
 
-func testRollupTargetJSON(name string) *RollupTargetJSON {
-	return &RollupTargetJSON{
+func testRollupTarget(name string) *RollupTarget {
+	return &RollupTarget{
 		Name:     name,
 		Tags:     []string{"tag"},
 		Policies: []policy.Policy{},
 	}
 }
 
-func testRollupTargetView(name string) *RollupTargetView {
-	return &RollupTargetView{
+func testRollupTargetView(name string) *rules.RollupTargetView {
+	return &rules.RollupTargetView{
 		Name:     name,
 		Tags:     []string{"tag"},
 		Policies: []policy.Policy{},
 	}
 }
 
-func testRollupRuleJSON(id, name string, targets []RollupTargetJSON) *RollupRuleJSON {
-	return &RollupRuleJSON{
+func testRollupRule(id, name string, targets []RollupTarget) *RollupRule {
+	return &RollupRule{
 		ID:      id,
 		Name:    name,
 		Filter:  "filter",
@@ -577,8 +578,8 @@ func testRollupRuleJSON(id, name string, targets []RollupTargetJSON) *RollupRule
 }
 
 // nolint:unparam
-func testRollupRuleView(id, name string, targets []RollupTargetView) *RollupRuleView {
-	return &RollupRuleView{
+func testRollupRuleView(id, name string, targets []rules.RollupTargetView) *rules.RollupRuleView {
+	return &rules.RollupRuleView{
 		ID:      id,
 		Name:    name,
 		Filter:  "filter",

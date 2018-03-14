@@ -18,31 +18,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rules
+package json
 
 import (
 	"testing"
 
+	"github.com/m3db/m3metrics/rules"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewNamespaceJSON(t *testing.T) {
+func TestNewNamespace(t *testing.T) {
 	id := "name"
 	fixture := testNamespaceView(id)
-	expected := NamespaceJSON{
+	expected := Namespace{
 		ID:                id,
 		ForRuleSetVersion: fixture.ForRuleSetVersion,
 	}
-	require.EqualValues(t, expected, NewNamespaceJSON(fixture))
+	require.EqualValues(t, expected, NewNamespace(fixture))
 }
 
-func TestNewNamespacesJSON(t *testing.T) {
+func TestNewNamespaces(t *testing.T) {
 	id1 := "name1"
 	id2 := "name2"
 	fixture := testNamespacesView(id1, id2)
-	expected := NamespacesJSON{
+	expected := Namespaces{
 		Version: 1,
-		Namespaces: []NamespaceJSON{
+		Namespaces: []Namespace{
 			{
 				ID:                id1,
 				ForRuleSetVersion: 1,
@@ -53,22 +54,22 @@ func TestNewNamespacesJSON(t *testing.T) {
 			},
 		},
 	}
-	require.EqualValues(t, expected, NewNamespacesJSON(fixture))
+	require.EqualValues(t, expected, NewNamespaces(fixture))
 }
 
-func testNamespaceView(name string) *NamespaceView {
-	return &NamespaceView{
+func testNamespaceView(name string) *rules.NamespaceView {
+	return &rules.NamespaceView{
 		Name:              name,
 		ForRuleSetVersion: 1,
 	}
 }
 
-func testNamespacesView(namespaceNames ...string) *NamespacesView {
-	namespaces := make([]*NamespaceView, len(namespaceNames))
+func testNamespacesView(namespaceNames ...string) *rules.NamespacesView {
+	namespaces := make([]*rules.NamespaceView, len(namespaceNames))
 	for i, name := range namespaceNames {
 		namespaces[i] = testNamespaceView(name)
 	}
-	return &NamespacesView{
+	return &rules.NamespacesView{
 		Version:    1,
 		Namespaces: namespaces,
 	}

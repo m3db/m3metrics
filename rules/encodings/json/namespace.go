@@ -18,35 +18,37 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rules
+package json
 
-// NamespaceJSON is a common json serializable namespace.
-type NamespaceJSON struct {
+import "github.com/m3db/m3metrics/rules"
+
+// Namespace is a common json serializable namespace.
+type Namespace struct {
 	ID                string `json:"id" validate:"required"`
 	ForRuleSetVersion int    `json:"forRuleSetVersion"`
 }
 
-// NewNamespaceJSON takes a NamespaceView returns the equivalent NamespaceJSON.
-func NewNamespaceJSON(nv *NamespaceView) NamespaceJSON {
-	return NamespaceJSON{
+// NewNamespace takes a NamespaceView returns the equivalent Namespace.
+func NewNamespace(nv *rules.NamespaceView) Namespace {
+	return Namespace{
 		ID:                nv.Name,
 		ForRuleSetVersion: nv.ForRuleSetVersion,
 	}
 }
 
-// NamespacesJSON is a common json serializable list of namespaces.
-type NamespacesJSON struct {
-	Version    int             `json:"version"`
-	Namespaces []NamespaceJSON `json:"namespaces"`
+// Namespaces is a common json serializable list of namespaces.
+type Namespaces struct {
+	Version    int         `json:"version"`
+	Namespaces []Namespace `json:"namespaces"`
 }
 
-// NewNamespacesJSON takes a NamespacesView returns the equivalent NamespacesJSON.
-func NewNamespacesJSON(nss *NamespacesView) NamespacesJSON {
-	views := make([]NamespaceJSON, len(nss.Namespaces))
+// NewNamespaces takes a NamespacesView returns the equivalent Namespaces.
+func NewNamespaces(nss *rules.NamespacesView) Namespaces {
+	views := make([]Namespace, len(nss.Namespaces))
 	for i, namespace := range nss.Namespaces {
-		views[i] = NewNamespaceJSON(namespace)
+		views[i] = NewNamespace(namespace)
 	}
-	return NamespacesJSON{
+	return Namespaces{
 		Version:    nss.Version,
 		Namespaces: views,
 	}

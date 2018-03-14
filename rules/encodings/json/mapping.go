@@ -18,16 +18,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rules
+package json
 
 import (
 	"sort"
 
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules"
 )
 
-// MappingRuleJSON is a common json serializable mapping rule.
-type MappingRuleJSON struct {
+// MappingRule is a common json serializable mapping rule.
+type MappingRule struct {
 	ID                  string          `json:"id,omitempty"`
 	Name                string          `json:"name" validate:"required"`
 	CutoverMillis       int64           `json:"cutoverMillis,omitempty"`
@@ -37,9 +38,9 @@ type MappingRuleJSON struct {
 	LastUpdatedAtMillis int64           `json:"lastUpdatedAtMillis"`
 }
 
-// NewMappingRuleJSON takes a MappingRuleView and returns the equivalent MappingRuleJSON.
-func NewMappingRuleJSON(mrv *MappingRuleView) MappingRuleJSON {
-	return MappingRuleJSON{
+// NewMappingRule takes a MappingRuleView and returns the equivalent MappingRule.
+func NewMappingRule(mrv *rules.MappingRuleView) MappingRule {
+	return MappingRule{
 		ID:                  mrv.ID,
 		Name:                mrv.Name,
 		Filter:              mrv.Filter,
@@ -51,8 +52,8 @@ func NewMappingRuleJSON(mrv *MappingRuleView) MappingRuleJSON {
 }
 
 // ToMappingRuleView returns a ToMappingRuleView type.
-func (m MappingRuleJSON) ToMappingRuleView() *MappingRuleView {
-	return &MappingRuleView{
+func (m MappingRule) ToMappingRuleView() *rules.MappingRuleView {
+	return &rules.MappingRuleView{
 		ID:       m.ID,
 		Name:     m.Name,
 		Filter:   m.Filter,
@@ -61,7 +62,7 @@ func (m MappingRuleJSON) ToMappingRuleView() *MappingRuleView {
 }
 
 // Equals determines whether two mapping rules are equal.
-func (m *MappingRuleJSON) Equals(other *MappingRuleJSON) bool {
+func (m *MappingRule) Equals(other *MappingRule) bool {
 	if m == nil && other == nil {
 		return true
 	}
@@ -75,12 +76,12 @@ func (m *MappingRuleJSON) Equals(other *MappingRuleJSON) bool {
 }
 
 // Sort sorts the policies inside the mapping rule.
-func (m *MappingRuleJSON) Sort() {
+func (m *MappingRule) Sort() {
 	sort.Sort(policy.ByResolutionAscRetentionDesc(m.Policies))
 }
 
-type mappingRuleJSONsByNameAsc []MappingRuleJSON
+type mappingRulesByNameAsc []MappingRule
 
-func (a mappingRuleJSONsByNameAsc) Len() int           { return len(a) }
-func (a mappingRuleJSONsByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a mappingRuleJSONsByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }
+func (a mappingRulesByNameAsc) Len() int           { return len(a) }
+func (a mappingRulesByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a mappingRulesByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }

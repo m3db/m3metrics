@@ -18,22 +18,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rules
+package json
 
 import (
 	"encoding/json"
 	"testing"
 
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewMappingRuleJSON(t *testing.T) {
+func TestNewMappingRule(t *testing.T) {
 	id := "mr_id"
 	name := "mr_name"
 	fixture := testMappingRuleView(id, name)
-	expected := MappingRuleJSON{
+	expected := MappingRule{
 		ID:                  id,
 		Name:                name,
 		Filter:              "filter",
@@ -42,14 +43,14 @@ func TestNewMappingRuleJSON(t *testing.T) {
 		LastUpdatedBy:       "",
 		LastUpdatedAtMillis: 0,
 	}
-	require.EqualValues(t, expected, NewMappingRuleJSON(fixture))
+	require.EqualValues(t, expected, NewMappingRule(fixture))
 }
 
 func TestToMappingRuleView(t *testing.T) {
 	id := "id"
 	name := "name"
-	fixture := testMappingRuleJSON(id, name)
-	expected := &MappingRuleView{
+	fixture := testMappingRule(id, name)
+	expected := &rules.MappingRuleView{
 		ID:       id,
 		Name:     name,
 		Filter:   "filter",
@@ -57,7 +58,7 @@ func TestToMappingRuleView(t *testing.T) {
 	}
 	require.EqualValues(t, expected, fixture.ToMappingRuleView())
 }
-func TestMappingRuleJSONEqual(t *testing.T) {
+func TestMappingRuleEqual(t *testing.T) {
 	mappingRule1 := `
 		{
 			"name": "sample_mapping_rule_1",
@@ -76,17 +77,17 @@ func TestMappingRuleJSONEqual(t *testing.T) {
 			]
 		}
 	`
-	var mr1 MappingRuleJSON
+	var mr1 MappingRule
 	err := json.Unmarshal([]byte(mappingRule1), &mr1)
 	require.NoError(t, err)
-	var mr2 MappingRuleJSON
+	var mr2 MappingRule
 	err = json.Unmarshal([]byte(mappingRule2), &mr2)
 	require.NoError(t, err)
 
 	require.True(t, mr1.Equals(&mr2))
 }
 
-func TestMappingRuleJSONNotEqual(t *testing.T) {
+func TestMappingRuleNotEqual(t *testing.T) {
 	mappingRule1 := `
 		{
 			"name": "sample_mapping_rule_1",
@@ -114,13 +115,13 @@ func TestMappingRuleJSONNotEqual(t *testing.T) {
 			]
 		}
 	`
-	var mr1 MappingRuleJSON
+	var mr1 MappingRule
 	err := json.Unmarshal([]byte(mappingRule1), &mr1)
 	require.NoError(t, err)
-	var mr2 MappingRuleJSON
+	var mr2 MappingRule
 	err = json.Unmarshal([]byte(mappingRule2), &mr2)
 	require.NoError(t, err)
-	var mr3 MappingRuleJSON
+	var mr3 MappingRule
 	err = json.Unmarshal([]byte(mappingRule3), &mr3)
 	require.NoError(t, err)
 
@@ -129,17 +130,17 @@ func TestMappingRuleJSONNotEqual(t *testing.T) {
 	require.False(t, mr2.Equals(&mr3))
 }
 
-func TestMappingRuleJSONNilCases(t *testing.T) {
-	var mr1 *MappingRuleJSON
+func TestMappingRuleNilCases(t *testing.T) {
+	var mr1 *MappingRule
 
 	require.True(t, mr1.Equals(nil))
 
-	var mr2 MappingRuleJSON
+	var mr2 MappingRule
 	mappingRule := &mr2
 	require.False(t, mappingRule.Equals(mr1))
 }
 
-func TestMappingRuleJSONSort(t *testing.T) {
+func TestMappingRuleSort(t *testing.T) {
 	mappingRule := `
 		{
 			"name":"sample_mapping_rule_1",
@@ -151,7 +152,7 @@ func TestMappingRuleJSONSort(t *testing.T) {
 			]
 		}
 	`
-	var mr MappingRuleJSON
+	var mr MappingRule
 	err := json.Unmarshal([]byte(mappingRule), &mr)
 	require.NoError(t, err)
 
@@ -163,8 +164,8 @@ func TestMappingRuleJSONSort(t *testing.T) {
 }
 
 // nolint:unparam
-func testMappingRuleView(id, name string) *MappingRuleView {
-	return &MappingRuleView{
+func testMappingRuleView(id, name string) *rules.MappingRuleView {
+	return &rules.MappingRuleView{
 		ID:       id,
 		Name:     name,
 		Filter:   "filter",
@@ -172,8 +173,8 @@ func testMappingRuleView(id, name string) *MappingRuleView {
 	}
 }
 
-func testMappingRuleJSON(id, name string) *MappingRuleJSON {
-	return &MappingRuleJSON{
+func testMappingRule(id, name string) *MappingRule {
+	return &MappingRule{
 		ID:       id,
 		Name:     name,
 		Filter:   "filter",

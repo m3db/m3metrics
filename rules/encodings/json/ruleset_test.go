@@ -18,33 +18,34 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rules
+package json
 
 import (
 	"encoding/json"
 	"testing"
 
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules"
 
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
 
 func TestToRuleSetSnapshot(t *testing.T) {
-	mappingRules := []MappingRuleJSON{
-		*testMappingRuleJSON("mr1_id", "mr1"),
-		*testMappingRuleJSON("mr2_id", "mr2"),
+	mappingRules := []MappingRule{
+		*testMappingRule("mr1_id", "mr1"),
+		*testMappingRule("mr2_id", "mr2"),
 	}
-	rollupRules := []RollupRuleJSON{
-		*testRollupRuleJSON("rr1_id", "rr1", []RollupTargetJSON{*testRollupTargetJSON("target1")}),
-		*testRollupRuleJSON("rr2_id", "rr2", []RollupTargetJSON{*testRollupTargetJSON("target2")}),
+	rollupRules := []RollupRule{
+		*testRollupRule("rr1_id", "rr1", []RollupTarget{*testRollupTarget("target1")}),
+		*testRollupRule("rr2_id", "rr2", []RollupTarget{*testRollupTarget("target2")}),
 	}
-	fixture := testRuleSetJSON("rs_ns", mappingRules, rollupRules)
-	expected := &RuleSetSnapshot{
+	fixture := testRuleSet("rs_ns", mappingRules, rollupRules)
+	expected := &rules.RuleSetSnapshot{
 		Namespace:    "rs_ns",
 		Version:      1,
 		CutoverNanos: 0,
-		MappingRules: map[string]*MappingRuleView{
+		MappingRules: map[string]*rules.MappingRuleView{
 			"mr1_id": {
 				ID:       "mr1_id",
 				Name:     "mr1",
@@ -58,12 +59,12 @@ func TestToRuleSetSnapshot(t *testing.T) {
 				Policies: []policy.Policy{},
 			},
 		},
-		RollupRules: map[string]*RollupRuleView{
+		RollupRules: map[string]*rules.RollupRuleView{
 			"rr1_id": {
 				ID:     "rr1_id",
 				Name:   "rr1",
 				Filter: "filter",
-				Targets: []RollupTargetView{
+				Targets: []rules.RollupTargetView{
 					{
 						Name:     "target1",
 						Tags:     []string{"tag"},
@@ -75,7 +76,7 @@ func TestToRuleSetSnapshot(t *testing.T) {
 				ID:     "rr2_id",
 				Name:   "rr2",
 				Filter: "filter",
-				Targets: []RollupTargetView{
+				Targets: []rules.RollupTargetView{
 					{
 						Name:     "target2",
 						Tags:     []string{"tag"},
@@ -89,22 +90,22 @@ func TestToRuleSetSnapshot(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, expected, actual)
 
-	rsJSON := NewRuleSetJSON(expected)
-	rsJSON.Sort()
+	rs := NewRuleSet(expected)
+	rs.Sort()
 	fixture.Sort()
-	require.Equal(t, rsJSON, *fixture)
+	require.Equal(t, rs, *fixture)
 }
 
 func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
-	mappingRules := []MappingRuleJSON{
-		*testMappingRuleJSON("", "mr"),
-		*testMappingRuleJSON("", "mr"),
+	mappingRules := []MappingRule{
+		*testMappingRule("", "mr"),
+		*testMappingRule("", "mr"),
 	}
-	rollupRules := []RollupRuleJSON{
-		*testRollupRuleJSON("", "rr", []RollupTargetJSON{*testRollupTargetJSON("target")}),
-		*testRollupRuleJSON("", "rr", []RollupTargetJSON{*testRollupTargetJSON("target")}),
+	rollupRules := []RollupRule{
+		*testRollupRule("", "rr", []RollupTarget{*testRollupTarget("target")}),
+		*testRollupRule("", "rr", []RollupTarget{*testRollupTarget("target")}),
 	}
-	fixture := testRuleSetJSON("namespace", mappingRules, rollupRules)
+	fixture := testRuleSet("namespace", mappingRules, rollupRules)
 
 	actual, err := fixture.ToRuleSetSnapshot(GenerateID)
 	require.NoError(t, err)
@@ -121,11 +122,11 @@ func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
 		rrIDs = append(rrIDs, id)
 	}
 
-	expected := &RuleSetSnapshot{
+	expected := &rules.RuleSetSnapshot{
 		Namespace:    "namespace",
 		Version:      1,
 		CutoverNanos: 0,
-		MappingRules: map[string]*MappingRuleView{
+		MappingRules: map[string]*rules.MappingRuleView{
 			mrIDs[0]: {
 				ID:       mrIDs[0],
 				Name:     "mr",
@@ -139,12 +140,12 @@ func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
 				Policies: []policy.Policy{},
 			},
 		},
-		RollupRules: map[string]*RollupRuleView{
+		RollupRules: map[string]*rules.RollupRuleView{
 			rrIDs[0]: {
 				ID:     rrIDs[0],
 				Name:   "rr",
 				Filter: "filter",
-				Targets: []RollupTargetView{
+				Targets: []rules.RollupTargetView{
 					{
 						Name:     "target",
 						Tags:     []string{"tag"},
@@ -156,7 +157,7 @@ func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
 				ID:     rrIDs[1],
 				Name:   "rr",
 				Filter: "filter",
-				Targets: []RollupTargetView{
+				Targets: []rules.RollupTargetView{
 					{
 						Name:     "target",
 						Tags:     []string{"tag"},
@@ -170,37 +171,37 @@ func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
 }
 
 func TestToRuleSetSnapshotFailMissingMappingRuleID(t *testing.T) {
-	mappingRules := []MappingRuleJSON{
-		*testMappingRuleJSON("", "mr"),
-		*testMappingRuleJSON("id1", "mr"),
+	mappingRules := []MappingRule{
+		*testMappingRule("", "mr"),
+		*testMappingRule("id1", "mr"),
 	}
-	rollupRules := []RollupRuleJSON{
-		*testRollupRuleJSON("id2", "rr", []RollupTargetJSON{*testRollupTargetJSON("target")}),
-		*testRollupRuleJSON("id3", "rr", []RollupTargetJSON{*testRollupTargetJSON("target")}),
+	rollupRules := []RollupRule{
+		*testRollupRule("id2", "rr", []RollupTarget{*testRollupTarget("target")}),
+		*testRollupRule("id3", "rr", []RollupTarget{*testRollupTarget("target")}),
 	}
-	fixture := testRuleSetJSON("namespace", mappingRules, rollupRules)
+	fixture := testRuleSet("namespace", mappingRules, rollupRules)
 
 	_, err := fixture.ToRuleSetSnapshot(DontGenerateID)
 	require.Error(t, err)
 }
 
 func TestToRuleSetSnapshotFailMissingRollupRuleID(t *testing.T) {
-	mappingRules := []MappingRuleJSON{
-		*testMappingRuleJSON("id1", "mr"),
-		*testMappingRuleJSON("id2", "mr"),
+	mappingRules := []MappingRule{
+		*testMappingRule("id1", "mr"),
+		*testMappingRule("id2", "mr"),
 	}
-	rollupRules := []RollupRuleJSON{
-		*testRollupRuleJSON("id3", "rr", []RollupTargetJSON{*testRollupTargetJSON("target")}),
-		*testRollupRuleJSON("", "rr", []RollupTargetJSON{*testRollupTargetJSON("target")}),
+	rollupRules := []RollupRule{
+		*testRollupRule("id3", "rr", []RollupTarget{*testRollupTarget("target")}),
+		*testRollupRule("", "rr", []RollupTarget{*testRollupTarget("target")}),
 	}
-	fixture := testRuleSetJSON("namespace", mappingRules, rollupRules)
+	fixture := testRuleSet("namespace", mappingRules, rollupRules)
 
 	_, err := fixture.ToRuleSetSnapshot(DontGenerateID)
 	require.Error(t, err)
 }
 
 func TestRuleSetsSort(t *testing.T) {
-	rulesetJSON := `
+	ruleset := `
 		{
 			"id": "namespace",
 			"mappingRules":[
@@ -246,16 +247,16 @@ func TestRuleSetsSort(t *testing.T) {
 			]
 		}
 	`
-	var rs1 RuleSetJSON
-	err := json.Unmarshal([]byte(rulesetJSON), &rs1)
+	var rs1 RuleSet
+	err := json.Unmarshal([]byte(ruleset), &rs1)
 	require.NoError(t, err)
-	var rs2 RuleSetJSON
-	err = json.Unmarshal([]byte(rulesetJSON), &rs2)
+	var rs2 RuleSet
+	err = json.Unmarshal([]byte(ruleset), &rs2)
 	require.NoError(t, err)
 
-	rulesets := RuleSetJSONs(map[string]*RuleSetJSON{"rs1": &rs1, "rs2": &rs2})
+	rulesets := RuleSets(map[string]*RuleSet{"rs1": &rs1, "rs2": &rs2})
 
-	expectedJSON := `
+	expectedBlob := `
 		{
 			"id": "namespace",
 			"mappingRules":[
@@ -302,8 +303,8 @@ func TestRuleSetsSort(t *testing.T) {
 		}
 	`
 
-	var expected RuleSetJSON
-	err = json.Unmarshal([]byte(expectedJSON), &expected)
+	var expected RuleSet
+	err = json.Unmarshal([]byte(expectedBlob), &expected)
 	require.NoError(t, err)
 
 	rulesets.Sort()
@@ -312,8 +313,8 @@ func TestRuleSetsSort(t *testing.T) {
 	require.Equal(t, expected, *rulesets["rs2"])
 }
 
-func TestRuleSetJSONSort(t *testing.T) {
-	rulesetJSON := `
+func TestRuleSetSort(t *testing.T) {
+	ruleset := `
 		{
 			"id": "namespace",
 			"mappingRules":[
@@ -360,7 +361,7 @@ func TestRuleSetJSONSort(t *testing.T) {
 		}
 	`
 
-	expectedRuleSetJSON := `
+	expectedRuleSet := `
 	{
 		"id": "namespace",
 		"mappingRules":[
@@ -406,19 +407,19 @@ func TestRuleSetJSONSort(t *testing.T) {
 		]
 	}
 `
-	var rs RuleSetJSON
-	err := json.Unmarshal([]byte(rulesetJSON), &rs)
+	var rs RuleSet
+	err := json.Unmarshal([]byte(ruleset), &rs)
 	require.NoError(t, err)
-	var expected RuleSetJSON
-	err = json.Unmarshal([]byte(expectedRuleSetJSON), &expected)
+	var expected RuleSet
+	err = json.Unmarshal([]byte(expectedRuleSet), &expected)
 	require.NoError(t, err)
 
 	rs.Sort()
 	require.Equal(t, expected, rs)
 }
 
-func TestRuleSetJSONSortByRollupRuleNameAsc(t *testing.T) {
-	rulesetJSON := `
+func TestRuleSetSortByRollupRuleNameAsc(t *testing.T) {
+	ruleset := `
 		{
 			"id": "namespace",
 			"rollupRules":[
@@ -436,7 +437,7 @@ func TestRuleSetJSONSortByRollupRuleNameAsc(t *testing.T) {
 		}
 	`
 
-	expectedRuleSetJSON := `
+	expectedRuleSet := `
 		{
 			"id": "namespace",
 			"rollupRules":[
@@ -453,19 +454,19 @@ func TestRuleSetJSONSortByRollupRuleNameAsc(t *testing.T) {
 			]
 		}
 	`
-	var rs RuleSetJSON
-	err := json.Unmarshal([]byte(rulesetJSON), &rs)
+	var rs RuleSet
+	err := json.Unmarshal([]byte(ruleset), &rs)
 	require.NoError(t, err)
-	var expected RuleSetJSON
-	err = json.Unmarshal([]byte(expectedRuleSetJSON), &expected)
+	var expected RuleSet
+	err = json.Unmarshal([]byte(expectedRuleSet), &expected)
 	require.NoError(t, err)
 
 	rs.Sort()
 	require.Equal(t, expected, rs)
 }
 
-func TestRuleSetJSONSortByMappingNameAsc(t *testing.T) {
-	rulesetJSON := `
+func TestRuleSetSortByMappingNameAsc(t *testing.T) {
+	ruleset := `
 		{
 			"id": "namespace",
 			"mappingRules":[
@@ -483,7 +484,7 @@ func TestRuleSetJSONSortByMappingNameAsc(t *testing.T) {
 		}
 	`
 
-	expectedRuleSetJSON := `
+	expectedRuleSet := `
 		{
 			"id": "namespace",
 			"mappingRules":[
@@ -500,20 +501,20 @@ func TestRuleSetJSONSortByMappingNameAsc(t *testing.T) {
 			]
 		}
 	`
-	var rs RuleSetJSON
-	err := json.Unmarshal([]byte(rulesetJSON), &rs)
+	var rs RuleSet
+	err := json.Unmarshal([]byte(ruleset), &rs)
 	require.NoError(t, err)
-	var expected RuleSetJSON
-	err = json.Unmarshal([]byte(expectedRuleSetJSON), &expected)
+	var expected RuleSet
+	err = json.Unmarshal([]byte(expectedRuleSet), &expected)
 	require.NoError(t, err)
 
 	rs.Sort()
 	require.Equal(t, expected, rs)
 }
 
-func testRuleSetJSON(namespace string, mappingRules []MappingRuleJSON,
-	rollupRules []RollupRuleJSON) *RuleSetJSON {
-	return &RuleSetJSON{
+func testRuleSet(namespace string, mappingRules []MappingRule,
+	rollupRules []RollupRule) *RuleSet {
+	return &RuleSet{
 		Namespace:     namespace,
 		Version:       1,
 		CutoverMillis: 0,
