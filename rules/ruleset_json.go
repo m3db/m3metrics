@@ -122,11 +122,11 @@ func (r *RuleSetJSON) Sort() {
 	sort.Sort(rollupRuleJSONsByNameAsc(r.RollupRules))
 }
 
-// RuleSets is a collection of rulesets.
-type RuleSets map[string]*RuleSetJSON
+// RuleSetJSONs is a collection of rulesets.
+type RuleSetJSONs map[string]*RuleSetJSON
 
 // Sort sorts each ruleset based on it's own sort method.
-func (rss RuleSets) Sort() {
+func (rss RuleSetJSONs) Sort() {
 	for _, rs := range rss {
 		rs.Sort()
 	}

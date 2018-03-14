@@ -25,11 +25,12 @@ import (
 	"testing"
 
 	"github.com/m3db/m3metrics/policy"
+
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
 
-func TestRuleSetSnapshot(t *testing.T) {
+func TestToRuleSetSnapshot(t *testing.T) {
 	mappingRules := []MappingRuleJSON{
 		*testMappingRuleJSON("mr1_id", "mr1"),
 		*testMappingRuleJSON("mr2_id", "mr2"),
@@ -94,7 +95,7 @@ func TestRuleSetSnapshot(t *testing.T) {
 	require.Equal(t, rsJSON, *fixture)
 }
 
-func TestRuleSetSnapshotGenerateMissingID(t *testing.T) {
+func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
 	mappingRules := []MappingRuleJSON{
 		*testMappingRuleJSON("", "mr"),
 		*testMappingRuleJSON("", "mr"),
@@ -168,7 +169,7 @@ func TestRuleSetSnapshotGenerateMissingID(t *testing.T) {
 	require.EqualValues(t, expected, actual)
 }
 
-func TestRuleSetSnapshotFailMissingMappingRuleID(t *testing.T) {
+func TestToRuleSetSnapshotFailMissingMappingRuleID(t *testing.T) {
 	mappingRules := []MappingRuleJSON{
 		*testMappingRuleJSON("", "mr"),
 		*testMappingRuleJSON("id1", "mr"),
@@ -183,7 +184,7 @@ func TestRuleSetSnapshotFailMissingMappingRuleID(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestRuleSetSnapshotFailMissingRollupRuleID(t *testing.T) {
+func TestToRuleSetSnapshotFailMissingRollupRuleID(t *testing.T) {
 	mappingRules := []MappingRuleJSON{
 		*testMappingRuleJSON("id1", "mr"),
 		*testMappingRuleJSON("id2", "mr"),
@@ -252,7 +253,7 @@ func TestRuleSetsSort(t *testing.T) {
 	err = json.Unmarshal([]byte(rulesetJSON), &rs2)
 	require.NoError(t, err)
 
-	rulesets := RuleSets(map[string]*RuleSetJSON{"rs1": &rs1, "rs2": &rs2})
+	rulesets := RuleSetJSONs(map[string]*RuleSetJSON{"rs1": &rs1, "rs2": &rs2})
 
 	expectedJSON := `
 		{

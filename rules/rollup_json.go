@@ -124,7 +124,7 @@ func (r *RollupRuleJSON) Equals(other *RollupRuleJSON) bool {
 	}
 	return r.Name == other.Name &&
 		r.Filter == other.Filter &&
-		rollupTargetsJSON(r.Targets).Equals(other.Targets)
+		rollupTargetJSONs(r.Targets).Equals(other.Targets)
 }
 
 // Sort sorts the rollup targets inside the rollup rule.
@@ -132,14 +132,14 @@ func (r *RollupRuleJSON) Sort() {
 	for i := range r.Targets {
 		r.Targets[i].Sort()
 	}
-	sort.Sort(rollupTargetsByNameTagsAsc(r.Targets))
+	sort.Sort(rollupTargetJSONsByNameTagsAsc(r.Targets))
 }
 
-type rollupTargetsByNameTagsAsc []RollupTargetJSON
+type rollupTargetJSONsByNameTagsAsc []RollupTargetJSON
 
-func (a rollupTargetsByNameTagsAsc) Len() int      { return len(a) }
-func (a rollupTargetsByNameTagsAsc) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a rollupTargetsByNameTagsAsc) Less(i, j int) bool {
+func (a rollupTargetJSONsByNameTagsAsc) Len() int      { return len(a) }
+func (a rollupTargetJSONsByNameTagsAsc) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a rollupTargetJSONsByNameTagsAsc) Less(i, j int) bool {
 	if a[i].Name < a[j].Name {
 		return true
 	}
@@ -161,23 +161,9 @@ func (a rollupTargetsByNameTagsAsc) Less(i, j int) bool {
 	return len(a[i].Tags) < len(a[j].Tags)
 }
 
-type rollupTargetsJSON []RollupTargetJSON
+type rollupTargetJSONs []RollupTargetJSON
 
-func (t rollupTargetsJSON) Equals(other rollupTargetsJSON) bool {
-	if len(t) != len(other) {
-		return false
-	}
-	for i := 0; i < len(t); i++ {
-		if !t[i].Equals(&other[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-type rollupTargets []RollupTargetJSON
-
-func (t rollupTargets) Equals(other rollupTargets) bool {
+func (t rollupTargetJSONs) Equals(other rollupTargetJSONs) bool {
 	if len(t) != len(other) {
 		return false
 	}

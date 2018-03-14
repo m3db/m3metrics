@@ -25,10 +25,11 @@ import (
 	"testing"
 
 	"github.com/m3db/m3metrics/policy"
+
 	"github.com/stretchr/testify/require"
 )
 
-func TestRollupTargetView(t *testing.T) {
+func TestToRollupTargetView(t *testing.T) {
 	fixture := testRollupTargetJSON("name")
 	expected := RollupTargetView{
 		Name:     "name",
@@ -347,7 +348,7 @@ func TestRollupTargetJSONsEqual(t *testing.T) {
 	err = json.Unmarshal([]byte(rtJSON), &rt2)
 	require.NoError(t, err)
 
-	require.True(t, rollupTargets(rt1).Equals(rollupTargets(rt2)))
+	require.True(t, rollupTargetJSONs(rt1).Equals(rollupTargetJSONs(rt2)))
 }
 
 func TestRollupTargetJSONsNotEqual(t *testing.T) {
@@ -402,7 +403,7 @@ func TestRollupTargetJSONsNotEqual(t *testing.T) {
 	err = json.Unmarshal([]byte(rtJSON2), &rt2)
 	require.NoError(t, err)
 
-	require.False(t, rollupTargets(rt1).Equals(rollupTargets(rt2)))
+	require.False(t, rollupTargetJSONs(rt1).Equals(rollupTargetJSONs(rt2)))
 }
 
 func TestRollupTargetJSONEqual(t *testing.T) {

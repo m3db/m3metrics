@@ -45,7 +45,7 @@ func TestNewMappingRuleJSON(t *testing.T) {
 	require.EqualValues(t, expected, NewMappingRuleJSON(fixture))
 }
 
-func TestMappingRuleView(t *testing.T) {
+func TestToMappingRuleView(t *testing.T) {
 	id := "id"
 	name := "name"
 	fixture := testMappingRuleJSON(id, name)
