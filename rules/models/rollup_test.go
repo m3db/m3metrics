@@ -23,8 +23,11 @@ package models
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
+	"github.com/m3db/m3metrics/aggregation"
 	"github.com/m3db/m3metrics/policy"
+	xtime "github.com/m3db/m3x/time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -549,6 +552,49 @@ func TestRollupTargetNilCases(t *testing.T) {
 	var rt2 RollupTarget
 	rollupTarget := &rt2
 	require.False(t, rollupTarget.Equals(rt1))
+}
+
+func TestRollupTargetSameTransform(t *testing.T) {
+	policies := []policy.Policy{
+		policy.NewPolicy(policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*24*time.Hour), aggregation.DefaultID),
+	}
+	target := RollupTargetView{Name: "foo", Tags: []string{"bar1", "bar2"}}
+	inputs := []struct {
+		target RollupTargetView
+		result bool
+	}{
+		{
+			target: RollupTargetView{Name: "foo", Tags: []string{"bar1", "bar2"}, Policies: policies},
+			result: true,
+		},
+		{
+			target: RollupTargetView{Name: "foo", Tags: []string{"bar2", "bar1"}, Policies: policies},
+			result: true,
+		},
+		{
+			target: RollupTargetView{Name: "foo", Tags: []string{"bar1"}},
+			result: false,
+		},
+		{
+			target: RollupTargetView{Name: "foo", Tags: []string{"bar1", "bar2", "bar3"}},
+			result: false,
+		},
+		{
+			target: RollupTargetView{Name: "foo", Tags: []string{"bar1", "bar3"}},
+			result: false,
+		},
+		{
+			target: RollupTargetView{Name: "baz", Tags: []string{"bar1", "bar2"}},
+			result: false,
+		},
+		{
+			target: RollupTargetView{Name: "baz", Tags: []string{"bar2", "bar1"}},
+			result: false,
+		},
+	}
+	for _, input := range inputs {
+		require.Equal(t, input.result, target.SameTransform(input.target))
+	}
 }
 
 func testRollupTarget(name string) *RollupTarget {

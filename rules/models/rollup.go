@@ -44,29 +44,6 @@ type RollupRule struct {
 	LastUpdatedAtMillis int64          `json:"lastUpdatedAtMillis"`
 }
 
-// RollupTargetView is a human friendly representation of a rollup rule target at a given point in time.
-type RollupTargetView struct {
-	Name     string
-	Tags     []string
-	Policies []policy.Policy
-}
-
-// RollupRuleView is a human friendly representation of a rollup rule at a given point in time.
-type RollupRuleView struct {
-	ID                 string
-	Name               string
-	Tombstoned         bool
-	CutoverNanos       int64
-	Filter             string
-	Targets            []RollupTargetView
-	LastUpdatedBy      string
-	LastUpdatedAtNanos int64
-}
-
-// MappingRuleViews belonging to a ruleset indexed by uuid.
-// Each value contains the entire snapshot history of the rule.
-type MappingRuleViews map[string][]*MappingRuleView
-
 // RollupRuleViews belonging to a ruleset indexed by uuid.
 // Each value contains the entire snapshot history of the rule.
 type RollupRuleViews map[string][]*RollupRuleView
@@ -162,6 +139,26 @@ func (r *RollupRule) Sort() {
 	sort.Sort(rollupTargetsByNameTagsAsc(r.Targets))
 }
 
+// RollupTargetView is a human friendly representation of a rollup rule target at a given point in time.
+type RollupTargetView struct {
+	Name     string
+	Tags     []string
+	Policies []policy.Policy
+}
+
+// RollupRuleView is a human friendly representation of a rollup rule at a given point in time.
+type RollupRuleView struct {
+	ID                 string
+	Name               string
+	Tombstoned         bool
+	CutoverNanos       int64
+	Filter             string
+	Targets            []RollupTargetView
+	LastUpdatedBy      string
+	LastUpdatedAtNanos int64
+}
+
+// SameTransform returns whether two rollup targets have the same transformation.
 func (rtv *RollupTargetView) SameTransform(other RollupTargetView) bool {
 	if rtv.Name != other.Name {
 		return false
@@ -169,9 +166,11 @@ func (rtv *RollupTargetView) SameTransform(other RollupTargetView) bool {
 	if len(rtv.Tags) != len(other.Tags) {
 		return false
 	}
-	clonedTags := rtv.Tags
+	clonedTags := make([]string, len(rtv.Tags))
+	otherClonedTags := make([]string, len(other.Tags))
+	copy(clonedTags, rtv.Tags)
 	sort.Strings(clonedTags)
-	otherClonedTags := other.Tags
+	copy(otherClonedTags, other.Tags)
 	sort.Strings(otherClonedTags)
 	for i := 0; i < len(clonedTags); i++ {
 		if clonedTags[i] != otherClonedTags[i] {

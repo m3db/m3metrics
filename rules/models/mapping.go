@@ -49,6 +49,10 @@ type MappingRuleView struct {
 	LastUpdatedAtNanos int64
 }
 
+// MappingRuleViews belonging to a ruleset indexed by uuid.
+// Each value contains the entire snapshot history of the rule.
+type MappingRuleViews map[string][]*MappingRuleView
+
 // NewMappingRule takes a MappingRuleView and returns the equivalent MappingRule.
 func NewMappingRule(mrv *MappingRuleView) MappingRule {
 	return MappingRule{

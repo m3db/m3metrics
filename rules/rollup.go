@@ -43,28 +43,12 @@ var (
 	errNilRollupRuleSchema               = errors.New("nil rollup rule schema")
 )
 
-func newRollupTargetView(target rollupTarget) models.RollupTargetView {
-	return models.RollupTargetView{
-		Name:     string(target.Name),
-		Tags:     stringArrayFromBytesArray(target.Tags),
-		Policies: target.Policies,
-	}
-}
-
 func rollupTargetViewsToTargets(views []models.RollupTargetView) []rollupTarget {
 	targets := make([]rollupTarget, len(views))
 	for i, t := range views {
-		targets[i] = rollupTargetFromView(t)
+		targets[i] = newRollupTargetFromView(t)
 	}
 	return targets
-}
-
-func rollupTargetFromView(rtv models.RollupTargetView) rollupTarget {
-	return rollupTarget{
-		Name:     []byte(rtv.Name),
-		Tags:     bytesArrayFromStringArray(rtv.Tags),
-		Policies: rtv.Policies,
-	}
 }
 
 // RollupTarget dictates how to roll up metrics. Metrics associated with a rollup
@@ -94,10 +78,26 @@ func newRollupTarget(target *schema.RollupTarget) (rollupTarget, error) {
 	}, nil
 }
 
+func newRollupTargetFromView(rtv models.RollupTargetView) rollupTarget {
+	return rollupTarget{
+		Name:     []byte(rtv.Name),
+		Tags:     bytesArrayFromStringArray(rtv.Tags),
+		Policies: rtv.Policies,
+	}
+}
+
+func (t rollupTarget) rollupTargetView() models.RollupTargetView {
+	return models.RollupTargetView{
+		Name:     string(t.Name),
+		Tags:     stringArrayFromBytesArray(t.Tags),
+		Policies: t.Policies,
+	}
+}
+
 // SameTransform returns whether two rollup targets have the same transformation.
-func (t *rollupTarget) SameTransform(other rollupTarget) bool {
-	tView := newRollupTargetView(*t)
-	otherView := newRollupTargetView(other)
+func (t rollupTarget) SameTransform(other rollupTarget) bool {
+	tView := t.rollupTargetView()
+	otherView := other.rollupTargetView()
 	return tView.SameTransform(otherView)
 }
 
@@ -284,7 +284,7 @@ func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*models.RollupRuleView, e
 	rrs := rc.snapshots[snapshotIdx].clone()
 	targets := make([]models.RollupTargetView, len(rrs.targets))
 	for i, t := range rrs.targets {
-		targets[i] = newRollupTargetView(t)
+		targets[i] = t.rollupTargetView()
 	}
 
 	return &models.RollupRuleView{
