@@ -34,6 +34,7 @@ import (
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules/models"
 	xerrors "github.com/m3db/m3x/errors"
 	xtime "github.com/m3db/m3x/time"
 
@@ -1225,7 +1226,7 @@ func TestRuleSetLatest(t *testing.T) {
 	latest, err := rs.Latest()
 	require.NoError(t, err)
 
-	expected := &RuleSetSnapshot{
+	expected := &models.RuleSetSnapshotView{
 		Namespace:    "testNamespace",
 		Version:      123,
 		CutoverNanos: 998234,

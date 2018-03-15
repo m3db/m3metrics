@@ -18,13 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package json
+package models
 
 import (
 	"sort"
 
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3metrics/rules"
 )
 
 // MappingRule is a common json serializable mapping rule.
@@ -38,8 +37,20 @@ type MappingRule struct {
 	LastUpdatedAtMillis int64           `json:"lastUpdatedAtMillis"`
 }
 
+// MappingRuleView is a human friendly representation of a mapping rule at a given point in time.
+type MappingRuleView struct {
+	ID                 string
+	Name               string
+	Tombstoned         bool
+	CutoverNanos       int64
+	Filter             string
+	Policies           []policy.Policy
+	LastUpdatedBy      string
+	LastUpdatedAtNanos int64
+}
+
 // NewMappingRule takes a MappingRuleView and returns the equivalent MappingRule.
-func NewMappingRule(mrv *rules.MappingRuleView) MappingRule {
+func NewMappingRule(mrv *MappingRuleView) MappingRule {
 	return MappingRule{
 		ID:                  mrv.ID,
 		Name:                mrv.Name,
@@ -52,8 +63,8 @@ func NewMappingRule(mrv *rules.MappingRuleView) MappingRule {
 }
 
 // ToMappingRuleView returns a ToMappingRuleView type.
-func (m MappingRule) ToMappingRuleView() *rules.MappingRuleView {
-	return &rules.MappingRuleView{
+func (m MappingRule) ToMappingRuleView() *MappingRuleView {
+	return &MappingRuleView{
 		ID:       m.ID,
 		Name:     m.Name,
 		Filter:   m.Filter,

@@ -18,14 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package json
+package models
 
 import (
 	"encoding/json"
 	"testing"
 
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3metrics/rules"
 
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +49,7 @@ func TestToMappingRuleView(t *testing.T) {
 	id := "id"
 	name := "name"
 	fixture := testMappingRule(id, name)
-	expected := &rules.MappingRuleView{
+	expected := &MappingRuleView{
 		ID:       id,
 		Name:     name,
 		Filter:   "filter",
@@ -164,8 +163,8 @@ func TestMappingRuleSort(t *testing.T) {
 }
 
 // nolint:unparam
-func testMappingRuleView(id, name string) *rules.MappingRuleView {
-	return &rules.MappingRuleView{
+func testMappingRuleView(id, name string) *MappingRuleView {
+	return &MappingRuleView{
 		ID:       id,
 		Name:     name,
 		Filter:   "filter",

@@ -35,6 +35,7 @@ import (
 	"github.com/m3db/m3metrics/metric"
 	metricID "github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules/models"
 	xerrors "github.com/m3db/m3x/errors"
 
 	"github.com/pborman/uuid"
@@ -490,7 +491,7 @@ type RuleSet interface {
 
 	// Latest returns the latest snapshot of a ruleset containing the latest snapshots
 	// of each rule in the ruleset.
-	Latest() (*RuleSetSnapshot, error)
+	Latest() (*models.RuleSetSnapshotView, error)
 
 	// ToMutableRuleSet returns a mutable version of this ruleset.
 	ToMutableRuleSet() MutableRuleSet
@@ -697,7 +698,7 @@ func (rs *ruleSet) RollupRules() (RollupRules, error) {
 	return rollupRules, nil
 }
 
-func (rs *ruleSet) Latest() (*RuleSetSnapshot, error) {
+func (rs *ruleSet) Latest() (*models.RuleSetSnapshotView, error) {
 	mrs, err := rs.latestMappingRules()
 	if err != nil {
 		return nil, err
@@ -706,7 +707,7 @@ func (rs *ruleSet) Latest() (*RuleSetSnapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &RuleSetSnapshot{
+	return &models.RuleSetSnapshotView{
 		Namespace:    string(rs.Namespace()),
 		Version:      rs.Version(),
 		CutoverNanos: rs.CutoverNanos(),
@@ -1165,14 +1166,4 @@ type UpdateMetadata struct {
 func (r RuleSetUpdateHelper) NewUpdateMetadata(updateTime int64, updatedBy string) UpdateMetadata {
 	cutoverNanos := updateTime + int64(r.propagationDelay)
 	return UpdateMetadata{updatedAtNanos: updateTime, cutoverNanos: cutoverNanos, updatedBy: updatedBy}
-}
-
-// RuleSetSnapshot represents a snapshot of a rule set containing snapshots of rules
-// in the ruleset.
-type RuleSetSnapshot struct {
-	Namespace    string
-	Version      int
-	CutoverNanos int64
-	MappingRules map[string]*MappingRuleView
-	RollupRules  map[string]*RollupRuleView
 }

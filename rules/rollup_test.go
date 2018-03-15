@@ -28,6 +28,7 @@ import (
 	"github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules/models"
 	xtime "github.com/m3db/m3x/time"
 
 	"github.com/stretchr/testify/require"
@@ -563,8 +564,8 @@ func TestNewRollupRuleView(t *testing.T) {
 		LastUpdatedAtNanos: 12345,
 		LastUpdatedBy:      "someone-else",
 		Filter:             "tag1:value1 tag2:value2",
-		Targets: []RollupTargetView{
-			RollupTargetView{
+		Targets: []models.RollupTargetView{
+			models.RollupTargetView{
 				Name:     "rName1",
 				Tags:     []string{"rtagName1", "rtagName2"},
 				Policies: []policy.Policy{p},
@@ -603,8 +604,8 @@ func TestNewRollupRuleHistory(t *testing.T) {
 			LastUpdatedAtNanos: 67890,
 			LastUpdatedBy:      "someone",
 			Filter:             "tag3:value3 tag4:value4",
-			Targets: []RollupTargetView{
-				RollupTargetView{
+			Targets: []models.RollupTargetView{
+				models.RollupTargetView{
 					Name:     "rName1",
 					Tags:     []string{"rtagName1", "rtagName2"},
 					Policies: []policy.Policy{p1, p2},
@@ -619,8 +620,8 @@ func TestNewRollupRuleHistory(t *testing.T) {
 			LastUpdatedAtNanos: 12345,
 			LastUpdatedBy:      "someone-else",
 			Filter:             "tag1:value1 tag2:value2",
-			Targets: []RollupTargetView{
-				RollupTargetView{
+			Targets: []models.RollupTargetView{
+				models.RollupTargetView{
 					Name:     "rName1",
 					Tags:     []string{"rtagName1", "rtagName2"},
 					Policies: []policy.Policy{p0},

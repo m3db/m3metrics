@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package json
+package models
 
 import (
 	"sort"
@@ -45,14 +45,33 @@ type RollupRule struct {
 	LastUpdatedAtMillis int64          `json:"lastUpdatedAtMillis"`
 }
 
-// NewRollupTarget takes a rules.RollupTargetView and returns the equivalent RollupTarget.
-func NewRollupTarget(t rules.RollupTargetView) RollupTarget {
+// RollupTargetView is a human friendly representation of a rollup rule target at a given point in time.
+type RollupTargetView struct {
+	Name     string
+	Tags     []string
+	Policies []policy.Policy
+}
+
+// RollupRuleView is a human friendly representation of a rollup rule at a given point in time.
+type RollupRuleView struct {
+	ID                 string
+	Name               string
+	Tombstoned         bool
+	CutoverNanos       int64
+	Filter             string
+	Targets            []RollupTargetView
+	LastUpdatedBy      string
+	LastUpdatedAtNanos int64
+}
+
+// NewRollupTarget takes a RollupTargetView and returns the equivalent RollupTarget.
+func NewRollupTarget(t RollupTargetView) RollupTarget {
 	return RollupTarget(t)
 }
 
 // ToRollupTargetView returns the equivalent ToRollupTargetView.
-func (t RollupTarget) ToRollupTargetView() rules.RollupTargetView {
-	return rules.RollupTargetView(t)
+func (t RollupTarget) ToRollupTargetView() RollupTargetView {
+	return RollupTargetView(t)
 }
 
 // Sort sorts the policies inside the rollup target.
@@ -83,8 +102,8 @@ func (t *RollupTarget) Equals(other *RollupTarget) bool {
 	return policy.Policies(t.Policies).Equals(policy.Policies(other.Policies))
 }
 
-// NewRollupRule takes a rules.RollupRuleView and returns the equivalent RollupRule.
-func NewRollupRule(rrv *rules.RollupRuleView) RollupRule {
+// NewRollupRule takes a RollupRuleView and returns the equivalent RollupRule.
+func NewRollupRule(rrv *RollupRuleView) RollupRule {
 	targets := make([]RollupTarget, len(rrv.Targets))
 	for i, t := range rrv.Targets {
 		targets[i] = NewRollupTarget(t)
@@ -101,13 +120,13 @@ func NewRollupRule(rrv *rules.RollupRuleView) RollupRule {
 }
 
 // ToRollupRuleView returns the equivalent ToRollupRuleView.
-func (r RollupRule) ToRollupRuleView() *rules.RollupRuleView {
-	targets := make([]rules.RollupTargetView, len(r.Targets))
+func (r RollupRule) ToRollupRuleView() *RollupRuleView {
+	targets := make([]RollupTargetView, len(r.Targets))
 	for i, t := range r.Targets {
 		targets[i] = t.ToRollupTargetView()
 	}
 
-	return &rules.RollupRuleView{
+	return &RollupRuleView{
 		ID:      r.ID,
 		Name:    r.Name,
 		Filter:  r.Filter,
@@ -134,6 +153,23 @@ func (r *RollupRule) Sort() {
 		r.Targets[i].Sort()
 	}
 	sort.Sort(rollupTargetsByNameTagsAsc(r.Targets))
+}
+
+func NewRollupTargetView(target RollupTarget) RollupTargetView {
+	return RollupTargetView{
+		Name:     string(target.Name),
+		Tags:     stringArrayFromBytesArray(target.Tags),
+		Policies: target.Policies,
+	}
+}
+
+// RollupTarget creates a rollup target from a rollup target view.
+func (rtv RollupTargetView) RollupTarget() rules.RollupTarget {
+	return RollupTarget{
+		Name:     []byte(rtv.Name),
+		Tags:     bytesArrayFromStringArray(rtv.Tags),
+		Policies: rtv.Policies,
+	}
 }
 
 type rollupTargetsByNameTagsAsc []RollupTarget

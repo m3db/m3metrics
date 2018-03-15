@@ -18,20 +18,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package json
+package models
 
 import (
 	"encoding/json"
 	"testing"
 
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3metrics/rules"
 
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
 
-func TestToRuleSetSnapshot(t *testing.T) {
+func TestToRuleSetSnapshotView(t *testing.T) {
 	mappingRules := []MappingRule{
 		*testMappingRule("mr1_id", "mr1"),
 		*testMappingRule("mr2_id", "mr2"),
@@ -41,11 +40,11 @@ func TestToRuleSetSnapshot(t *testing.T) {
 		*testRollupRule("rr2_id", "rr2", []RollupTarget{*testRollupTarget("target2")}),
 	}
 	fixture := testRuleSet("rs_ns", mappingRules, rollupRules)
-	expected := &rules.RuleSetSnapshot{
+	expected := &RuleSetSnapshotView{
 		Namespace:    "rs_ns",
 		Version:      1,
 		CutoverNanos: 0,
-		MappingRules: map[string]*rules.MappingRuleView{
+		MappingRules: map[string]*MappingRuleView{
 			"mr1_id": {
 				ID:       "mr1_id",
 				Name:     "mr1",
@@ -59,12 +58,12 @@ func TestToRuleSetSnapshot(t *testing.T) {
 				Policies: []policy.Policy{},
 			},
 		},
-		RollupRules: map[string]*rules.RollupRuleView{
+		RollupRules: map[string]*RollupRuleView{
 			"rr1_id": {
 				ID:     "rr1_id",
 				Name:   "rr1",
 				Filter: "filter",
-				Targets: []rules.RollupTargetView{
+				Targets: []RollupTargetView{
 					{
 						Name:     "target1",
 						Tags:     []string{"tag"},
@@ -76,7 +75,7 @@ func TestToRuleSetSnapshot(t *testing.T) {
 				ID:     "rr2_id",
 				Name:   "rr2",
 				Filter: "filter",
-				Targets: []rules.RollupTargetView{
+				Targets: []RollupTargetView{
 					{
 						Name:     "target2",
 						Tags:     []string{"tag"},
@@ -86,7 +85,7 @@ func TestToRuleSetSnapshot(t *testing.T) {
 			},
 		},
 	}
-	actual, err := fixture.ToRuleSetSnapshot(GenerateID)
+	actual, err := fixture.ToRuleSetSnapshotView(GenerateID)
 	require.NoError(t, err)
 	require.EqualValues(t, expected, actual)
 
@@ -96,7 +95,7 @@ func TestToRuleSetSnapshot(t *testing.T) {
 	require.Equal(t, rs, *fixture)
 }
 
-func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
+func TestToRuleSetSnapshotViewGenerateMissingID(t *testing.T) {
 	mappingRules := []MappingRule{
 		*testMappingRule("", "mr"),
 		*testMappingRule("", "mr"),
@@ -107,7 +106,7 @@ func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
 	}
 	fixture := testRuleSet("namespace", mappingRules, rollupRules)
 
-	actual, err := fixture.ToRuleSetSnapshot(GenerateID)
+	actual, err := fixture.ToRuleSetSnapshotView(GenerateID)
 	require.NoError(t, err)
 	mrIDs := []string{}
 	rrIDs := []string{}
@@ -122,11 +121,11 @@ func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
 		rrIDs = append(rrIDs, id)
 	}
 
-	expected := &rules.RuleSetSnapshot{
+	expected := &RuleSetSnapshotView{
 		Namespace:    "namespace",
 		Version:      1,
 		CutoverNanos: 0,
-		MappingRules: map[string]*rules.MappingRuleView{
+		MappingRules: map[string]*MappingRuleView{
 			mrIDs[0]: {
 				ID:       mrIDs[0],
 				Name:     "mr",
@@ -140,12 +139,12 @@ func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
 				Policies: []policy.Policy{},
 			},
 		},
-		RollupRules: map[string]*rules.RollupRuleView{
+		RollupRules: map[string]*RollupRuleView{
 			rrIDs[0]: {
 				ID:     rrIDs[0],
 				Name:   "rr",
 				Filter: "filter",
-				Targets: []rules.RollupTargetView{
+				Targets: []RollupTargetView{
 					{
 						Name:     "target",
 						Tags:     []string{"tag"},
@@ -157,7 +156,7 @@ func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
 				ID:     rrIDs[1],
 				Name:   "rr",
 				Filter: "filter",
-				Targets: []rules.RollupTargetView{
+				Targets: []RollupTargetView{
 					{
 						Name:     "target",
 						Tags:     []string{"tag"},
@@ -170,7 +169,7 @@ func TestToRuleSetSnapshotGenerateMissingID(t *testing.T) {
 	require.EqualValues(t, expected, actual)
 }
 
-func TestToRuleSetSnapshotFailMissingMappingRuleID(t *testing.T) {
+func TestToRuleSetSnapshotViewFailMissingMappingRuleID(t *testing.T) {
 	mappingRules := []MappingRule{
 		*testMappingRule("", "mr"),
 		*testMappingRule("id1", "mr"),
@@ -181,11 +180,11 @@ func TestToRuleSetSnapshotFailMissingMappingRuleID(t *testing.T) {
 	}
 	fixture := testRuleSet("namespace", mappingRules, rollupRules)
 
-	_, err := fixture.ToRuleSetSnapshot(DontGenerateID)
+	_, err := fixture.ToRuleSetSnapshotView(DontGenerateID)
 	require.Error(t, err)
 }
 
-func TestToRuleSetSnapshotFailMissingRollupRuleID(t *testing.T) {
+func TestToRuleSetSnapshotViewFailMissingRollupRuleID(t *testing.T) {
 	mappingRules := []MappingRule{
 		*testMappingRule("id1", "mr"),
 		*testMappingRule("id2", "mr"),
@@ -196,7 +195,7 @@ func TestToRuleSetSnapshotFailMissingRollupRuleID(t *testing.T) {
 	}
 	fixture := testRuleSet("namespace", mappingRules, rollupRules)
 
-	_, err := fixture.ToRuleSetSnapshot(DontGenerateID)
+	_, err := fixture.ToRuleSetSnapshotView(DontGenerateID)
 	require.Error(t, err)
 }
 

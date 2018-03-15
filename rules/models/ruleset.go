@@ -18,14 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package json
+package models
 
 import (
 	"fmt"
 	"sort"
 	"time"
 
-	"github.com/m3db/m3metrics/rules"
 	"github.com/pborman/uuid"
 )
 
@@ -53,8 +52,18 @@ type RuleSet struct {
 	RollupRules   []RollupRule  `json:"rollupRules"`
 }
 
-// NewRuleSet takes a RuleSetSnapshot and returns the equivalent RuleSet.
-func NewRuleSet(latest *rules.RuleSetSnapshot) RuleSet {
+// RuleSetSnapshotView represents a snapshot of a rule set containing snapshots of rules
+// in the ruleset.
+type RuleSetSnapshotView struct {
+	Namespace    string
+	Version      int
+	CutoverNanos int64
+	MappingRules map[string]*MappingRuleView
+	RollupRules  map[string]*RollupRuleView
+}
+
+// NewRuleSet takes a RuleSetSnapshotView and returns the equivalent RuleSet.
+func NewRuleSet(latest *RuleSetSnapshotView) RuleSet {
 	mr := make([]MappingRule, 0, len(latest.MappingRules))
 	for _, m := range latest.MappingRules {
 		mr = append(mr, NewMappingRule(m))
@@ -72,11 +81,11 @@ func NewRuleSet(latest *rules.RuleSetSnapshot) RuleSet {
 	}
 }
 
-// ToRuleSetSnapshot create a ToRuleSetSnapshot from a RuleSet. If the RuleSet has no IDs
+// ToRuleSetSnapshotView create a ToRuleSetSnapshot from a RuleSet. If the RuleSet has no IDs
 // for any of its mapping rules or rollup rules, it generates missing IDs and sets as a string UUID
 // string so they can be stored in a mapping (id -> rule).
-func (r RuleSet) ToRuleSetSnapshot(IDGenType IDGenType) (*rules.RuleSetSnapshot, error) {
-	mappingRules := make(map[string]*rules.MappingRuleView, len(r.MappingRules))
+func (r RuleSet) ToRuleSetSnapshotView(IDGenType IDGenType) (*RuleSetSnapshotView, error) {
+	mappingRules := make(map[string]*MappingRuleView, len(r.MappingRules))
 	for _, mr := range r.MappingRules {
 		id := mr.ID
 		if id == "" {
@@ -89,7 +98,7 @@ func (r RuleSet) ToRuleSetSnapshot(IDGenType IDGenType) (*rules.RuleSetSnapshot,
 		mappingRules[id] = mr.ToMappingRuleView()
 	}
 
-	rollupRules := make(map[string]*rules.RollupRuleView, len(r.RollupRules))
+	rollupRules := make(map[string]*RollupRuleView, len(r.RollupRules))
 	for _, rr := range r.RollupRules {
 		id := rr.ID
 		if id == "" {
@@ -102,7 +111,7 @@ func (r RuleSet) ToRuleSetSnapshot(IDGenType IDGenType) (*rules.RuleSetSnapshot,
 		rollupRules[id] = rr.ToRollupRuleView()
 	}
 
-	return &rules.RuleSetSnapshot{
+	return &RuleSetSnapshotView{
 		Namespace:    r.Namespace,
 		Version:      r.Version,
 		MappingRules: mappingRules,

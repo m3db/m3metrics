@@ -18,21 +18,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package json
+package models
 
 import (
 	"encoding/json"
 	"testing"
 
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3metrics/rules"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestToRollupTargetView(t *testing.T) {
 	fixture := testRollupTarget("name")
-	expected := rules.RollupTargetView{
+	expected := RollupTargetView{
 		Name:     "name",
 		Tags:     []string{"tag"},
 		Policies: []policy.Policy{},
@@ -51,7 +50,7 @@ func TestNewRollupTarget(t *testing.T) {
 }
 
 func TestNewRollupRule(t *testing.T) {
-	targets := []rules.RollupTargetView{
+	targets := []RollupTargetView{
 		*testRollupTargetView("target1"),
 		*testRollupTargetView("target2"),
 	}
@@ -85,11 +84,11 @@ func TestToRollupRuleView(t *testing.T) {
 		*testRollupTarget("target2"),
 	}
 	fixture := testRollupRule("id", "name", targets)
-	expected := &rules.RollupRuleView{
+	expected := &RollupRuleView{
 		ID:     "id",
 		Name:   "name",
 		Filter: "filter",
-		Targets: []rules.RollupTargetView{
+		Targets: []RollupTargetView{
 			{
 				Name:     "target1",
 				Tags:     []string{"tag"},
@@ -560,8 +559,8 @@ func testRollupTarget(name string) *RollupTarget {
 	}
 }
 
-func testRollupTargetView(name string) *rules.RollupTargetView {
-	return &rules.RollupTargetView{
+func testRollupTargetView(name string) *RollupTargetView {
+	return &RollupTargetView{
 		Name:     name,
 		Tags:     []string{"tag"},
 		Policies: []policy.Policy{},
@@ -578,8 +577,8 @@ func testRollupRule(id, name string, targets []RollupTarget) *RollupRule {
 }
 
 // nolint:unparam
-func testRollupRuleView(id, name string, targets []rules.RollupTargetView) *rules.RollupRuleView {
-	return &rules.RollupRuleView{
+func testRollupRuleView(id, name string, targets []RollupTargetView) *RollupRuleView {
+	return &RollupRuleView{
 		ID:      id,
 		Name:    name,
 		Filter:  "filter",

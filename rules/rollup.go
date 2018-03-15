@@ -30,6 +30,7 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/rules/models"
 
 	"github.com/pborman/uuid"
 )
@@ -42,30 +43,6 @@ var (
 	errNilRollupRuleSnapshotSchema       = errors.New("nil rollup rule snapshot schema")
 	errNilRollupRuleSchema               = errors.New("nil rollup rule schema")
 )
-
-// RollupTargetView is a human friendly representation of a rollup rule target at a given point in time.
-type RollupTargetView struct {
-	Name     string
-	Tags     []string
-	Policies []policy.Policy
-}
-
-func newRollupTargetView(target RollupTarget) RollupTargetView {
-	return RollupTargetView{
-		Name:     string(target.Name),
-		Tags:     stringArrayFromBytesArray(target.Tags),
-		Policies: target.Policies,
-	}
-}
-
-// RollupTarget creates a rollup target from a rollup target view.
-func (rtv RollupTargetView) RollupTarget() RollupTarget {
-	return RollupTarget{
-		Name:     []byte(rtv.Name),
-		Tags:     bytesArrayFromStringArray(rtv.Tags),
-		Policies: rtv.Policies,
-	}
-}
 
 func rollupTargetViewsToTargets(views []RollupTargetView) []RollupTarget {
 	targets := make([]RollupTarget, len(views))
@@ -297,19 +274,7 @@ func (rrs *rollupRuleSnapshot) Schema() (*schema.RollupRuleSnapshot, error) {
 	return res, nil
 }
 
-// RollupRuleView is a human friendly representation of a rollup rule at a given point in time.
-type RollupRuleView struct {
-	ID                 string
-	Name               string
-	Tombstoned         bool
-	CutoverNanos       int64
-	Filter             string
-	Targets            []RollupTargetView
-	LastUpdatedBy      string
-	LastUpdatedAtNanos int64
-}
-
-func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
+func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*models.RollupRuleView, error) {
 	if snapshotIdx < 0 || snapshotIdx >= len(rc.snapshots) {
 		return nil, errRollupRuleSnapshotIndexOutOfRange
 	}
@@ -320,7 +285,7 @@ func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*RollupRuleView, error) {
 		targets[i] = newRollupTargetView(t)
 	}
 
-	return &RollupRuleView{
+	return &models.RollupRuleView{
 		ID:                 rc.uuid,
 		Name:               rrs.name,
 		Tombstoned:         rrs.tombstoned,
@@ -493,9 +458,9 @@ func (rc *rollupRule) revive(
 	return rc.addSnapshot(name, rawFilter, targets, meta)
 }
 
-func (rc *rollupRule) history() ([]*RollupRuleView, error) {
+func (rc *rollupRule) history() ([]*models.RollupRuleView, error) {
 	lastIdx := len(rc.snapshots) - 1
-	views := make([]*RollupRuleView, len(rc.snapshots))
+	views := make([]*models.RollupRuleView, len(rc.snapshots))
 	// Snapshots are stored oldest -> newest. History should start with newest.
 	for i := 0; i < len(rc.snapshots); i++ {
 		rrs, err := rc.rollupRuleView(lastIdx - i)

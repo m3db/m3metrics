@@ -18,38 +18,58 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package json
+package models
 
-import "github.com/m3db/m3metrics/rules"
+import (
+	"testing"
 
-// Namespace is a common json serializable namespace.
-type Namespace struct {
-	ID                string `json:"id" validate:"required"`
-	ForRuleSetVersion int    `json:"forRuleSetVersion"`
+	"github.com/stretchr/testify/require"
+)
+
+func TestNewNamespace(t *testing.T) {
+	id := "name"
+	fixture := testNamespaceView(id)
+	expected := Namespace{
+		ID:                id,
+		ForRuleSetVersion: fixture.ForRuleSetVersion,
+	}
+	require.EqualValues(t, expected, NewNamespace(fixture))
 }
 
-// NewNamespace takes a NamespaceView returns the equivalent Namespace.
-func NewNamespace(nv *rules.NamespaceView) Namespace {
-	return Namespace{
-		ID:                nv.Name,
-		ForRuleSetVersion: nv.ForRuleSetVersion,
+func TestNewNamespaces(t *testing.T) {
+	id1 := "name1"
+	id2 := "name2"
+	fixture := testNamespacesView(id1, id2)
+	expected := Namespaces{
+		Version: 1,
+		Namespaces: []Namespace{
+			{
+				ID:                id1,
+				ForRuleSetVersion: 1,
+			},
+			{
+				ID:                id2,
+				ForRuleSetVersion: 1,
+			},
+		},
+	}
+	require.EqualValues(t, expected, NewNamespaces(fixture))
+}
+
+func testNamespaceView(name string) *NamespaceView {
+	return &NamespaceView{
+		Name:              name,
+		ForRuleSetVersion: 1,
 	}
 }
 
-// Namespaces is a common json serializable list of namespaces.
-type Namespaces struct {
-	Version    int         `json:"version"`
-	Namespaces []Namespace `json:"namespaces"`
-}
-
-// NewNamespaces takes a NamespacesView returns the equivalent Namespaces.
-func NewNamespaces(nss *rules.NamespacesView) Namespaces {
-	views := make([]Namespace, len(nss.Namespaces))
-	for i, namespace := range nss.Namespaces {
-		views[i] = NewNamespace(namespace)
+func testNamespacesView(namespaceNames ...string) *NamespacesView {
+	namespaces := make([]*NamespaceView, len(namespaceNames))
+	for i, name := range namespaceNames {
+		namespaces[i] = testNamespaceView(name)
 	}
-	return Namespaces{
-		Version:    nss.Version,
-		Namespaces: views,
+	return &NamespacesView{
+		Version:    1,
+		Namespaces: namespaces,
 	}
 }
