@@ -24,7 +24,6 @@ import (
 	"sort"
 
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3metrics/rules"
 )
 
 // RollupTarget is a common json serializable rollup target.
@@ -63,6 +62,14 @@ type RollupRuleView struct {
 	LastUpdatedBy      string
 	LastUpdatedAtNanos int64
 }
+
+// MappingRuleViews belonging to a ruleset indexed by uuid.
+// Each value contains the entire snapshot history of the rule.
+type MappingRuleViews map[string][]*MappingRuleView
+
+// RollupRuleViews belonging to a ruleset indexed by uuid.
+// Each value contains the entire snapshot history of the rule.
+type RollupRuleViews map[string][]*RollupRuleView
 
 // NewRollupTarget takes a RollupTargetView and returns the equivalent RollupTarget.
 func NewRollupTarget(t RollupTargetView) RollupTarget {
@@ -155,21 +162,23 @@ func (r *RollupRule) Sort() {
 	sort.Sort(rollupTargetsByNameTagsAsc(r.Targets))
 }
 
-func NewRollupTargetView(target RollupTarget) RollupTargetView {
-	return RollupTargetView{
-		Name:     string(target.Name),
-		Tags:     stringArrayFromBytesArray(target.Tags),
-		Policies: target.Policies,
+func (rtv *RollupTargetView) SameTransform(other RollupTargetView) bool {
+	if rtv.Name != other.Name {
+		return false
 	}
-}
-
-// RollupTarget creates a rollup target from a rollup target view.
-func (rtv RollupTargetView) RollupTarget() rules.RollupTarget {
-	return RollupTarget{
-		Name:     []byte(rtv.Name),
-		Tags:     bytesArrayFromStringArray(rtv.Tags),
-		Policies: rtv.Policies,
+	if len(rtv.Tags) != len(other.Tags) {
+		return false
 	}
+	clonedTags := rtv.Tags
+	sort.Strings(clonedTags)
+	otherClonedTags := other.Tags
+	sort.Strings(otherClonedTags)
+	for i := 0; i < len(clonedTags); i++ {
+		if clonedTags[i] != otherClonedTags[i] {
+			return false
+		}
+	}
+	return true
 }
 
 type rollupTargetsByNameTagsAsc []RollupTarget

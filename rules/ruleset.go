@@ -363,7 +363,7 @@ func (as *activeRuleSet) rollupResultsFor(id []byte, timeNanos int64) []RollupRe
 }
 
 // toRollupResults encodes rollup target name and values into ids for each rollup target.
-func (as *activeRuleSet) toRollupResults(id []byte, cutoverNanos int64, targets []RollupTarget) []RollupResult {
+func (as *activeRuleSet) toRollupResults(id []byte, cutoverNanos int64, targets []rollupTarget) []RollupResult {
 	// NB(r): This is n^2 however this should be quite fast still as
 	// long as there is not an absurdly high number of rollup
 	// targets for any given ID and that iterfn is alloc free.
@@ -452,14 +452,6 @@ func (as *activeRuleSet) cutoverNanosAt(idx int) int64 {
 	return timeNanosMax
 }
 
-// MappingRules belonging to a ruleset indexed by uuid.
-// Each value contains the entire snapshot history of the rule.
-type MappingRules map[string][]*MappingRuleView
-
-// RollupRules belonging to a ruleset indexed by uuid.
-// Each value contains the entire snapshot history of the rule.
-type RollupRules map[string][]*RollupRuleView
-
 // RuleSet is a set of rules associated with a namespace.
 type RuleSet interface {
 	// Namespace is the metrics namespace the ruleset applies to.
@@ -487,7 +479,7 @@ type RuleSet interface {
 	MappingRules() (MappingRules, error)
 
 	// RollupRuleHistory returns a map of rollup rule id to states that rule has been in.
-	RollupRules() (RollupRules, error)
+	RollupRules() (rollupRules, error)
 
 	// Latest returns the latest snapshot of a ruleset containing the latest snapshots
 	// of each rule in the ruleset.
@@ -509,20 +501,20 @@ type MutableRuleSet interface {
 
 	// AppendMappingRule creates a new mapping rule and adds it to this ruleset.
 	// Should return the id of the newly created rule.
-	AddMappingRule(MappingRuleView, UpdateMetadata) (string, error)
+	AddMappingRule(models.MappingRuleView, UpdateMetadata) (string, error)
 
 	// UpdateMappingRule creates a new mapping rule and adds it to this ruleset.
-	UpdateMappingRule(MappingRuleView, UpdateMetadata) error
+	UpdateMappingRule(models.MappingRuleView, UpdateMetadata) error
 
 	// DeleteMappingRule deletes a mapping rule
 	DeleteMappingRule(string, UpdateMetadata) error
 
 	// AppendRollupRule creates a new rollup rule and adds it to this ruleset.
 	// Should return the id of the newly created rule.
-	AddRollupRule(RollupRuleView, UpdateMetadata) (string, error)
+	AddRollupRule(models.RollupRuleView, UpdateMetadata) (string, error)
 
 	// UpdateRollupRule creates a new rollup rule and adds it to this ruleset.
-	UpdateRollupRule(RollupRuleView, UpdateMetadata) error
+	UpdateRollupRule(models.RollupRuleView, UpdateMetadata) error
 
 	// DeleteRollupRule deletes a rollup rule
 	DeleteRollupRule(string, UpdateMetadata) error
@@ -752,7 +744,7 @@ func (rs *ruleSet) Clone() MutableRuleSet {
 	})
 }
 
-func (rs *ruleSet) AddMappingRule(mrv MappingRuleView, meta UpdateMetadata) (string, error) {
+func (rs *ruleSet) AddMappingRule(mrv models.MappingRuleView, meta UpdateMetadata) (string, error) {
 	m, err := rs.getMappingRuleByName(mrv.Name)
 	if err != nil && err != errRuleNotFound {
 		return "", xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "add", mrv.Name))
@@ -781,7 +773,7 @@ func (rs *ruleSet) AddMappingRule(mrv MappingRuleView, meta UpdateMetadata) (str
 	return m.uuid, nil
 }
 
-func (rs *ruleSet) UpdateMappingRule(mrv MappingRuleView, meta UpdateMetadata) error {
+func (rs *ruleSet) UpdateMappingRule(mrv models.MappingRuleView, meta UpdateMetadata) error {
 	m, err := rs.getMappingRuleByID(mrv.ID)
 	if err != nil {
 		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "update", mrv.ID))
@@ -811,7 +803,7 @@ func (rs *ruleSet) DeleteMappingRule(id string, meta UpdateMetadata) error {
 	return nil
 }
 
-func (rs *ruleSet) AddRollupRule(rrv RollupRuleView, meta UpdateMetadata) (string, error) {
+func (rs *ruleSet) AddRollupRule(rrv models.RollupRuleView, meta UpdateMetadata) (string, error) {
 	r, err := rs.getRollupRuleByName(rrv.Name)
 	if err != nil && err != errRuleNotFound {
 		return "", xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "add", rrv.Name))
@@ -841,7 +833,7 @@ func (rs *ruleSet) AddRollupRule(rrv RollupRuleView, meta UpdateMetadata) (strin
 	return r.uuid, nil
 }
 
-func (rs *ruleSet) UpdateRollupRule(rrv RollupRuleView, meta UpdateMetadata) error {
+func (rs *ruleSet) UpdateRollupRule(rrv models.RollupRuleView, meta UpdateMetadata) error {
 	r, err := rs.getRollupRuleByID(rrv.ID)
 	if err != nil {
 		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "update", rrv.ID))
@@ -958,7 +950,7 @@ func (rs *ruleSet) getRollupRuleByID(id string) (*rollupRule, error) {
 	return nil, errRuleNotFound
 }
 
-func (rs *ruleSet) latestMappingRules() (map[string]*MappingRuleView, error) {
+func (rs *ruleSet) latestMappingRules() (map[string]*models.MappingRuleView, error) {
 	mrs, err := rs.MappingRules()
 	if err != nil {
 		return nil, err
@@ -973,7 +965,7 @@ func (rs *ruleSet) latestMappingRules() (map[string]*MappingRuleView, error) {
 	return result, nil
 }
 
-func (rs *ruleSet) latestRollupRules() (map[string]*RollupRuleView, error) {
+func (rs *ruleSet) latestRollupRules() (map[string]*models.RollupRuleView, error) {
 	rrs, err := rs.RollupRules()
 	if err != nil {
 		return nil, err

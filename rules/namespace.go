@@ -234,7 +234,7 @@ func NewNamespaces(version int, namespaces *schema.Namespaces) (Namespaces, erro
 }
 
 // NamespacesView returns a view representation of a given Namespaces object.
-func (nss Namespaces) NamespacesView() (*NamespacesView, error) {
+func (nss Namespaces) NamespacesView() (*models.NamespacesView, error) {
 	namespaces := make([]*models.NamespaceView, len(nss.namespaces))
 	for i, n := range nss.namespaces {
 		ns, err := n.NamespaceView(len(n.snapshots) - 1)
