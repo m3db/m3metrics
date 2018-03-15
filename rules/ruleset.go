@@ -315,7 +315,7 @@ func (as *activeRuleSet) rollupResultsFor(id []byte, timeNanos int64) []RollupRe
 	// TODO(xichen): pool the rollup targets.
 	var (
 		cutoverNanos int64
-		rollups      []RollupTarget
+		rollups      []rollupTarget
 	)
 	for _, rollupRule := range as.rollupRules {
 		snapshot := rollupRule.ActiveSnapshot(timeNanos)
@@ -476,10 +476,10 @@ type RuleSet interface {
 	ActiveSet(timeNanos int64) Matcher
 
 	// MappingRuleHistory returns a map of mapping rule id to states that rule has been in.
-	MappingRules() (MappingRules, error)
+	MappingRules() (models.MappingRuleViews, error)
 
 	// RollupRuleHistory returns a map of rollup rule id to states that rule has been in.
-	RollupRules() (rollupRules, error)
+	RollupRules() (models.RollupRuleViews, error)
 
 	// Latest returns the latest snapshot of a ruleset containing the latest snapshots
 	// of each rule in the ruleset.
@@ -666,8 +666,8 @@ func (rs *ruleSet) Schema() (*schema.RuleSet, error) {
 	return res, nil
 }
 
-func (rs *ruleSet) MappingRules() (MappingRules, error) {
-	mappingRules := make(MappingRules, len(rs.mappingRules))
+func (rs *ruleSet) MappingRules() (models.MappingRuleViews, error) {
+	mappingRules := make(models.MappingRuleViews, len(rs.mappingRules))
 	for _, m := range rs.mappingRules {
 		hist, err := m.history()
 		if err != nil {
@@ -678,8 +678,8 @@ func (rs *ruleSet) MappingRules() (MappingRules, error) {
 	return mappingRules, nil
 }
 
-func (rs *ruleSet) RollupRules() (RollupRules, error) {
-	rollupRules := make(RollupRules, len(rs.rollupRules))
+func (rs *ruleSet) RollupRules() (models.RollupRuleViews, error) {
+	rollupRules := make(models.RollupRuleViews, len(rs.rollupRules))
 	for _, r := range rs.rollupRules {
 		hist, err := r.history()
 		if err != nil {
@@ -955,7 +955,7 @@ func (rs *ruleSet) latestMappingRules() (map[string]*models.MappingRuleView, err
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]*MappingRuleView, len(mrs))
+	result := make(map[string]*models.MappingRuleView, len(mrs))
 	for id, m := range mrs {
 		if len(m) > 0 && !m[0].Tombstoned {
 			// views included in m are sorted latest first.
@@ -970,7 +970,7 @@ func (rs *ruleSet) latestRollupRules() (map[string]*models.RollupRuleView, error
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]*RollupRuleView, len(rrs))
+	result := make(map[string]*models.RollupRuleView, len(rrs))
 	for id, r := range rrs {
 		if len(r) > 0 && !r[0].Tombstoned {
 			// views included in m are sorted latest first.

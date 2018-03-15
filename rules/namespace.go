@@ -243,7 +243,7 @@ func (nss Namespaces) NamespacesView() (*models.NamespacesView, error) {
 		}
 		namespaces[i] = ns
 	}
-	return &NamespacesView{
+	return &models.NamespacesView{
 		Version:    nss.version,
 		Namespaces: namespaces,
 	}, nil

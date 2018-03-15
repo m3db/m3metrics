@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	emptyRollupTarget RollupTarget
+	emptyRollupTarget rollupTarget
 
 	errRollupRuleSnapshotIndexOutOfRange = errors.New("rollup rule snapshot index out of range")
 	errNilRollupTargetSchema             = errors.New("nil rollup target schema")
@@ -44,7 +44,7 @@ var (
 )
 
 func newRollupTargetView(target rollupTarget) models.RollupTargetView {
-	return RollupTargetView{
+	return models.RollupTargetView{
 		Name:     string(target.Name),
 		Tags:     stringArrayFromBytesArray(target.Tags),
 		Policies: target.Policies,
@@ -52,11 +52,19 @@ func newRollupTargetView(target rollupTarget) models.RollupTargetView {
 }
 
 func rollupTargetViewsToTargets(views []models.RollupTargetView) []rollupTarget {
-	targets := make([]RollupTarget, len(views))
+	targets := make([]rollupTarget, len(views))
 	for i, t := range views {
-		targets[i] = t.RollupTarget()
+		targets[i] = rollupTargetFromView(t)
 	}
 	return targets
+}
+
+func rollupTargetFromView(rtv models.RollupTargetView) rollupTarget {
+	return rollupTarget{
+		Name:     []byte(rtv.Name),
+		Tags:     bytesArrayFromStringArray(rtv.Tags),
+		Policies: rtv.Policies,
+	}
 }
 
 // RollupTarget dictates how to roll up metrics. Metrics associated with a rollup
@@ -79,7 +87,7 @@ func newRollupTarget(target *schema.RollupTarget) (rollupTarget, error) {
 	tags := make([]string, len(target.Tags))
 	copy(tags, target.Tags)
 	sort.Strings(tags)
-	return RollupTarget{
+	return rollupTarget{
 		Name:     []byte(target.Name),
 		Tags:     bytesArrayFromStringArray(tags),
 		Policies: policies,
@@ -90,7 +98,7 @@ func newRollupTarget(target *schema.RollupTarget) (rollupTarget, error) {
 func (t *rollupTarget) SameTransform(other rollupTarget) bool {
 	tView := newRollupTargetView(*t)
 	otherView := newRollupTargetView(other)
-	return tView.SameTransform(t, otherView)
+	return tView.SameTransform(otherView)
 }
 
 // clone clones a rollup target.
@@ -99,7 +107,7 @@ func (t *rollupTarget) clone() rollupTarget {
 	copy(name, t.Name)
 	policies := make([]policy.Policy, len(t.Policies))
 	copy(policies, t.Policies)
-	return RollupTarget{
+	return rollupTarget{
 		Name:     name,
 		Tags:     bytesArrayCopy(t.Tags),
 		Policies: policies,
@@ -146,7 +154,7 @@ func newRollupRuleSnapshot(
 	if r == nil {
 		return nil, errNilRollupRuleSnapshotSchema
 	}
-	targets := make([]RollupTarget, 0, len(r.Targets))
+	targets := make([]rollupTarget, 0, len(r.Targets))
 	for _, t := range r.Targets {
 		target, err := newRollupTarget(t)
 		if err != nil {
@@ -224,7 +232,7 @@ func newRollupRuleSnapshotFromFieldsInternal(
 }
 
 func (rrs *rollupRuleSnapshot) clone() rollupRuleSnapshot {
-	targets := make([]RollupTarget, len(rrs.targets))
+	targets := make([]rollupTarget, len(rrs.targets))
 	for i, t := range rrs.targets {
 		targets[i] = t.clone()
 	}
@@ -274,12 +282,12 @@ func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*models.RollupRuleView, e
 	}
 
 	rrs := rc.snapshots[snapshotIdx].clone()
-	targets := make([]RollupTargetView, len(rrs.targets))
+	targets := make([]models.RollupTargetView, len(rrs.targets))
 	for i, t := range rrs.targets {
 		targets[i] = newRollupTargetView(t)
 	}
 
-	return &RollupRuleView{
+	return &models.RollupRuleView{
 		ID:                 rc.uuid,
 		Name:               rrs.name,
 		Tombstoned:         rrs.tombstoned,
@@ -454,7 +462,7 @@ func (rc *rollupRule) revive(
 
 func (rc *rollupRule) history() ([]*models.RollupRuleView, error) {
 	lastIdx := len(rc.snapshots) - 1
-	views := make([]*RollupRuleView, len(rc.snapshots))
+	views := make([]*models.RollupRuleView, len(rc.snapshots))
 	// Snapshots are stored oldest -> newest. History should start with newest.
 	for i := 0; i < len(rc.snapshots); i++ {
 		rrs, err := rc.rollupRuleView(lastIdx - i)
