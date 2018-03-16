@@ -44,14 +44,6 @@ var (
 	errNilRollupRuleSchema               = errors.New("nil rollup rule schema")
 )
 
-func rollupTargetViewsToTargets(views []models.RollupTargetView) []rollupTarget {
-	targets := make([]rollupTarget, len(views))
-	for i, t := range views {
-		targets[i] = newRollupTargetFromView(t)
-	}
-	return targets
-}
-
 // RollupTarget dictates how to roll up metrics. Metrics associated with a rollup
 // target will be grouped and rolled up across the provided set of tags, named
 // with the provided name, and aggregated and retained under the provided policies.
@@ -77,6 +69,14 @@ func newRollupTarget(target *schema.RollupTarget) (rollupTarget, error) {
 		Tags:     bytesArrayFromStringArray(tags),
 		Policies: policies,
 	}, nil
+}
+
+func newRollupTargetsFromView(views []models.RollupTargetView) []rollupTarget {
+	targets := make([]rollupTarget, len(views))
+	for i, t := range views {
+		targets[i] = newRollupTargetFromView(t)
+	}
+	return targets
 }
 
 func newRollupTargetFromView(rtv models.RollupTargetView) rollupTarget {

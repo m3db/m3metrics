@@ -808,7 +808,7 @@ func (rs *ruleSet) AddRollupRule(rrv models.RollupRuleView, meta UpdateMetadata)
 	if err != nil && err != errRuleNotFound {
 		return "", xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "add", rrv.Name))
 	}
-	targets := rollupTargetViewsToTargets(rrv.Targets)
+	targets := newRollupTargetsFromView(rrv.Targets)
 	if err == errRuleNotFound {
 		if r, err = newRollupRuleFromFields(
 			rrv.Name,
@@ -838,7 +838,7 @@ func (rs *ruleSet) UpdateRollupRule(rrv models.RollupRuleView, meta UpdateMetada
 	if err != nil {
 		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "update", rrv.ID))
 	}
-	targets := rollupTargetViewsToTargets(rrv.Targets)
+	targets := newRollupTargetsFromView(rrv.Targets)
 	if err = r.addSnapshot(
 		rrv.Name,
 		rrv.Filter,
