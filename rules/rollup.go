@@ -21,6 +21,7 @@
 package rules
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sort"
@@ -94,11 +95,25 @@ func (t rollupTarget) rollupTargetView() models.RollupTargetView {
 	}
 }
 
+// TODO: Evaluate if this function is needed for rule matching. If not remove it.
 // SameTransform returns whether two rollup targets have the same transformation.
-func (t rollupTarget) SameTransform(other rollupTarget) bool {
-	tView := t.rollupTargetView()
-	otherView := other.rollupTargetView()
-	return tView.SameTransform(otherView)
+func (t *rollupTarget) SameTransform(other rollupTarget) bool {
+	if !bytes.Equal(t.Name, other.Name) {
+		return false
+	}
+	if len(t.Tags) != len(other.Tags) {
+		return false
+	}
+	clonedTags := stringArrayFromBytesArray(t.Tags)
+	sort.Strings(clonedTags)
+	otherClonedTags := stringArrayFromBytesArray(other.Tags)
+	sort.Strings(otherClonedTags)
+	for i := 0; i < len(clonedTags); i++ {
+		if clonedTags[i] != otherClonedTags[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // clone clones a rollup target.
