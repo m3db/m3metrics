@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3metrics/metric/id"
+	"github.com/m3db/m3metrics/op/applied"
 	"github.com/m3db/m3metrics/policy"
 )
 
@@ -95,4 +96,16 @@ type ChunkedMetricWithStoragePolicy struct {
 type RawMetricWithStoragePolicy struct {
 	RawMetric
 	policy.StoragePolicy
+}
+
+// ForwardMetadata represents the metadata information associated with forwarded metrics.
+type ForwardMetadata struct {
+	policy.StoragePolicy
+	applied.Pipeline
+}
+
+// MetricWithForwardMetadata represents a metric with forward metadata.
+type MetricWithForwardMetadata struct {
+	Metric
+	ForwardMetadata
 }
