@@ -26,6 +26,11 @@ import (
 	"github.com/m3db/m3metrics/policy"
 )
 
+var (
+	// DefaultStagedMetadata represents a default staged metadata.
+	DefaultStagedMetadata StagedMetadata
+)
+
 // Metadata represents the metadata associated with a metric.
 type Metadata struct {
 	// List of aggregation types.
@@ -69,7 +74,7 @@ type StagedMetadata struct {
 }
 
 // StagedMetadatas contains a list of staged metadatas.
-type StagedMetadatas []StagedMetadatas
+type StagedMetadatas []StagedMetadata
 
 // IsDefault determines whether the list of staged metadata is a default list.
 func (sms StagedMetadatas) IsDefault() bool {
