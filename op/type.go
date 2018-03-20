@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	"github.com/m3db/m3metrics/aggregation"
+	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/transformation"
 )
 
@@ -41,12 +42,12 @@ const (
 
 // Aggregation is an aggregation operation.
 type Aggregation struct {
-	// Type of aggregation performed.
-	Type aggregation.Type
+	// Type of aggregations performed.
+	ID aggregation.ID
 }
 
 func (op Aggregation) String() string {
-	return op.Type.String()
+	return op.ID.String()
 }
 
 // Transformation is a transformation operation.
@@ -113,8 +114,11 @@ func (u Union) String() string {
 
 // Pipeline is a pipeline of operations.
 type Pipeline struct {
-	// a list of pipeline operations.
+	// A list of pipeline operations.
 	Operations []Union
+	// A list of storage policies that are applied to metrics
+	// generated from this pipeline.
+	StoragePolicies []policy.StoragePolicy
 }
 
 func (p Pipeline) String() string {
@@ -126,6 +130,8 @@ func (p Pipeline) String() string {
 			b.WriteString(", ")
 		}
 	}
-	b.WriteString("]}")
+	b.WriteString("], ")
+	fmt.Fprintf(&b, "storagePolicies: %v", p.StoragePolicies)
+	b.WriteString("}")
 	return b.String()
 }

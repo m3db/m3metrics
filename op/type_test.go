@@ -39,7 +39,7 @@ func TestPipelineString(t *testing.T) {
 				Operations: []Union{
 					{
 						Type:        AggregationType,
-						Aggregation: Aggregation{Type: aggregation.Last},
+						Aggregation: Aggregation{ID: aggregation.MustCompressTypes(aggregation.Last)},
 					},
 					{
 						Type:           TransformationType,
@@ -55,7 +55,7 @@ func TestPipelineString(t *testing.T) {
 					},
 				},
 			},
-			expected: "{operations: [{aggregation: Last}, {transformation: PerSecond}, {rollup: {name: foo, tags: [tag1, tag2], aggregation: Sum}}]}",
+			expected: "{operations: [{aggregation: Last}, {transformation: PerSecond}, {rollup: {name: foo, tags: [tag1, tag2], aggregation: Sum}}], storagePolicies: []}",
 		},
 		{
 			p: Pipeline{
@@ -65,7 +65,7 @@ func TestPipelineString(t *testing.T) {
 					},
 				},
 			},
-			expected: "{operations: [{unknown op type: Type(10)}]}",
+			expected: "{operations: [{unknown op type: Type(10)}], storagePolicies: []}",
 		},
 	}
 
