@@ -18,12 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package metric
+package metadata
 
 import (
 	"github.com/m3db/m3metrics/aggregation"
-	"github.com/m3db/m3metrics/metric/aggregated"
-	"github.com/m3db/m3metrics/metric/unaggregated"
 	"github.com/m3db/m3metrics/op/applied"
 	"github.com/m3db/m3metrics/policy"
 )
@@ -65,15 +63,3 @@ type StagedMetadata struct {
 
 // StagedMetadatas contains a list of staged metadatas.
 type StagedMetadatas []StagedMetadatas
-
-// UntimedMetricWithMetadatas contains an untimed metric with metadatas.
-type UntimedMetricWithMetadatas struct {
-	unaggregated.MetricUnion
-	StagedMetadatas
-}
-
-// TimedMetricWithForwardMetadata contains a timed metric with forward metadata.
-type TimedMetricWithForwardMetadata struct {
-	aggregated.Metric
-	ForwardMetadata
-}
