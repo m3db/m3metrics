@@ -8,9 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRuleSetsSort(t *testing.T) {
+func TestRuleSetChangeSetsSort(t *testing.T) {
 	expected := RuleSetChangeSets{
-
 		RuleSetChangeSet{
 			Namespace: "service1",
 			MappingRuleChanges: []MappingRuleChange{
