@@ -23,9 +23,7 @@ package unaggregated
 import (
 	"fmt"
 
-	"github.com/m3db/m3metrics/aggregation"
 	"github.com/m3db/m3metrics/metric/id"
-	"github.com/m3db/m3metrics/op/applied"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3x/pool"
 )
@@ -136,31 +134,3 @@ func (m *MetricUnion) BatchTimer() BatchTimer { return BatchTimer{ID: m.ID, Valu
 
 // Gauge returns the gauge metric.
 func (m *MetricUnion) Gauge() Gauge { return Gauge{ID: m.ID, Value: m.GaugeVal} }
-
-// StagedMetadata represents the metadata associated with an unaggregated metric
-// with a staged cutover time.
-type StagedMetadata struct {
-	// Cutover is when the metadata is applicable.
-	CutoverNanos int64
-
-	// Tombstoned determines whether the associated metric has been tombstoned.
-	Tombstoned bool
-
-	// List of aggregation types.
-	AggregationID aggregation.ID
-
-	// List of storage policies.
-	StoragePolicies []policy.StoragePolicy
-
-	// Pipeline of operations that may be applied to the metric.
-	Pipeline applied.Pipeline
-}
-
-// StagedMetadatas contains a list of staged metadatas.
-type StagedMetadatas []StagedMetadatas
-
-// MetricWithStagedMetadatas represent an unaggregated metric alongside its staged metadatas.
-type MetricWithStagedMetadatas struct {
-	MetricUnion
-	StagedMetadatas
-}
