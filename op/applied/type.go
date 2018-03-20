@@ -32,15 +32,15 @@ import (
 type Rollup struct {
 	// Metric ID generated as a result of the rollup.
 	ID []byte
-	// Type of aggregation performed within each unique dimension combination.
-	AggregationType aggregation.Type
+	// Type of aggregations performed within each unique dimension combination.
+	AggregationID aggregation.ID
 }
 
 func (op Rollup) String() string {
 	var b bytes.Buffer
 	b.WriteString("{")
 	fmt.Fprintf(&b, "id: %s, ", op.ID)
-	fmt.Fprintf(&b, "aggregation: %v", op.AggregationType)
+	fmt.Fprintf(&b, "aggregation: %v", op.AggregationID)
 	b.WriteString("}")
 	return b.String()
 }
