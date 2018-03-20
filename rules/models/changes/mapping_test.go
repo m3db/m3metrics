@@ -13,15 +13,15 @@ func TestSortMappingRuleChanges(t *testing.T) {
 	ruleChanges := []MappingRuleChange{
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID5"),
+			RuleID: "rrID5",
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID4"),
+			RuleID: "rrID4",
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID1"),
+			RuleID: "rrID1",
 			RuleData: &models.MappingRule{
 				Name: "change3",
 			},
@@ -34,22 +34,22 @@ func TestSortMappingRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: "rrID2",
 			RuleData: &models.MappingRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID5"),
+			RuleID: "rrID5",
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID4"),
+			RuleID: "rrID4",
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID3"),
+			RuleID: "rrID3",
 			RuleData: &models.MappingRule{
 				Name: "change2",
 			},
@@ -62,7 +62,7 @@ func TestSortMappingRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: "rrID2",
 			RuleData: &models.MappingRule{
 				Name: "change1",
 			},
@@ -83,44 +83,44 @@ func TestSortMappingRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID4"),
+			RuleID: "rrID4",
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID4"),
+			RuleID: "rrID4",
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID5"),
+			RuleID: "rrID5",
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID5"),
+			RuleID: "rrID5",
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: "rrID2",
 			RuleData: &models.MappingRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: "rrID2",
 			RuleData: &models.MappingRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID3"),
+			RuleID: "rrID3",
 			RuleData: &models.MappingRule{
 				Name: "change2",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID1"),
+			RuleID: "rrID1",
 			RuleData: &models.MappingRule{
 				Name: "change3",
 			},

@@ -28,21 +28,21 @@ func TestRuleSetsSort(t *testing.T) {
 				},
 				{
 					Op:     ChangeOp,
-					RuleID: p("mrID2"),
+					RuleID: "mrID2",
 					RuleData: &models.MappingRule{
 						Name: "change1",
 					},
 				},
 				{
 					Op:     ChangeOp,
-					RuleID: p("mrID3"),
+					RuleID: "mrID3",
 					RuleData: &models.MappingRule{
 						Name: "change2",
 					},
 				},
 				{
 					Op:     ChangeOp,
-					RuleID: p("mrID1"),
+					RuleID: "mrID1",
 					RuleData: &models.MappingRule{
 						Name: "change3",
 					},
@@ -63,21 +63,21 @@ func TestRuleSetsSort(t *testing.T) {
 				},
 				{
 					Op:     ChangeOp,
-					RuleID: p("rrID2"),
+					RuleID: "rrID2",
 					RuleData: &models.RollupRule{
 						Name: "change1",
 					},
 				},
 				{
 					Op:     ChangeOp,
-					RuleID: p("rrID3"),
+					RuleID: "rrID3",
 					RuleData: &models.RollupRule{
 						Name: "change2",
 					},
 				},
 				{
 					Op:     ChangeOp,
-					RuleID: p("rrID1"),
+					RuleID: "rrID1",
 					RuleData: &models.RollupRule{
 						Name: "change3",
 					},
@@ -164,7 +164,7 @@ var (
 			MappingRuleChanges: []MappingRuleChange{
 				{
 					Op:     ChangeOp,
-					RuleID: p("mrID1"),
+					RuleID: "mrID1",
 					RuleData: &models.MappingRule{
 						Name: "change3",
 					},
@@ -177,14 +177,14 @@ var (
 				},
 				{
 					Op:     ChangeOp,
-					RuleID: p("mrID2"),
+					RuleID: "mrID2",
 					RuleData: &models.MappingRule{
 						Name: "change1",
 					},
 				},
 				{
 					Op:     ChangeOp,
-					RuleID: p("mrID3"),
+					RuleID: "mrID3",
 					RuleData: &models.MappingRule{
 						Name: "change2",
 					},
@@ -199,7 +199,7 @@ var (
 			RollupRuleChanges: []RollupRuleChange{
 				{
 					Op:     ChangeOp,
-					RuleID: p("rrID1"),
+					RuleID: "rrID1",
 					RuleData: &models.RollupRule{
 						Name: "change3",
 					},
@@ -212,14 +212,14 @@ var (
 				},
 				{
 					Op:     ChangeOp,
-					RuleID: p("rrID2"),
+					RuleID: "rrID2",
 					RuleData: &models.RollupRule{
 						Name: "change1",
 					},
 				},
 				{
 					Op:     ChangeOp,
-					RuleID: p("rrID3"),
+					RuleID: "rrID3",
 					RuleData: &models.RollupRule{
 						Name: "change2",
 					},

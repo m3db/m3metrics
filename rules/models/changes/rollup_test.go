@@ -13,15 +13,15 @@ func TestSortRollupRuleChanges(t *testing.T) {
 	ruleChanges := []RollupRuleChange{
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID5"),
+			RuleID: "rrID5",
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID4"),
+			RuleID: "rrID4",
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID1"),
+			RuleID: "rrID1",
 			RuleData: &models.RollupRule{
 				Name: "change3",
 			},
@@ -34,22 +34,22 @@ func TestSortRollupRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: "rrID2",
 			RuleData: &models.RollupRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID5"),
+			RuleID: "rrID5",
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID4"),
+			RuleID: "rrID4",
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID3"),
+			RuleID: "rrID3",
 			RuleData: &models.RollupRule{
 				Name: "change2",
 			},
@@ -62,7 +62,7 @@ func TestSortRollupRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: "rrID2",
 			RuleData: &models.RollupRule{
 				Name: "change1",
 			},
@@ -83,44 +83,44 @@ func TestSortRollupRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID4"),
+			RuleID: "rrID4",
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID4"),
+			RuleID: "rrID4",
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID5"),
+			RuleID: "rrID5",
 		},
 		{
 			Op:     RemoveOp,
-			RuleID: p("rrID5"),
+			RuleID: "rrID5",
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: "rrID2",
 			RuleData: &models.RollupRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: "rrID2",
 			RuleData: &models.RollupRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID3"),
+			RuleID: "rrID3",
 			RuleData: &models.RollupRule{
 				Name: "change2",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID1"),
+			RuleID: "rrID1",
 			RuleData: &models.RollupRule{
 				Name: "change3",
 			},
@@ -129,8 +129,4 @@ func TestSortRollupRuleChanges(t *testing.T) {
 
 	sort.Sort(rollupRuleChangesByOpNameAsc(ruleChanges))
 	require.Equal(t, expected, ruleChanges)
-}
-
-func p(s string) *string {
-	return &s
 }

@@ -5,8 +5,8 @@ import "github.com/m3db/m3metrics/rules/models"
 // MappingRuleChange is a mapping rule diff.
 type MappingRuleChange struct {
 	Op       UpdateOp            `json:"updateOp"`
-	RuleID   *string             `json:"ruleID"`
-	RuleData *models.MappingRule `json:"ruleData"`
+	RuleID   string              `json:"ruleID,omitempty"`
+	RuleData *models.MappingRule `json:"ruleData,omitempty"`
 }
 
 type mappingRuleChangesByOpNameAsc []MappingRuleChange
@@ -24,24 +24,28 @@ func (a mappingRuleChangesByOpNameAsc) Less(i, j int) bool {
 }
 
 func compareMappingRuleChanges(a, b MappingRuleChange) int {
-	// Remove operations maybe not RuleData. Only compare IDs.
+	// Remove operations maybe not have RuleData. Only compare IDs.
 	if a.Op == 2 {
 		return compareRemoveMappingRuleChanges(a, b)
 	}
 	return compareMappingRules(a.RuleData, b.RuleData)
 }
 
+// compare compares two mapping rules by id, returning
+// * -1 if a < b
+// * 1 if a > b
+// * 0 if a == b
 func compareRemoveMappingRuleChanges(a, b MappingRuleChange) int {
-	if *a.RuleID < *b.RuleID {
+	if a.RuleID < b.RuleID {
 		return -1
 	}
-	if *a.RuleID > *b.RuleID {
+	if a.RuleID > b.RuleID {
 		return 1
 	}
 	return 0
 }
 
-// compare compares two mapping rules, returning
+// compare compares two mapping rules by name, returning
 // * -1 if a < b
 // * 1 if a > b
 // * 0 if a == b
