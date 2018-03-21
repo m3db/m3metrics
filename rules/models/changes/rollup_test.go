@@ -12,16 +12,16 @@ import (
 func TestSortRollupRuleChanges(t *testing.T) {
 	ruleChanges := []RollupRuleChange{
 		{
-			Op:     RemoveOp,
-			RuleID: "rrID5",
+			Op:     DeleteOp,
+			RuleID: p("rrID5"),
 		},
 		{
-			Op:     RemoveOp,
-			RuleID: "rrID4",
+			Op:     DeleteOp,
+			RuleID: p("rrID4"),
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: "rrID1",
+			RuleID: p("rrID1"),
 			RuleData: &models.RollupRule{
 				Name: "change3",
 			},
@@ -34,22 +34,22 @@ func TestSortRollupRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: "rrID2",
+			RuleID: p("rrID2"),
 			RuleData: &models.RollupRule{
 				Name: "change1",
 			},
 		},
 		{
-			Op:     RemoveOp,
-			RuleID: "rrID5",
+			Op:     DeleteOp,
+			RuleID: p("rrID5"),
 		},
 		{
-			Op:     RemoveOp,
-			RuleID: "rrID4",
+			Op:     DeleteOp,
+			RuleID: p("rrID4"),
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: "rrID3",
+			RuleID: p("rrID3"),
 			RuleData: &models.RollupRule{
 				Name: "change2",
 			},
@@ -62,7 +62,7 @@ func TestSortRollupRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: "rrID2",
+			RuleID: p("rrID2"),
 			RuleData: &models.RollupRule{
 				Name: "change1",
 			},
@@ -82,51 +82,51 @@ func TestSortRollupRuleChanges(t *testing.T) {
 			},
 		},
 		{
-			Op:     RemoveOp,
-			RuleID: "rrID4",
-		},
-		{
-			Op:     RemoveOp,
-			RuleID: "rrID4",
-		},
-		{
-			Op:     RemoveOp,
-			RuleID: "rrID5",
-		},
-		{
-			Op:     RemoveOp,
-			RuleID: "rrID5",
-		},
-		{
 			Op:     ChangeOp,
-			RuleID: "rrID2",
+			RuleID: p("rrID2"),
 			RuleData: &models.RollupRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: "rrID2",
+			RuleID: p("rrID2"),
 			RuleData: &models.RollupRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: "rrID3",
+			RuleID: p("rrID3"),
 			RuleData: &models.RollupRule{
 				Name: "change2",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: "rrID1",
+			RuleID: p("rrID1"),
 			RuleData: &models.RollupRule{
 				Name: "change3",
 			},
 		},
+		{
+			Op:     DeleteOp,
+			RuleID: p("rrID4"),
+		},
+		{
+			Op:     DeleteOp,
+			RuleID: p("rrID4"),
+		},
+		{
+			Op:     DeleteOp,
+			RuleID: p("rrID5"),
+		},
+		{
+			Op:     DeleteOp,
+			RuleID: p("rrID5"),
+		},
 	}
 
-	sort.Sort(rollupRuleChangesByOpNameAsc(ruleChanges))
+	sort.Sort(rollupRuleChangesByOpAscNameAscIDAsc(ruleChanges))
 	require.Equal(t, expected, ruleChanges)
 }
