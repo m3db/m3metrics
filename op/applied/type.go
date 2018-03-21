@@ -117,3 +117,19 @@ func (p Pipeline) String() string {
 	b.WriteString("]}")
 	return b.String()
 }
+
+// Pipelines represent a list of pipelines
+type Pipelines []Pipeline
+
+// Equal determines whether two pipeline list are equal.
+func (p Pipelines) Equal(other Pipelines) bool {
+	if len(p) != len(other) {
+		return false
+	}
+	for i := 0; i < len(p); i++ {
+		if !p[i].Equal(other[i]) {
+			return false
+		}
+	}
+	return true
+}

@@ -31,8 +31,19 @@ var (
 	DefaultStagedMetadata StagedMetadata
 )
 
+// PipelineWithStoragePolicies represent a pipeline with a set of
+// corresponding storage policies.
+type PipelineWithStoragePolicies struct {
+	applied.Pipeline
+
+	StoragePolicies []policy.StoragePolicy
+}
+
 // Metadata represents the metadata associated with a metric.
 type Metadata struct {
+	// Whether the associated metric is a rollup metric.
+	IsRollup bool
+
 	// List of aggregation types.
 	AggregationID aggregation.ID
 
@@ -40,14 +51,14 @@ type Metadata struct {
 	StoragePolicies []policy.StoragePolicy
 
 	// Pipeline of operations that may be applied to the metric.
-	Pipeline applied.Pipeline
+	Pipelines []PipelineWithStoragePolicies
 }
 
 // IsDefault returns whether this is the default metadata.
 func (m Metadata) IsDefault() bool {
 	return m.AggregationID.IsDefault() &&
 		policy.IsDefaultStoragePolicies(m.StoragePolicies) &&
-		m.Pipeline.IsEmpty()
+		len(m.Pipelines) == 0
 }
 
 // ForwardMetadata represents the metadata information associated with forwarded metrics.
