@@ -26,7 +26,6 @@ import (
 
 	"github.com/m3db/m3metrics/aggregation"
 	"github.com/m3db/m3metrics/op"
-	"github.com/m3db/m3metrics/policy"
 )
 
 // Rollup captures the rollup metadata after the operation is applied against a metric ID.
@@ -38,12 +37,15 @@ type Rollup struct {
 }
 
 func (op Rollup) String() string {
-	return fmt.Sprintf("{id: %s, aggregation: %v}", op.ID, op.AggregationID)
+	var b bytes.Buffer
+	b.WriteString("{")
+	fmt.Fprintf(&b, "id: %s, ", op.ID)
+	fmt.Fprintf(&b, "aggregation: %v", op.AggregationID)
+	b.WriteString("}")
+	return b.String()
 }
 
 // Union is a union of different types of operation.
-// NB: It does not contain an aggregation operation since that
-// is already captured by the aggregation ID in the metadata.
 type Union struct {
 	Type           op.Type
 	Aggregation    op.Aggregation
@@ -72,9 +74,6 @@ func (u Union) String() string {
 type Pipeline struct {
 	// a list of pipeline operations.
 	Operations []Union
-	// A list of storage policies that are applied to metrics
-	// generated from this pipeline.
-	StoragePolicies []policy.StoragePolicy
 }
 
 // IsEmpty determines whether a pipeline is empty.
@@ -91,8 +90,6 @@ func (p Pipeline) String() string {
 			b.WriteString(", ")
 		}
 	}
-	b.WriteString("], ")
-	fmt.Fprintf(&b, "storagePolicies: %v", p.StoragePolicies)
-	b.WriteString("}")
+	b.WriteString("]}")
 	return b.String()
 }
