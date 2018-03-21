@@ -45,6 +45,11 @@ type Aggregation struct {
 	Type aggregation.Type
 }
 
+// Equal determines whether two aggregation operations are equal.
+func (op Aggregation) Equal(other Aggregation) bool {
+	return op.Type == other.Type
+}
+
 func (op Aggregation) String() string {
 	return op.Type.String()
 }
@@ -53,6 +58,11 @@ func (op Aggregation) String() string {
 type Transformation struct {
 	// Type of transformation performed.
 	Type transformation.Type
+}
+
+// Equal determines whether two transformation operations are equal.
+func (op Transformation) Equal(other Transformation) bool {
+	return op.Type == other.Type
 }
 
 func (op Transformation) String() string {

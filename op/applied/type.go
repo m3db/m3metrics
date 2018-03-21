@@ -36,29 +36,40 @@ type Rollup struct {
 	AggregationID aggregation.ID
 }
 
+// Equal determines whether two rollup operations are equal.
+func (op Rollup) Equal(other Rollup) bool {
+	return op.AggregationID == other.AggregationID && bytes.Equal(op.ID, other.ID)
+}
+
 func (op Rollup) String() string {
-	var b bytes.Buffer
-	b.WriteString("{")
-	fmt.Fprintf(&b, "id: %s, ", op.ID)
-	fmt.Fprintf(&b, "aggregation: %v", op.AggregationID)
-	b.WriteString("}")
-	return b.String()
+	return fmt.Sprintf("{id: %s, aggregation: %v}", op.ID, op.AggregationID)
 }
 
 // Union is a union of different types of operation.
 type Union struct {
 	Type           op.Type
-	Aggregation    op.Aggregation
 	Transformation op.Transformation
 	Rollup         Rollup
+}
+
+// Equal determines whether two operation unions are equal.
+func (u Union) Equal(other Union) bool {
+	if u.Type != other.Type {
+		return false
+	}
+	switch u.Type {
+	case op.TransformationType:
+		return u.Transformation.Equal(other.Transformation)
+	case op.RollupType:
+		return u.Rollup.Equal(other.Rollup)
+	}
+	return true
 }
 
 func (u Union) String() string {
 	var b bytes.Buffer
 	b.WriteString("{")
 	switch u.Type {
-	case op.AggregationType:
-		fmt.Fprintf(&b, "aggregation: %s", u.Aggregation.String())
 	case op.TransformationType:
 		fmt.Fprintf(&b, "transformation: %s", u.Transformation.String())
 	case op.RollupType:
@@ -79,6 +90,19 @@ type Pipeline struct {
 // IsEmpty determines whether a pipeline is empty.
 func (p Pipeline) IsEmpty() bool {
 	return len(p.Operations) == 0
+}
+
+// Equal determines whether two pipelines are equal.
+func (p Pipeline) Equal(other Pipeline) bool {
+	if len(p.Operations) != len(other.Operations) {
+		return false
+	}
+	for i := 0; i < len(p.Operations); i++ {
+		if !p.Operations[i].Equal(other.Operations[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 func (p Pipeline) String() string {
