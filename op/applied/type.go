@@ -28,6 +28,11 @@ import (
 	"github.com/m3db/m3metrics/op"
 )
 
+var (
+	// DefaultPipeline is a default pipeline.
+	DefaultPipeline Pipeline
+)
+
 // Rollup captures the rollup metadata after the operation is applied against a metric ID.
 type Rollup struct {
 	// Metric ID generated as a result of the rollup.
@@ -116,20 +121,4 @@ func (p Pipeline) String() string {
 	}
 	b.WriteString("]}")
 	return b.String()
-}
-
-// Pipelines represent a list of pipelines
-type Pipelines []Pipeline
-
-// Equal determines whether two pipeline list are equal.
-func (p Pipelines) Equal(other Pipelines) bool {
-	if len(p) != len(other) {
-		return false
-	}
-	for i := 0; i < len(p); i++ {
-		if !p[i].Equal(other[i]) {
-			return false
-		}
-	}
-	return true
 }

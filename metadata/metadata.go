@@ -31,34 +31,58 @@ var (
 	DefaultStagedMetadata StagedMetadata
 )
 
-// PipelineWithStoragePolicies represent a pipeline with a set of
-// corresponding storage policies.
-type PipelineWithStoragePolicies struct {
-	applied.Pipeline
+// ProcessingMode dictates how a metric should be processed.
+type ProcessingMode int
 
-	StoragePolicies []policy.StoragePolicy
-}
+// A list of supported processing mode.
+const (
+	// In standard mode, a metric is always processed (e.g., written to downstream)
+	// locally. Additionally, the metric is forwarded as necessary if there are
+	// more pipeline steps to complete.
+	StandardMode ProcessingMode = iota
 
-// Metadata represents the metadata associated with a metric.
-type Metadata struct {
-	// Whether the associated metric is a rollup metric.
-	IsRollup bool
+	// In forwarding mode, a metric is always forwarded as necessary if there are
+	// more pipeline steps to complete. It is only processed locally if there are
+	// no more pipeline stpes to complete.
+	ForwardingMode
+)
 
+// AggregationPolicyMetadata contains metadata around how
+// metrics should be aggregated and stored.
+type AggregationPolicyMetadata struct {
 	// List of aggregation types.
 	AggregationID aggregation.ID
 
 	// List of storage policies.
 	StoragePolicies []policy.StoragePolicy
+}
 
-	// Pipeline of operations that may be applied to the metric.
-	Pipelines []PipelineWithStoragePolicies
+// IsDefault returns whether this is the default aggregation policy metadata.
+func (m AggregationPolicyMetadata) IsDefault() bool {
+	return m.AggregationID.IsDefault() && policy.IsDefaultStoragePolicies(m.StoragePolicies)
+}
+
+// PipelineMetadata contains pipeline metadata.
+type PipelineMetadata struct {
+	AggregationPolicyMetadata
+	applied.Pipeline
+}
+
+// Metadata represents the metadata associated with a metric.
+type Metadata struct {
+	// Mode dictates how the associated metric should be processed.
+	Mode ProcessingMode
+
+	// Current controls the aggregation and storage plicies at the current step.
+	Current AggregationPolicyMetadata
+
+	// Pipelines contain the processing pipelines the metric is subject to.
+	Pipelines []PipelineMetadata
 }
 
 // IsDefault returns whether this is the default metadata.
 func (m Metadata) IsDefault() bool {
-	return m.AggregationID.IsDefault() &&
-		policy.IsDefaultStoragePolicies(m.StoragePolicies) &&
-		len(m.Pipelines) == 0
+	return m.Mode == StandardMode && m.Current.IsDefault() && len(m.Pipelines) == 0
 }
 
 // ForwardMetadata represents the metadata information associated with forwarded metrics.
