@@ -64,8 +64,10 @@ func (m AggregationPolicyMetadata) IsDefault() bool {
 
 // PipelineMetadata contains pipeline metadata.
 type PipelineMetadata struct {
-	AggregationPolicyMetadata
 	applied.Pipeline
+
+	// List of storage policies.
+	StoragePolicies []policy.StoragePolicy
 }
 
 // Metadata represents the metadata associated with a metric.
