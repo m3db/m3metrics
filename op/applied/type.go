@@ -46,6 +46,13 @@ func (op Rollup) Equal(other Rollup) bool {
 	return op.AggregationID == other.AggregationID && bytes.Equal(op.ID, other.ID)
 }
 
+// Clone clones the rollup operation.
+func (op Rollup) Clone() Rollup {
+	idClone := make([]byte, len(op.ID))
+	copy(idClone, op.ID)
+	return Rollup{ID: idClone, AggregationID: op.AggregationID}
+}
+
 func (op Rollup) String() string {
 	return fmt.Sprintf("{id: %s, aggregation: %v}", op.ID, op.AggregationID)
 }
@@ -69,6 +76,18 @@ func (u Union) Equal(other Union) bool {
 		return u.Rollup.Equal(other.Rollup)
 	}
 	return true
+}
+
+// Clone clones an operation union.
+func (u Union) Clone() Union {
+	clone := Union{Type: u.Type}
+	switch u.Type {
+	case op.TransformationType:
+		clone.Transformation = u.Transformation.Clone()
+	case op.RollupType:
+		clone.Rollup = u.Rollup.Clone()
+	}
+	return clone
 }
 
 func (u Union) String() string {
@@ -108,6 +127,15 @@ func (p Pipeline) Equal(other Pipeline) bool {
 		}
 	}
 	return true
+}
+
+// Clone clones the pipeline.
+func (p Pipeline) Clone() Pipeline {
+	clone := make([]Union, len(p.Operations))
+	for i, op := range p.Operations {
+		clone[i] = op.Clone()
+	}
+	return Pipeline{Operations: clone}
 }
 
 func (p Pipeline) String() string {

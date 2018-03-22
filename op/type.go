@@ -65,6 +65,11 @@ func (op Transformation) Equal(other Transformation) bool {
 	return op.Type == other.Type
 }
 
+// Clone clones the transformation operation.
+func (op Transformation) Clone() Transformation {
+	return op
+}
+
 func (op Transformation) String() string {
 	return op.Type.String()
 }
