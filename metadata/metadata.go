@@ -31,25 +31,25 @@ var (
 	DefaultStagedMetadata StagedMetadata
 )
 
-// ProcessingMode dictates how a metric should be processed.
-type ProcessingMode int
+// PipelineType describes the type of a pipeline.
+type PipelineType int
 
-// A list of supported processing mode.
+// A list of supported pipeline types.
 const (
-	// In standard mode, a metric is always processed (e.g., written to downstream)
-	// locally. Additionally, the metric is forwarded as necessary if there are
-	// more pipeline steps to complete.
-	StandardMode ProcessingMode = iota
+	// A standard pipeline is a full pipeline that has not been processed.
+	// The first step of a standard pipeline is always an aggregation step.
+	// Metrics associated with a standard pipeline are raw, unaggregated metrics.
+	StandardType PipelineType = iota
 
-	// In forwarding mode, a metric is always forwarded as necessary if there are
-	// more pipeline steps to complete. It is only processed locally if there are
-	// no more pipeline stpes to complete.
-	ForwardingMode
+	// A forwarding pipeline is a sub-pipeline whose previous steps have
+	// been processed. There are no aggregation steps in a forwarding pipeline.
+	// Metrics associated with a forwarding pipeline are produced from
+	// previous steps of the same forwarding pipeline.
+	ForwardingType
 )
 
-// AggregationPolicyMetadata contains metadata around how
-// metrics should be aggregated and stored.
-type AggregationPolicyMetadata struct {
+// AggregationMetadata dictates how metrics should be aggregated.
+type AggregationMetadata struct {
 	// List of aggregation types.
 	AggregationID aggregation.ID
 
@@ -57,34 +57,55 @@ type AggregationPolicyMetadata struct {
 	StoragePolicies []policy.StoragePolicy
 }
 
-// IsDefault returns whether this is the default aggregation policy metadata.
-func (m AggregationPolicyMetadata) IsDefault() bool {
+// IsDefault returns whether this is the default aggregation metadata.
+func (m AggregationMetadata) IsDefault() bool {
 	return m.AggregationID.IsDefault() && policy.IsDefaultStoragePolicies(m.StoragePolicies)
 }
 
-// PipelineMetadata contains pipeline metadata.
-type PipelineMetadata struct {
+// StandardPipelineMetadata contains standard pipeline metadata.
+type StandardPipelineMetadata struct {
+	AggregationMetadata
 	applied.Pipeline
+}
 
-	// List of storage policies.
-	StoragePolicies []policy.StoragePolicy
+// IsDefault returns whether this is the default standard pipeline metadata.
+func (sm StandardPipelineMetadata) IsDefault() bool {
+	return sm.AggregationMetadata.IsDefault() && sm.Pipeline.IsEmpty()
+}
+
+// ForwardingPipelineMetadata contains forwarding pipeline metadata.
+type ForwardingPipelineMetadata struct {
+	applied.Pipeline
+}
+
+// IsDefault returns whether this is the default forwarding pipeline metadata.
+func (fm ForwardingPipelineMetadata) IsDefault() bool {
+	return fm.Pipeline.IsEmpty()
+}
+
+// PipelineMetadataUnion is a union of different pipeline metadatas.
+type PipelineMetadataUnion struct {
+	Type       PipelineType
+	Standard   []StandardPipelineMetadata
+	Forwarding ForwardingPipelineMetadata
+}
+
+// IsDefault returns whether this is the default pipeline metadata.
+func (pu PipelineMetadataUnion) IsDefault() bool {
+	return (pu.Type == StandardType && len(pu.Standard) == 0) ||
+		(pu.Type == ForwardingType && pu.Forwarding.IsDefault())
 }
 
 // Metadata represents the metadata associated with a metric.
 type Metadata struct {
-	// Mode dictates how the associated metric should be processed.
-	Mode ProcessingMode
+	AggregationMetadata
 
-	// Current controls the aggregation and storage plicies at the current step.
-	Current AggregationPolicyMetadata
-
-	// Pipelines contain the processing pipelines the metric is subject to.
-	Pipelines []PipelineMetadata
+	Pipeline PipelineMetadataUnion
 }
 
 // IsDefault returns whether this is the default metadata.
 func (m Metadata) IsDefault() bool {
-	return m.Mode == StandardMode && m.Current.IsDefault() && len(m.Pipelines) == 0
+	return m.AggregationMetadata.IsDefault() && m.Pipeline.IsDefault()
 }
 
 // ForwardMetadata represents the metadata information associated with forwarded metrics.
