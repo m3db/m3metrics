@@ -50,12 +50,20 @@ type RollupRuleViews map[string][]*RollupRuleView
 
 // NewRollupTarget takes a RollupTargetView and returns the equivalent RollupTarget.
 func NewRollupTarget(t RollupTargetView) RollupTarget {
-	return RollupTarget(t)
+	return RollupTarget{
+		Name:     t.Name,
+		Tags:     t.Tags,
+		Policies: t.Policies,
+	}
 }
 
 // ToRollupTargetView returns the equivalent ToRollupTargetView.
 func (t RollupTarget) ToRollupTargetView() RollupTargetView {
-	return RollupTargetView(t)
+	return RollupTargetView{
+		Name:     t.Name,
+		Tags:     t.Tags,
+		Policies: t.Policies,
+	}
 }
 
 // Sort sorts the policies inside the rollup target.
