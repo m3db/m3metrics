@@ -342,7 +342,7 @@ func TestPipelineString(t *testing.T) {
 					},
 				},
 			},
-			expected: "{operations: [{transformation: PerSecond}, {rollup: {name: foo, aggregation: Sum}}]}",
+			expected: "{operations: [{transformation: PerSecond}, {rollup: {id: foo, aggregation: Sum}}]}",
 		},
 		{
 			p: Pipeline{
