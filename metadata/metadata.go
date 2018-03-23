@@ -31,81 +31,33 @@ var (
 	DefaultStagedMetadata StagedMetadata
 )
 
-// PipelineType describes the type of a pipeline.
-type PipelineType int
-
-// A list of supported pipeline types.
-const (
-	// A standard pipeline is a full pipeline that has not been processed.
-	// The first step of a standard pipeline is always an aggregation step.
-	// Metrics associated with a standard pipeline are raw, unaggregated metrics.
-	StandardType PipelineType = iota
-
-	// A forwarding pipeline is a sub-pipeline whose previous steps have
-	// been processed. There are no aggregation steps in a forwarding pipeline.
-	// Metrics associated with a forwarding pipeline are produced from
-	// previous steps of the same forwarding pipeline.
-	ForwardingType
-)
-
-// AggregationMetadata dictates how metrics should be aggregated.
-type AggregationMetadata struct {
+// PipelineMetadata contains pipeline metadata.
+type PipelineMetadata struct {
 	// List of aggregation types.
 	AggregationID aggregation.ID
 
 	// List of storage policies.
 	StoragePolicies []policy.StoragePolicy
-}
 
-// IsDefault returns whether this is the default aggregation metadata.
-func (m AggregationMetadata) IsDefault() bool {
-	return m.AggregationID.IsDefault() && policy.IsDefaultStoragePolicies(m.StoragePolicies)
-}
-
-// StandardPipelineMetadata contains standard pipeline metadata.
-type StandardPipelineMetadata struct {
-	AggregationMetadata
-	applied.Pipeline
+	// Pipeline operations.
+	Pipeline applied.Pipeline
 }
 
 // IsDefault returns whether this is the default standard pipeline metadata.
-func (sm StandardPipelineMetadata) IsDefault() bool {
-	return sm.AggregationMetadata.IsDefault() && sm.Pipeline.IsEmpty()
-}
-
-// ForwardingPipelineMetadata contains forwarding pipeline metadata.
-type ForwardingPipelineMetadata struct {
-	applied.Pipeline
-}
-
-// IsDefault returns whether this is the default forwarding pipeline metadata.
-func (fm ForwardingPipelineMetadata) IsDefault() bool {
-	return fm.Pipeline.IsEmpty()
-}
-
-// PipelineMetadataUnion is a union of different pipeline metadatas.
-type PipelineMetadataUnion struct {
-	Type       PipelineType
-	Standard   []StandardPipelineMetadata
-	Forwarding ForwardingPipelineMetadata
-}
-
-// IsDefault returns whether this is the default pipeline metadata.
-func (pu PipelineMetadataUnion) IsDefault() bool {
-	return (pu.Type == StandardType && len(pu.Standard) == 0) ||
-		(pu.Type == ForwardingType && pu.Forwarding.IsDefault())
+func (m PipelineMetadata) IsDefault() bool {
+	return m.AggregationID.IsDefault() &&
+		policy.IsDefaultStoragePolicies(m.StoragePolicies) &&
+		m.Pipeline.IsEmpty()
 }
 
 // Metadata represents the metadata associated with a metric.
 type Metadata struct {
-	AggregationMetadata
-
-	Pipeline PipelineMetadataUnion
+	Pipelines []PipelineMetadata
 }
 
 // IsDefault returns whether this is the default metadata.
 func (m Metadata) IsDefault() bool {
-	return m.AggregationMetadata.IsDefault() && m.Pipeline.IsDefault()
+	return len(m.Pipelines) == 1 && m.Pipelines[0].IsDefault()
 }
 
 // ForwardMetadata represents the metadata information associated with forwarded metrics.

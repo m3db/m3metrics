@@ -28,6 +28,7 @@ import (
 	"github.com/m3db/m3metrics/op"
 	"github.com/m3db/m3metrics/op/applied"
 	"github.com/m3db/m3metrics/policy"
+	"github.com/m3db/m3metrics/transformation"
 	xtime "github.com/m3db/m3x/time"
 
 	"github.com/stretchr/testify/require"
@@ -42,22 +43,8 @@ func TestStagedMetadatasIsDefault(t *testing.T) {
 			metadatas: StagedMetadatas{
 				{
 					Metadata: Metadata{
-						Pipeline: PipelineMetadataUnion{
-							Type:     StandardType,
-							Standard: nil,
-						},
-					},
-				},
-			},
-			expected: true,
-		},
-		{
-			metadatas: StagedMetadatas{
-				{
-					Metadata: Metadata{
-						Pipeline: PipelineMetadataUnion{
-							Type:       ForwardingType,
-							Forwarding: ForwardingPipelineMetadata{},
+						Pipelines: []PipelineMetadata{
+							{},
 						},
 					},
 				},
@@ -73,9 +60,8 @@ func TestStagedMetadatasIsDefault(t *testing.T) {
 				{
 					CutoverNanos: 1234,
 					Metadata: Metadata{
-						Pipeline: PipelineMetadataUnion{
-							Type:     StandardType,
-							Standard: nil,
+						Pipelines: []PipelineMetadata{
+							{},
 						},
 					},
 				},
@@ -87,9 +73,8 @@ func TestStagedMetadatasIsDefault(t *testing.T) {
 				{
 					Tombstoned: true,
 					Metadata: Metadata{
-						Pipeline: PipelineMetadataUnion{
-							Type:     StandardType,
-							Standard: nil,
+						Pipelines: []PipelineMetadata{
+							{},
 						},
 					},
 				},
@@ -100,31 +85,11 @@ func TestStagedMetadatasIsDefault(t *testing.T) {
 			metadatas: StagedMetadatas{
 				{
 					Metadata: Metadata{
-						AggregationMetadata: AggregationMetadata{
-							AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
-						},
-						Pipeline: PipelineMetadataUnion{
-							Type:     StandardType,
-							Standard: nil,
-						},
-					},
-				},
-			},
-			expected: false,
-		},
-		{
-			metadatas: StagedMetadatas{
-				{
-					Metadata: Metadata{
-						AggregationMetadata: AggregationMetadata{
-							StoragePolicies: []policy.StoragePolicy{
-								policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour),
+						Pipelines: []PipelineMetadata{
+							{
+								AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 							},
 						},
-						Pipeline: PipelineMetadataUnion{
-							Type:     StandardType,
-							Standard: nil,
-						},
 					},
 				},
 			},
@@ -134,13 +99,10 @@ func TestStagedMetadatasIsDefault(t *testing.T) {
 			metadatas: StagedMetadatas{
 				{
 					Metadata: Metadata{
-						Pipeline: PipelineMetadataUnion{
-							Type: StandardType,
-							Standard: []StandardPipelineMetadata{
-								{
-									AggregationMetadata: AggregationMetadata{
-										AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
-									},
+						Pipelines: []PipelineMetadata{
+							{
+								StoragePolicies: []policy.StoragePolicy{
+									policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour),
 								},
 							},
 						},
@@ -153,13 +115,13 @@ func TestStagedMetadatasIsDefault(t *testing.T) {
 			metadatas: StagedMetadatas{
 				{
 					Metadata: Metadata{
-						Pipeline: PipelineMetadataUnion{
-							Type: StandardType,
-							Standard: []StandardPipelineMetadata{
-								{
-									AggregationMetadata: AggregationMetadata{
-										StoragePolicies: []policy.StoragePolicy{
-											policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour),
+						Pipelines: []PipelineMetadata{
+							{
+								Pipeline: applied.Pipeline{
+									Operations: []applied.Union{
+										{
+											Type:           op.TransformationType,
+											Transformation: op.Transformation{Type: transformation.Absolute},
 										},
 									},
 								},
@@ -174,33 +136,8 @@ func TestStagedMetadatasIsDefault(t *testing.T) {
 			metadatas: StagedMetadatas{
 				{
 					Metadata: Metadata{
-						Pipeline: PipelineMetadataUnion{
-							Type: StandardType,
-							Standard: []StandardPipelineMetadata{
-								{
-									Pipeline: applied.Pipeline{
-										Operations: []applied.Union{
-											{
-												Type:   op.RollupType,
-												Rollup: applied.Rollup{ID: []byte("foo")},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: false,
-		},
-		{
-			metadatas: StagedMetadatas{
-				{
-					Metadata: Metadata{
-						Pipeline: PipelineMetadataUnion{
-							Type: ForwardingType,
-							Forwarding: ForwardingPipelineMetadata{
+						Pipelines: []PipelineMetadata{
+							{
 								Pipeline: applied.Pipeline{
 									Operations: []applied.Union{
 										{
@@ -220,17 +157,36 @@ func TestStagedMetadatasIsDefault(t *testing.T) {
 			metadatas: StagedMetadatas{
 				{
 					Metadata: Metadata{
-						Pipeline: PipelineMetadataUnion{
-							Type:     StandardType,
-							Standard: nil,
+						Pipelines: []PipelineMetadata{
+							{
+								Pipeline: applied.Pipeline{
+									Operations: []applied.Union{
+										{
+											Type:   op.RollupType,
+											Rollup: applied.Rollup{AggregationID: aggregation.MustCompressTypes(aggregation.Sum)},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			metadatas: StagedMetadatas{
+				{
+					Metadata: Metadata{
+						Pipelines: []PipelineMetadata{
+							{},
 						},
 					},
 				},
 				{
 					Metadata: Metadata{
-						Pipeline: PipelineMetadataUnion{
-							Type:       ForwardingType,
-							Forwarding: ForwardingPipelineMetadata{},
+						Pipelines: []PipelineMetadata{
+							{},
 						},
 					},
 				},
