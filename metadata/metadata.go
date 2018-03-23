@@ -131,6 +131,11 @@ type StagedMetadata struct {
 	Tombstoned bool
 }
 
+// IsDefault returns whether this is a default staged metadata.
+func (sm StagedMetadata) IsDefault() bool {
+	return sm.CutoverNanos == 0 && !sm.Tombstoned && sm.Metadata.IsDefault()
+}
+
 // StagedMetadatas contains a list of staged metadatas.
 type StagedMetadatas []StagedMetadata
 
