@@ -28,6 +28,6 @@ func (a rollupRuleChangesByOpAscNameAscIDAsc) Less(i, j int) bool {
 	if a[i].RuleID != nil && a[j].RuleID != nil {
 		return *a[i].RuleID < *a[j].RuleID
 	}
-	// This should not happen
+	// This should not happen.
 	return false
 }

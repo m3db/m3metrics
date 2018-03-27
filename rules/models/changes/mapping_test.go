@@ -13,15 +13,15 @@ func TestSortMappingRuleChanges(t *testing.T) {
 	ruleChanges := []MappingRuleChange{
 		{
 			Op:     DeleteOp,
-			RuleID: p("rrID5"),
+			RuleID: ptr("rrID5"),
 		},
 		{
 			Op:     DeleteOp,
-			RuleID: p("rrID4"),
+			RuleID: ptr("rrID4"),
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID1"),
+			RuleID: ptr("rrID1"),
 			RuleData: &models.MappingRule{
 				Name: "change3",
 			},
@@ -34,22 +34,22 @@ func TestSortMappingRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: ptr("rrID2"),
 			RuleData: &models.MappingRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     DeleteOp,
-			RuleID: p("rrID5"),
+			RuleID: ptr("rrID5"),
 		},
 		{
 			Op:     DeleteOp,
-			RuleID: p("rrID4"),
+			RuleID: ptr("rrID4"),
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID3"),
+			RuleID: ptr("rrID3"),
 			RuleData: &models.MappingRule{
 				Name: "change2",
 			},
@@ -62,7 +62,7 @@ func TestSortMappingRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: ptr("rrID2"),
 			RuleData: &models.MappingRule{
 				Name: "change1",
 			},
@@ -83,47 +83,47 @@ func TestSortMappingRuleChanges(t *testing.T) {
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: ptr("rrID2"),
 			RuleData: &models.MappingRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID2"),
+			RuleID: ptr("rrID2"),
 			RuleData: &models.MappingRule{
 				Name: "change1",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID3"),
+			RuleID: ptr("rrID3"),
 			RuleData: &models.MappingRule{
 				Name: "change2",
 			},
 		},
 		{
 			Op:     ChangeOp,
-			RuleID: p("rrID1"),
+			RuleID: ptr("rrID1"),
 			RuleData: &models.MappingRule{
 				Name: "change3",
 			},
 		},
 		{
 			Op:     DeleteOp,
-			RuleID: p("rrID4"),
+			RuleID: ptr("rrID4"),
 		},
 		{
 			Op:     DeleteOp,
-			RuleID: p("rrID4"),
+			RuleID: ptr("rrID4"),
 		},
 		{
 			Op:     DeleteOp,
-			RuleID: p("rrID5"),
+			RuleID: ptr("rrID5"),
 		},
 		{
 			Op:     DeleteOp,
-			RuleID: p("rrID5"),
+			RuleID: ptr("rrID5"),
 		},
 	}
 
