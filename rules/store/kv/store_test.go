@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3cluster/kv/mem"
+	merrors "github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/rules"
 	"github.com/m3db/m3metrics/rules/models"
@@ -520,6 +521,20 @@ func TestWriteRuleSetError(t *testing.T) {
 
 	_, err = s.ReadRuleSet(testNamespace)
 	require.Error(t, err)
+}
+
+func TestWriteRuleSetMismatchError(t *testing.T) {
+	s := testStore()
+	defer s.Close()
+
+	mutable := newMutableRuleSetFromSchema(t, 0, testRuleSet)
+	err := s.WriteRuleSet(mutable)
+	require.NoError(t, err)
+
+	jumpRuleSet := newMutableRuleSetFromSchema(t, 5, testRuleSet)
+	err = s.WriteRuleSet(jumpRuleSet)
+	require.Error(t, err)
+	require.IsType(t, merrors.NewStaleDataError(""), err)
 }
 
 func TestWriteAllNoNamespace(t *testing.T) {

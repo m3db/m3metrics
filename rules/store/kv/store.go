@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	"github.com/m3db/m3cluster/kv"
+	merrors "github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/rules"
 )
@@ -96,6 +97,11 @@ func (s *store) WriteRuleSet(rs rules.MutableRuleSet) error {
 	}
 	conditions, ops := []kv.Condition{rsCond}, []kv.Op{rsOp}
 	_, err = s.kvStore.Commit(conditions, ops)
+	if err != nil {
+		if err == kv.ErrConditionCheckFailed {
+			err = merrors.NewStaleDataError(err.Error())
+		}
+	}
 	return err
 }
 
