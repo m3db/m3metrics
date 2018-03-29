@@ -607,7 +607,7 @@ func TestNewRollupRuleHistoryJSON(t *testing.T) {
 		testRollupRuleView(id, "name1", targets),
 		testRollupRuleView(id, "name2", targets),
 	}
-	expected := RollupRuleHistory{
+	expected := RollupRuleSnapshots{
 		RollupRules: []RollupRule{
 			{
 				ID:     id,
@@ -651,7 +651,7 @@ func TestNewRollupRuleHistoryJSON(t *testing.T) {
 			},
 		},
 	}
-	require.EqualValues(t, expected, NewRollupRuleHistory(hist))
+	require.EqualValues(t, expected, NewRollupRuleSnapshots(hist))
 }
 
 func testRollupTarget(name string) *RollupTarget {

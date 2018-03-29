@@ -167,7 +167,7 @@ func TestNewMappingRuleHistoryJSON(t *testing.T) {
 		testMappingRuleView(id, "name1"),
 		testMappingRuleView(id, "name2"),
 	}
-	expected := MappingRuleHistory{
+	expected := MappingRuleSnapshots{
 		MappingRules: []MappingRule{
 			{
 				ID:                  id,
@@ -189,7 +189,7 @@ func TestNewMappingRuleHistoryJSON(t *testing.T) {
 			},
 		},
 	}
-	require.EqualValues(t, expected, NewMappingRuleHistory(hist))
+	require.EqualValues(t, expected, NewMappingRuleSnapshots(hist))
 }
 
 // nolint:unparam

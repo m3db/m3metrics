@@ -226,16 +226,16 @@ func (a rollupRulesByNameAsc) Len() int           { return len(a) }
 func (a rollupRulesByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a rollupRulesByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
-// RollupRuleHistory is a common json serializable view of a rollup rule history
-type RollupRuleHistory struct {
+// RollupRuleSnapshots is a common json serializable view of a rollup rule history
+type RollupRuleSnapshots struct {
 	RollupRules []RollupRule `json:"rollupRules"`
 }
 
-// NewRollupRuleHistory returns a new RollupRuleHistory struct
-func NewRollupRuleHistory(hist []*RollupRuleView) RollupRuleHistory {
+// NewRollupRuleSnapshots returns a new RollupRuleHistory struct
+func NewRollupRuleSnapshots(hist []*RollupRuleView) RollupRuleSnapshots {
 	rollupRules := make([]RollupRule, len(hist))
 	for i, view := range hist {
 		rollupRules[i] = NewRollupRule(view)
 	}
-	return RollupRuleHistory{RollupRules: rollupRules}
+	return RollupRuleSnapshots{RollupRules: rollupRules}
 }
