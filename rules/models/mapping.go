@@ -101,12 +101,12 @@ func (a mappingRulesByNameAsc) Len() int           { return len(a) }
 func (a mappingRulesByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a mappingRulesByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
-// MappingRuleSnapshots is a common json serializable view of a mapping rule history
+// MappingRuleSnapshots contains a list of mapping rule snapshots.
 type MappingRuleSnapshots struct {
 	MappingRules []MappingRule `json:"mappingRules"`
 }
 
-// NewMappingRuleSnapshots returns a new mappingRuleHistory struct
+// NewMappingRuleSnapshots returns a new MappingRuleSnapshots object.
 func NewMappingRuleSnapshots(hist []*MappingRuleView) MappingRuleSnapshots {
 	mappingRules := make([]MappingRule, len(hist))
 	for i, view := range hist {
