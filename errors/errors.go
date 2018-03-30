@@ -35,8 +35,8 @@ type ValidationError string
 func NewValidationError(str string) error { return ValidationError(str) }
 func (e ValidationError) Error() string   { return string(e) }
 
-// StaleDataError is returned when a rule is modified but the
-// underlying data has changed and the rquest is no longer valid.
+// StaleDataError is returned when a rule modification is attempted but the
+// underlying data has changed and the change is no longer valid.
 type StaleDataError string
 
 // NewStaleDataError creates a new version mismatch error.

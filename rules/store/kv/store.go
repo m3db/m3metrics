@@ -97,12 +97,12 @@ func (s *store) WriteRuleSet(rs rules.MutableRuleSet) error {
 	}
 	conditions, ops := []kv.Condition{rsCond}, []kv.Op{rsOp}
 	_, err = s.kvStore.Commit(conditions, ops)
-	if err != nil {
-		if err == kv.ErrConditionCheckFailed {
-			err = merrors.NewStaleDataError(err.Error())
-		}
+	switch err {
+	case kv.ErrConditionCheckFailed:
+		return merrors.NewStaleDataError(err.Error())
+	default:
+		return err
 	}
-	return err
 }
 
 func (s *store) WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error {
