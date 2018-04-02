@@ -97,12 +97,7 @@ func (s *store) WriteRuleSet(rs rules.MutableRuleSet) error {
 	}
 	conditions, ops := []kv.Condition{rsCond}, []kv.Op{rsOp}
 	_, err = s.kvStore.Commit(conditions, ops)
-	switch err {
-	case kv.ErrConditionCheckFailed:
-		return merrors.NewStaleDataError(err.Error())
-	default:
-		return err
-	}
+	return wrapWriteError(err)
 }
 
 func (s *store) WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error {
@@ -130,7 +125,7 @@ func (s *store) WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error {
 	conditions = append(conditions, namespacesCond)
 	ops = append(ops, namespacesOp)
 	_, err = s.kvStore.Commit(conditions, ops)
-	return err
+	return wrapWriteError(err)
 }
 
 func (s *store) Close() {
@@ -181,4 +176,14 @@ func (s *store) namespacesTransaction(nss *rules.Namespaces) (kv.Condition, kv.O
 		SetValue(nss.Version())
 
 	return namespacesCond, kv.NewSetOp(namespacesKey, nssSchema), nil
+}
+
+func wrapWriteError(err error) error {
+	if err == kv.ErrConditionCheckFailed {
+		return merrors.NewStaleDataError(
+			fmt.Sprintf("stale write request: %s", err.Error()),
+		)
+	}
+
+	return err
 }

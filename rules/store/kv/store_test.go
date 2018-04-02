@@ -523,7 +523,7 @@ func TestWriteRuleSetError(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestWriteRuleSetMismatchError(t *testing.T) {
+func TestWriteRuleSetStaleDataError(t *testing.T) {
 	s := testStore()
 	defer s.Close()
 
@@ -571,6 +571,23 @@ func TestWriteAllNoNamespace(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, nss.Version(), 1)
 	require.Equal(t, rs.Version(), 2)
+}
+func TestWriteAllStaleDataError(t *testing.T) {
+	s := testStore()
+	defer s.Close()
+
+	mutable := newMutableRuleSetFromSchema(t, 0, testRuleSet)
+	namespaces, err := rules.NewNamespaces(0, testNamespaces)
+	require.NoError(t, err)
+
+	err = s.WriteAll(&namespaces, mutable)
+	require.NoError(t, err)
+
+	jumpNamespaces, err := rules.NewNamespaces(5, testNamespaces)
+	require.NoError(t, err)
+	err = s.WriteAll(&jumpNamespaces, mutable)
+	require.Error(t, err)
+	require.IsType(t, merrors.NewStaleDataError(""), err)
 }
 
 func testStore() rules.Store {
