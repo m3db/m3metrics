@@ -52,7 +52,7 @@ var (
 	errRuleSetNotTombstoned = errors.New("ruleset is not tombstoned")
 	errRuleNotFound         = errors.New("rule not found")
 	errNoRuleSnapshots      = errors.New("rule has no snapshots")
-	errMissingOpInChanges   = "changes must contain an op"
+	errMissingOpInChanges   = merrors.NewInvalidInputError("changes must contain an op")
 	ruleActionErrorFmt      = "cannot %s rule %s"
 	ruleSetActionErrorFmt   = "cannot %s ruleset %s"
 )
@@ -919,7 +919,7 @@ func (rs *ruleSet) applyMappingRuleChanges(mrChanges []changes.MappingRuleChange
 				return err
 			}
 		default:
-			return merrors.NewInvalidInputError(errMissingOpInChanges)
+			return errMissingOpInChanges
 		}
 	}
 
@@ -944,7 +944,7 @@ func (rs *ruleSet) applyRollupRuleChanges(rrChanges []changes.RollupRuleChange, 
 				return err
 			}
 		default:
-			return merrors.NewInvalidInputError(errMissingOpInChanges)
+			return errMissingOpInChanges
 		}
 	}
 
