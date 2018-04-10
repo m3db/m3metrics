@@ -3033,8 +3033,8 @@ func TestRuleSetClone(t *testing.T) {
 	require.NotEqual(t, rs.rollupRules, rsClone.rollupRules)
 }
 
-func TestApplyChangesToRuleSet(t *testing.T) {
-	mutable, _, helper, _ := initMutableTest()
+func TestApplyChanges(t *testing.T) {
+	mutable, rs, helper, _ := initMutableTest()
 	changes := changes.RuleSetChanges{}
 	ruleSetChangesWithAddOps(&changes, "rrID1", "mrID1")
 	ruleSetChangesWithUpdateOps(&changes, "rollupRule1", "mappingRule1")
@@ -3044,8 +3044,30 @@ func TestApplyChangesToRuleSet(t *testing.T) {
 		changes,
 		helper.NewUpdateMetadata(100, "validAuthor"),
 	)
-
 	require.NoError(t, err)
+
+	_, err = rs.getMappingRuleByName("mappingRuleAdd")
+	require.NoError(t, err)
+	_, err = rs.getRollupRuleByName("rollupRuleAdd")
+	require.NoError(t, err)
+
+	updatedMappingRule, err := rs.getMappingRuleByID("mappingRule1")
+	require.NoError(t, err)
+	name, err := updatedMappingRule.Name()
+	require.NoError(t, err)
+	require.Equal(t, name, "updatedMappingRule")
+	updatedRollupRule, err := rs.getRollupRuleByID("rollupRule1")
+	require.NoError(t, err)
+	name, err = updatedRollupRule.Name()
+	require.NoError(t, err)
+	require.Equal(t, name, "updatedRollupRule")
+
+	tombstonedMappingRule, err := rs.getMappingRuleByID("mappingRule3")
+	require.NoError(t, err)
+	require.True(t, tombstonedMappingRule.Tombstoned())
+	tombstonedRollupRule, err := rs.getRollupRuleByID("rollupRule3")
+	require.NoError(t, err)
+	require.True(t, tombstonedRollupRule.Tombstoned())
 }
 
 func TestApplyMappingRuleChangesAddFailure(t *testing.T) {
