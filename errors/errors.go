@@ -36,7 +36,7 @@ func NewValidationError(str string) error { return ValidationError(str) }
 func (e ValidationError) Error() string   { return string(e) }
 
 // StaleDataError is returned when a rule modification can not be completed
-// because rule meta data is no longer valid.
+// because rule metadata is no longer valid.
 type StaleDataError string
 
 // NewStaleDataError creates a new version mismatch error.
@@ -44,7 +44,7 @@ func NewStaleDataError(str string) error { return StaleDataError(str) }
 func (e StaleDataError) Error() string   { return string(e) }
 
 // InvalidChangeError is returned when a change is applied to a ruleset,
-// mapping rule, or rollup rule that is invalide.
+// mapping rule, or rollup rule that is invalid.
 type InvalidChangeError string
 
 // NewInvalidChangeError careats a new invalid change error.

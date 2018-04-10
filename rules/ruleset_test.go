@@ -3036,9 +3036,9 @@ func TestRuleSetClone(t *testing.T) {
 func TestApplyChanges(t *testing.T) {
 	mutable, rs, helper, _ := initMutableTest()
 	changes := changes.RuleSetChanges{}
-	ruleSetChangesWithAddOps(&changes, "rrID1", "mrID1")
-	ruleSetChangesWithUpdateOps(&changes, "rollupRule1", "mappingRule1")
-	rulesetChangesWithDeletes(&changes, "rollupRule3", "mappingRule3")
+	testRuleSetChangesWithAddOps(&changes, "rrID1", "mrID1")
+	testRuleSetChangesWithUpdateOps(&changes, "rollupRule1", "mappingRule1")
+	testRulesetChangesWithDeletes(&changes, "rollupRule3", "mappingRule3")
 
 	err := mutable.ApplyChanges(
 		changes,
@@ -3073,7 +3073,7 @@ func TestApplyChanges(t *testing.T) {
 func TestApplyMappingRuleChangesAddFailure(t *testing.T) {
 	_, rs, helper, _ := initMutableTest()
 	changes := changes.RuleSetChanges{}
-	ruleSetChangesWithAddOps(&changes, "", "mappingRule1")
+	testRuleSetChangesWithAddOps(&changes, "", "mappingRule1")
 	changes.MappingRuleChanges[0].RuleData.Name = "mappingRule1.snapshot3"
 
 	err := rs.applyMappingRuleChanges(
@@ -3092,7 +3092,7 @@ func TestApplyMappingRuleChangesAddFailure(t *testing.T) {
 func TestApplyRollupRuleChangesAddFailure(t *testing.T) {
 	_, rs, helper, _ := initMutableTest()
 	changes := changes.RuleSetChanges{}
-	ruleSetChangesWithAddOps(&changes, "rollupRule1", "")
+	testRuleSetChangesWithAddOps(&changes, "rollupRule1", "")
 	changes.RollupRuleChanges[0].RuleData.Name = "rollupRule1.snapshot3"
 
 	err := rs.applyRollupRuleChanges(
@@ -3111,7 +3111,7 @@ func TestApplyRollupRuleChangesAddFailure(t *testing.T) {
 func TestApplyMappingRuleChangesDeleteFailure(t *testing.T) {
 	_, rs, helper, _ := initMutableTest()
 	changes := changes.RuleSetChanges{}
-	rulesetChangesWithDeletes(&changes, "", "mappingRule1")
+	testRulesetChangesWithDeletes(&changes, "", "mappingRule1")
 
 	err := rs.DeleteMappingRule(
 		"mappingRule1",
@@ -3135,7 +3135,7 @@ func TestApplyMappingRuleChangesDeleteFailure(t *testing.T) {
 func TestApplyRollupRuleChangesDeleteFailure(t *testing.T) {
 	_, rs, helper, _ := initMutableTest()
 	changes := changes.RuleSetChanges{}
-	rulesetChangesWithDeletes(&changes, "rollupRule1", "")
+	testRulesetChangesWithDeletes(&changes, "rollupRule1", "")
 
 	err := rs.DeleteRollupRule(
 		"rollupRule1",
@@ -3159,7 +3159,7 @@ func TestApplyRollupRuleChangesDeleteFailure(t *testing.T) {
 func TestApplyMappingRuleChangesUpdateFailure(t *testing.T) {
 	_, rs, helper, _ := initMutableTest()
 	changes := changes.RuleSetChanges{}
-	ruleSetChangesWithUpdateOps(&changes, "", "invalideMappingRule")
+	testRuleSetChangesWithUpdateOps(&changes, "", "invalideMappingRule")
 
 	err := rs.applyMappingRuleChanges(
 		changes.MappingRuleChanges,
@@ -3176,7 +3176,7 @@ func TestApplyMappingRuleChangesUpdateFailure(t *testing.T) {
 func TestApplyRollupRuleChangesUpdateFailure(t *testing.T) {
 	_, rs, helper, _ := initMutableTest()
 	changes := changes.RuleSetChanges{}
-	ruleSetChangesWithUpdateOps(&changes, "invalidRollupRule", "")
+	testRuleSetChangesWithUpdateOps(&changes, "invalidRollupRule", "")
 
 	err := rs.applyRollupRuleChanges(
 		changes.RollupRuleChanges,
@@ -3222,7 +3222,7 @@ func TestApplyMappingRuleWithInvalidOp(t *testing.T) {
 	require.IsType(t, errors.NewInvalidChangeError(""), err)
 }
 
-func ruleSetChangesWithAddOps(rsc *changes.RuleSetChanges, rrIDToAdd, mrIDToAdd string) {
+func testRuleSetChangesWithAddOps(rsc *changes.RuleSetChanges, rrIDToAdd, mrIDToAdd string) {
 	if rrIDToAdd != "" {
 		rsc.RollupRuleChanges = append(
 			rsc.RollupRuleChanges,
@@ -3250,13 +3250,13 @@ func ruleSetChangesWithAddOps(rsc *changes.RuleSetChanges, rrIDToAdd, mrIDToAdd 
 	}
 }
 
-func ruleSetChangesWithUpdateOps(rsc *changes.RuleSetChanges, rrIDToUpdate, mrIDToUpdate string) {
+func testRuleSetChangesWithUpdateOps(rsc *changes.RuleSetChanges, rrIDToUpdate, mrIDToUpdate string) {
 	if rrIDToUpdate != "" {
 		rsc.RollupRuleChanges = append(
 			rsc.RollupRuleChanges,
 			changes.RollupRuleChange{
 				Op:     changes.ChangeOp,
-				RuleID: ptr(rrIDToUpdate),
+				RuleID: &rrIDToUpdate,
 				RuleData: &models.RollupRule{
 					ID:   rrIDToUpdate,
 					Name: "updatedRollupRule",
@@ -3270,7 +3270,7 @@ func ruleSetChangesWithUpdateOps(rsc *changes.RuleSetChanges, rrIDToUpdate, mrID
 			rsc.MappingRuleChanges,
 			changes.MappingRuleChange{
 				Op:     changes.ChangeOp,
-				RuleID: ptr(mrIDToUpdate),
+				RuleID: &mrIDToUpdate,
 				RuleData: &models.MappingRule{
 					ID:   mrIDToUpdate,
 					Name: "updatedMappingRule",
@@ -3280,13 +3280,13 @@ func ruleSetChangesWithUpdateOps(rsc *changes.RuleSetChanges, rrIDToUpdate, mrID
 	}
 }
 
-func rulesetChangesWithDeletes(rsc *changes.RuleSetChanges, rrIDToDelete, mrIDToDelete string) {
+func testRulesetChangesWithDeletes(rsc *changes.RuleSetChanges, rrIDToDelete, mrIDToDelete string) {
 	if rrIDToDelete != "" {
 		rsc.RollupRuleChanges = append(
 			rsc.RollupRuleChanges,
 			changes.RollupRuleChange{
 				Op:     changes.DeleteOp,
-				RuleID: ptr(rrIDToDelete),
+				RuleID: &rrIDToDelete,
 			},
 		)
 	}
@@ -3296,14 +3296,10 @@ func rulesetChangesWithDeletes(rsc *changes.RuleSetChanges, rrIDToDelete, mrIDTo
 			rsc.MappingRuleChanges,
 			changes.MappingRuleChange{
 				Op:     changes.DeleteOp,
-				RuleID: ptr(mrIDToDelete),
+				RuleID: &mrIDToDelete,
 			},
 		)
 	}
-}
-
-func ptr(s string) *string {
-	return &s
 }
 
 type testMappingsData struct {
