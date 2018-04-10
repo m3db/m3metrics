@@ -52,9 +52,9 @@ var (
 	errRuleSetNotTombstoned = errors.New("ruleset is not tombstoned")
 	errRuleNotFound         = errors.New("rule not found")
 	errNoRuleSnapshots      = errors.New("rule has no snapshots")
+	errMissingOpInChanges   = "changes must contain an op"
 	ruleActionErrorFmt      = "cannot %s rule %s"
 	ruleSetActionErrorFmt   = "cannot %s ruleset %s"
-	missingOpInChanges      = "changes must contain an op"
 )
 
 // Matcher matches metrics against rules to determine applicable policies.
@@ -528,8 +528,8 @@ type MutableRuleSet interface {
 	// Revive removes the tombstone from this ruleset. It does not revive any rules.
 	Revive(UpdateMetadata) error
 
-	// ApplyChanges takes set of rule set changes and applies them to a ruleset.
-	ApplyChanges(changes.RuleSetChanges, UpdateMetadata) error
+	// ApplyRuleSetChanges takes set of rule set changes and applies them to a ruleset.
+	ApplyRuleSetChanges(changes.RuleSetChanges, UpdateMetadata) error
 }
 
 type ruleSet struct {
@@ -894,9 +894,8 @@ func (rs *ruleSet) Delete(meta UpdateMetadata) error {
 	return nil
 }
 
-func (rs *ruleSet) ApplyChanges(rsc changes.RuleSetChanges, meta UpdateMetadata) error {
-	err := rs.applyMappingRuleChanges(rsc.MappingRuleChanges, meta)
-	if err != nil {
+func (rs *ruleSet) ApplyRuleSetChanges(rsc changes.RuleSetChanges, meta UpdateMetadata) error {
+	if err := rs.applyMappingRuleChanges(rsc.MappingRuleChanges, meta); err != nil {
 		return err
 	}
 	return rs.applyRollupRuleChanges(rsc.RollupRuleChanges, meta)
@@ -907,23 +906,20 @@ func (rs *ruleSet) applyMappingRuleChanges(mrChanges []changes.MappingRuleChange
 		switch mrChange.Op {
 		case changes.AddOp:
 			view := mrChange.RuleData.ToMappingRuleView()
-			_, err := rs.AddMappingRule(*view, meta)
-			if err != nil {
+			if _, err := rs.AddMappingRule(*view, meta); err != nil {
 				return err
 			}
 		case changes.ChangeOp:
 			view := mrChange.RuleData.ToMappingRuleView()
-			err := rs.UpdateMappingRule(*view, meta)
-			if err != nil {
+			if err := rs.UpdateMappingRule(*view, meta); err != nil {
 				return err
 			}
 		case changes.DeleteOp:
-			err := rs.DeleteMappingRule(*mrChange.RuleID, meta)
-			if err != nil {
+			if err := rs.DeleteMappingRule(*mrChange.RuleID, meta); err != nil {
 				return err
 			}
 		default:
-			return merrors.NewInvalidChangeError(missingOpInChanges)
+			return merrors.NewInvalidInputError(errMissingOpInChanges)
 		}
 	}
 
@@ -935,23 +931,20 @@ func (rs *ruleSet) applyRollupRuleChanges(rrChanges []changes.RollupRuleChange, 
 		switch rrChange.Op {
 		case changes.AddOp:
 			view := rrChange.RuleData.ToRollupRuleView()
-			_, err := rs.AddRollupRule(*view, meta)
-			if err != nil {
+			if _, err := rs.AddRollupRule(*view, meta); err != nil {
 				return err
 			}
 		case changes.ChangeOp:
 			view := rrChange.RuleData.ToRollupRuleView()
-			err := rs.UpdateRollupRule(*view, meta)
-			if err != nil {
+			if err := rs.UpdateRollupRule(*view, meta); err != nil {
 				return err
 			}
 		case changes.DeleteOp:
-			err := rs.DeleteRollupRule(*rrChange.RuleID, meta)
-			if err != nil {
+			if err := rs.DeleteRollupRule(*rrChange.RuleID, meta); err != nil {
 				return err
 			}
 		default:
-			return merrors.NewInvalidChangeError(missingOpInChanges)
+			return merrors.NewInvalidInputError(errMissingOpInChanges)
 		}
 	}
 

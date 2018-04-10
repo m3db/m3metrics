@@ -20,13 +20,13 @@
 
 package errors
 
-// RuleConflictError is returned when a rule modification is made that would
+// InvalidInputError is returned when a rule modification is made that would
 // result in a conflict with the existing set of rules in the ruleset.
-type RuleConflictError string
+type InvalidInputError string
 
-// NewRuleConflictError creates a new rule conflict error.
-func NewRuleConflictError(str string) error { return RuleConflictError(str) }
-func (e RuleConflictError) Error() string   { return string(e) }
+// NewInvalidInputError creates a new rule conflict error.
+func NewInvalidInputError(str string) error { return InvalidInputError(str) }
+func (e InvalidInputError) Error() string   { return string(e) }
 
 // ValidationError is returned when validation failed.
 type ValidationError string
@@ -42,11 +42,3 @@ type StaleDataError string
 // NewStaleDataError creates a new version mismatch error.
 func NewStaleDataError(str string) error { return StaleDataError(str) }
 func (e StaleDataError) Error() string   { return string(e) }
-
-// InvalidChangeError is returned when a change is applied to a ruleset,
-// mapping rule, or rollup rule that is invalid.
-type InvalidChangeError string
-
-// NewInvalidChangeError careats a new invalid change error.
-func NewInvalidChangeError(str string) error { return InvalidChangeError(str) }
-func (e InvalidChangeError) Error() string   { return string(e) }

@@ -2682,7 +2682,7 @@ func TestAddMappingRuleDup(t *testing.T) {
 	containedErr, ok := err.(xerrors.ContainedError)
 	require.True(t, ok)
 	err = containedErr.InnerError()
-	_, ok = err.(errors.RuleConflictError)
+	_, ok = err.(errors.InvalidInputError)
 	require.True(t, ok)
 }
 
@@ -2861,7 +2861,7 @@ func TestAddRollupRuleDup(t *testing.T) {
 	containedErr, ok := err.(xerrors.ContainedError)
 	require.True(t, ok)
 	err = containedErr.InnerError()
-	_, ok = err.(errors.RuleConflictError)
+	_, ok = err.(errors.InvalidInputError)
 	require.True(t, ok)
 }
 
@@ -3033,14 +3033,14 @@ func TestRuleSetClone(t *testing.T) {
 	require.NotEqual(t, rs.rollupRules, rsClone.rollupRules)
 }
 
-func TestApplyChanges(t *testing.T) {
+func TestApplyRuleSetChanges(t *testing.T) {
 	mutable, rs, helper, _ := initMutableTest()
 	changes := changes.RuleSetChanges{}
 	testRuleSetChangesWithAddOps(&changes, "rrID1", "mrID1")
 	testRuleSetChangesWithUpdateOps(&changes, "rollupRule1", "mappingRule1")
 	testRulesetChangesWithDeletes(&changes, "rollupRule3", "mappingRule3")
 
-	err := mutable.ApplyChanges(
+	err := mutable.ApplyRuleSetChanges(
 		changes,
 		helper.NewUpdateMetadata(100, "validAuthor"),
 	)
@@ -3085,7 +3085,7 @@ func TestApplyMappingRuleChangesAddFailure(t *testing.T) {
 	containedErr, ok := err.(xerrors.ContainedError)
 	require.True(t, ok)
 	err = containedErr.InnerError()
-	_, ok = err.(errors.RuleConflictError)
+	_, ok = err.(errors.InvalidInputError)
 	require.True(t, ok)
 }
 
@@ -3104,7 +3104,7 @@ func TestApplyRollupRuleChangesAddFailure(t *testing.T) {
 	containedErr, ok := err.(xerrors.ContainedError)
 	require.True(t, ok)
 	err = containedErr.InnerError()
-	_, ok = err.(errors.RuleConflictError)
+	_, ok = err.(errors.InvalidInputError)
 	require.True(t, ok)
 }
 
@@ -3128,7 +3128,7 @@ func TestApplyMappingRuleChangesDeleteFailure(t *testing.T) {
 	containedErr, ok := err.(xerrors.ContainedError)
 	require.True(t, ok)
 	err = containedErr.InnerError()
-	_, ok = err.(errors.RuleConflictError)
+	_, ok = err.(errors.InvalidInputError)
 	require.True(t, ok)
 }
 
@@ -3152,7 +3152,7 @@ func TestApplyRollupRuleChangesDeleteFailure(t *testing.T) {
 	containedErr, ok := err.(xerrors.ContainedError)
 	require.True(t, ok)
 	err = containedErr.InnerError()
-	_, ok = err.(errors.RuleConflictError)
+	_, ok = err.(errors.InvalidInputError)
 	require.True(t, ok)
 }
 
@@ -3203,7 +3203,7 @@ func TestApplyRollupRuleWithInvalidOp(t *testing.T) {
 		helper.NewUpdateMetadata(100, "validAuthor"),
 	)
 	require.Error(t, err)
-	require.IsType(t, errors.NewInvalidChangeError(""), err)
+	require.IsType(t, errors.NewInvalidInputError(""), err)
 }
 
 func TestApplyMappingRuleWithInvalidOp(t *testing.T) {
@@ -3219,7 +3219,7 @@ func TestApplyMappingRuleWithInvalidOp(t *testing.T) {
 		helper.NewUpdateMetadata(100, "validAuthor"),
 	)
 	require.Error(t, err)
-	require.IsType(t, errors.NewInvalidChangeError(""), err)
+	require.IsType(t, errors.NewInvalidInputError(""), err)
 }
 
 func testRuleSetChangesWithAddOps(rsc *changes.RuleSetChanges, rrIDToAdd, mrIDToAdd string) {
