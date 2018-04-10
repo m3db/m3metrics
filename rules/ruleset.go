@@ -30,12 +30,14 @@ import (
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/aggregation"
+	merrors "github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/schema"
 	"github.com/m3db/m3metrics/metric"
 	metricID "github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/models/changes"
 	xerrors "github.com/m3db/m3x/errors"
 
 	"github.com/pborman/uuid"
@@ -52,6 +54,7 @@ var (
 	errNoRuleSnapshots      = errors.New("rule has no snapshots")
 	ruleActionErrorFmt      = "cannot %s rule %s"
 	ruleSetActionErrorFmt   = "cannot %s ruleset %s"
+	missingOpInChanges      = "changes must contain an op"
 )
 
 // Matcher matches metrics against rules to determine applicable policies.
@@ -524,6 +527,9 @@ type MutableRuleSet interface {
 
 	// Revive removes the tombstone from this ruleset. It does not revive any rules.
 	Revive(UpdateMetadata) error
+
+	// ApplyChanges takes set of rule set changes and applies them to a ruleset.
+	ApplyChanges(changes.RuleSetChanges, UpdateMetadata) error
 }
 
 type ruleSet struct {
@@ -882,6 +888,70 @@ func (rs *ruleSet) Delete(meta UpdateMetadata) error {
 	for _, r := range rs.rollupRules {
 		if t := r.Tombstoned(); !t {
 			_ = r.markTombstoned(meta)
+		}
+	}
+
+	return nil
+}
+
+func (rs *ruleSet) ApplyChanges(rsc changes.RuleSetChanges, meta UpdateMetadata) error {
+	err := rs.applyMappingRuleChanges(rsc.MappingRuleChanges, meta)
+	if err != nil {
+		return err
+	}
+	return rs.applyRollupRuleChanges(rsc.RollupRuleChanges, meta)
+}
+
+func (rs *ruleSet) applyMappingRuleChanges(mrChanges []changes.MappingRuleChange, meta UpdateMetadata) error {
+	for _, mrChange := range mrChanges {
+		switch mrChange.Op {
+		case changes.AddOp:
+			view := mrChange.RuleData.ToMappingRuleView()
+			_, err := rs.AddMappingRule(*view, meta)
+			if err != nil {
+				return err
+			}
+		case changes.ChangeOp:
+			view := mrChange.RuleData.ToMappingRuleView()
+			err := rs.UpdateMappingRule(*view, meta)
+			if err != nil {
+				return err
+			}
+		case changes.DeleteOp:
+			err := rs.DeleteMappingRule(*mrChange.RuleID, meta)
+			if err != nil {
+				return err
+			}
+		default:
+			return merrors.NewInvalidChangeError(missingOpInChanges)
+		}
+	}
+
+	return nil
+}
+
+func (rs *ruleSet) applyRollupRuleChanges(rrChanges []changes.RollupRuleChange, meta UpdateMetadata) error {
+	for _, rrChange := range rrChanges {
+		switch rrChange.Op {
+		case changes.AddOp:
+			view := rrChange.RuleData.ToRollupRuleView()
+			_, err := rs.AddRollupRule(*view, meta)
+			if err != nil {
+				return err
+			}
+		case changes.ChangeOp:
+			view := rrChange.RuleData.ToRollupRuleView()
+			err := rs.UpdateRollupRule(*view, meta)
+			if err != nil {
+				return err
+			}
+		case changes.DeleteOp:
+			err := rs.DeleteRollupRule(*rrChange.RuleID, meta)
+			if err != nil {
+				return err
+			}
+		default:
+			return merrors.NewInvalidChangeError(missingOpInChanges)
 		}
 	}
 
