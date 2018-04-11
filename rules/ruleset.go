@@ -48,13 +48,14 @@ const (
 )
 
 var (
-	errNilRuleSetSchema     = errors.New("nil rule set schema")
-	errRuleSetNotTombstoned = errors.New("ruleset is not tombstoned")
-	errRuleNotFound         = errors.New("rule not found")
-	errNoRuleSnapshots      = errors.New("rule has no snapshots")
-	ruleActionErrorFmt      = "cannot %s rule %s"
-	ruleSetActionErrorFmt   = "cannot %s ruleset %s"
-	unknownOpTypeFmt        = "unknown op type %v, op"
+	errNilRuleSetSchema      = errors.New("nil rule set schema")
+	errRuleSetNotTombstoned  = errors.New("ruleset is not tombstoned")
+	errRuleNotFound          = errors.New("rule not found")
+	errNoRuleSnapshots       = errors.New("rule has no snapshots")
+	ruleActionErrorFmt       = "cannot %s rule %s"
+	ruleIDNotFoundErrorFmt   = "no rule with id %v"
+	ruleSetActionErrorFmt    = "cannot %s ruleset %s"
+	unknownOpTypeFmt         = "unknown op type %v, op"
 )
 
 // Matcher matches metrics against rules to determine applicable policies.
@@ -782,7 +783,7 @@ func (rs *ruleSet) AddMappingRule(mrv models.MappingRuleView, meta UpdateMetadat
 func (rs *ruleSet) UpdateMappingRule(mrv models.MappingRuleView, meta UpdateMetadata) error {
 	m, err := rs.getMappingRuleByID(mrv.ID)
 	if err != nil {
-		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "update", mrv.ID))
+		return merrors.NewInvalidInputError(fmt.Sprintf(ruleIDNotFoundErrorFmt, mrv.ID))
 	}
 	if err := m.addSnapshot(
 		mrv.Name,
@@ -799,7 +800,7 @@ func (rs *ruleSet) UpdateMappingRule(mrv models.MappingRuleView, meta UpdateMeta
 func (rs *ruleSet) DeleteMappingRule(id string, meta UpdateMetadata) error {
 	m, err := rs.getMappingRuleByID(id)
 	if err != nil {
-		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "delete", id))
+		return merrors.NewInvalidInputError(fmt.Sprintf(ruleIDNotFoundErrorFmt, id))
 	}
 
 	if err := m.markTombstoned(meta); err != nil {
@@ -842,7 +843,7 @@ func (rs *ruleSet) AddRollupRule(rrv models.RollupRuleView, meta UpdateMetadata)
 func (rs *ruleSet) UpdateRollupRule(rrv models.RollupRuleView, meta UpdateMetadata) error {
 	r, err := rs.getRollupRuleByID(rrv.ID)
 	if err != nil {
-		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "update", rrv.ID))
+		return merrors.NewInvalidInputError(fmt.Sprintf(ruleIDNotFoundErrorFmt, rrv.ID))
 	}
 	targets := newRollupTargetsFromView(rrv.Targets)
 	if err = r.addSnapshot(
@@ -860,7 +861,7 @@ func (rs *ruleSet) UpdateRollupRule(rrv models.RollupRuleView, meta UpdateMetada
 func (rs *ruleSet) DeleteRollupRule(id string, meta UpdateMetadata) error {
 	r, err := rs.getRollupRuleByID(id)
 	if err != nil {
-		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "delete", id))
+		return merrors.NewInvalidInputError(fmt.Sprintf(ruleIDNotFoundErrorFmt, id))
 	}
 
 	if err := r.markTombstoned(meta); err != nil {

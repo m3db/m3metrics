@@ -3165,12 +3165,8 @@ func TestApplyMappingRuleChangesUpdateFailure(t *testing.T) {
 		changes.MappingRuleChanges,
 		helper.NewUpdateMetadata(100, "validAuthor"),
 	)
-
 	require.Error(t, err)
-	containedErr, ok := err.(xerrors.ContainedError)
-	require.True(t, ok)
-	err = containedErr.InnerError()
-	require.Equal(t, errRuleNotFound, err)
+	require.IsType(t, errors.NewInvalidInputError(""), err)
 }
 
 func TestApplyRollupRuleChangesUpdateFailure(t *testing.T) {
@@ -3182,12 +3178,8 @@ func TestApplyRollupRuleChangesUpdateFailure(t *testing.T) {
 		changes.RollupRuleChanges,
 		helper.NewUpdateMetadata(100, "validAuthor"),
 	)
-
 	require.Error(t, err)
-	containedErr, ok := err.(xerrors.ContainedError)
-	require.True(t, ok)
-	err = containedErr.InnerError()
-	require.Equal(t, errRuleNotFound, err)
+	require.IsType(t, errors.NewInvalidInputError(""), err)
 }
 
 func TestApplyRollupRuleWithInvalidOp(t *testing.T) {
