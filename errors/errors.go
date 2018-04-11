@@ -20,11 +20,11 @@
 
 package errors
 
-// InvalidInputError is returned when a rule modification is made that would
-// result in a conflict with the existing set of rules in the ruleset.
+// InvalidInputError is returned when a rule or rule change is applied which
+// is invalid.
 type InvalidInputError string
 
-// NewInvalidInputError creates a new rule conflict error.
+// NewInvalidInputError creates a new invalid input error.
 func NewInvalidInputError(str string) error { return InvalidInputError(str) }
 func (e InvalidInputError) Error() string   { return string(e) }
 
