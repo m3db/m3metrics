@@ -52,9 +52,9 @@ var (
 	errRuleSetNotTombstoned = errors.New("ruleset is not tombstoned")
 	errRuleNotFound         = errors.New("rule not found")
 	errNoRuleSnapshots      = errors.New("rule has no snapshots")
-	errUnknownOpType        = merrors.NewInvalidInputError("changes must contain an op")
 	ruleActionErrorFmt      = "cannot %s rule %s"
 	ruleSetActionErrorFmt   = "cannot %s ruleset %s"
+	unknownOpTypeFmt        = "unknown op type %v, op"
 )
 
 // Matcher matches metrics against rules to determine applicable policies.
@@ -919,7 +919,7 @@ func (rs *ruleSet) applyMappingRuleChanges(mrChanges []changes.MappingRuleChange
 				return err
 			}
 		default:
-			return errUnknownOpType
+			return merrors.NewInvalidInputError(fmt.Sprintf(unknownOpTypeFmt, mrChange.Op))
 		}
 	}
 
@@ -944,7 +944,7 @@ func (rs *ruleSet) applyRollupRuleChanges(rrChanges []changes.RollupRuleChange, 
 				return err
 			}
 		default:
-			return errUnknownOpType
+			return merrors.NewInvalidInputError(fmt.Sprintf(unknownOpTypeFmt, rrChange.Op))
 		}
 	}
 
