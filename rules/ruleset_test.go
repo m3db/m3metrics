@@ -30,7 +30,9 @@ import (
 	"github.com/m3db/m3metrics/aggregation"
 	"github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/filters"
-	"github.com/m3db/m3metrics/generated/proto/schema"
+	"github.com/m3db/m3metrics/generated/proto/aggregationpb"
+	"github.com/m3db/m3metrics/generated/proto/policypb"
+	schema "github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
@@ -1803,14 +1805,14 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Tombstoned:   false,
 					CutoverNanos: 10000,
 					Filter:       "mtagName1:mtagValue1",
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+					Policies: []*policypb.Policy{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(10 * time.Second),
 									Precision:  int64(time.Second),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(24 * time.Hour),
 								},
 							},
@@ -1822,36 +1824,36 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Tombstoned:   false,
 					CutoverNanos: 20000,
 					Filter:       "mtagName1:mtagValue1",
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+					Policies: []*policypb.Policy{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(10 * time.Second),
 									Precision:  int64(time.Second),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(6 * time.Hour),
 								},
 							},
 						},
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(5 * time.Minute),
 									Precision:  int64(time.Minute),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(48 * time.Hour),
 								},
 							},
 						},
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(10 * time.Minute),
 									Precision:  int64(time.Minute),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(48 * time.Hour),
 								},
 							},
@@ -1863,14 +1865,14 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Tombstoned:   false,
 					CutoverNanos: 30000,
 					Filter:       "mtagName1:mtagValue1",
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+					Policies: []*policypb.Policy{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(30 * time.Second),
 									Precision:  int64(time.Second),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(6 * time.Hour),
 								},
 							},
@@ -1887,14 +1889,14 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Tombstoned:   false,
 					CutoverNanos: 15000,
 					Filter:       "mtagName1:mtagValue1",
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+					Policies: []*policypb.Policy{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(10 * time.Second),
 									Precision:  int64(time.Second),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(12 * time.Hour),
 								},
 							},
@@ -1906,30 +1908,30 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Tombstoned:   false,
 					CutoverNanos: 22000,
 					Filter:       "mtagName1:mtagValue1",
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+					Policies: []*policypb.Policy{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(10 * time.Second),
 									Precision:  int64(time.Second),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(2 * time.Hour),
 								},
 							},
 						},
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(time.Minute),
 									Precision:  int64(time.Minute),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(time.Hour),
 								},
 							},
-							AggregationTypes: []schema.AggregationType{
-								schema.AggregationType_MIN,
+							AggregationTypes: []aggregationpb.AggregationType{
+								aggregationpb.AggregationType_MIN,
 							},
 						},
 					},
@@ -1939,30 +1941,30 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Tombstoned:   true,
 					CutoverNanos: 35000,
 					Filter:       "mtagName1:mtagValue1",
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+					Policies: []*policypb.Policy{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(10 * time.Second),
 									Precision:  int64(time.Second),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(2 * time.Hour),
 								},
 							},
 						},
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(time.Minute),
 									Precision:  int64(time.Minute),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(time.Hour),
 								},
 							},
-							AggregationTypes: []schema.AggregationType{
-								schema.AggregationType_MIN,
+							AggregationTypes: []aggregationpb.AggregationType{
+								aggregationpb.AggregationType_MIN,
 							},
 						},
 					},
@@ -1977,39 +1979,39 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Tombstoned:   false,
 					CutoverNanos: 22000,
 					Filter:       "mtagName1:mtagValue1",
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+					Policies: []*policypb.Policy{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(10 * time.Second),
 									Precision:  int64(time.Second),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(12 * time.Hour),
 								},
 							},
-							AggregationTypes: []schema.AggregationType{
-								schema.AggregationType_MAX,
+							AggregationTypes: []aggregationpb.AggregationType{
+								aggregationpb.AggregationType_MAX,
 							},
 						},
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(time.Minute),
 									Precision:  int64(time.Minute),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(24 * time.Hour),
 								},
 							},
 						},
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(5 * time.Minute),
 									Precision:  int64(time.Minute),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(48 * time.Hour),
 								},
 							},
@@ -2021,25 +2023,25 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Tombstoned:   false,
 					CutoverNanos: 34000,
 					Filter:       "mtagName1:mtagValue1",
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+					Policies: []*policypb.Policy{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(10 * time.Second),
 									Precision:  int64(time.Second),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(2 * time.Hour),
 								},
 							},
 						},
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(time.Minute),
 									Precision:  int64(time.Minute),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(time.Hour),
 								},
 							},
@@ -2056,19 +2058,19 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					Tombstoned:   false,
 					CutoverNanos: 24000,
 					Filter:       "mtagName1:mtagValue2",
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+					Policies: []*policypb.Policy{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(10 * time.Second),
 									Precision:  int64(time.Second),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(24 * time.Hour),
 								},
 							},
-							AggregationTypes: []schema.AggregationType{
-								schema.AggregationType_P999,
+							AggregationTypes: []aggregationpb.AggregationType{
+								aggregationpb.AggregationType_P999,
 							},
 						},
 					},
@@ -2085,14 +2087,14 @@ func testMappingRulesConfig() []*schema.MappingRule {
 					LastUpdatedAtNanos: 123456,
 					LastUpdatedBy:      "test",
 					Filter:             "mtagName1:mtagValue1",
-					Policies: []*schema.Policy{
-						&schema.Policy{
-							StoragePolicy: &schema.StoragePolicy{
-								Resolution: &schema.Resolution{
+					Policies: []*policypb.Policy{
+						&policypb.Policy{
+							StoragePolicy: &policypb.StoragePolicy{
+								Resolution: &policypb.Resolution{
 									WindowSize: int64(10 * time.Second),
 									Precision:  int64(time.Second),
 								},
-								Retention: &schema.Retention{
+								Retention: &policypb.Retention{
 									Period: int64(24 * time.Hour),
 								},
 							},
@@ -2118,14 +2120,14 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName1",
 							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(10 * time.Second),
 											Precision:  int64(time.Second),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(24 * time.Hour),
 										},
 									},
@@ -2143,36 +2145,36 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName1",
 							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(10 * time.Second),
 											Precision:  int64(time.Second),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(6 * time.Hour),
 										},
 									},
 								},
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(5 * time.Minute),
 											Precision:  int64(time.Minute),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(48 * time.Hour),
 										},
 									},
 								},
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(10 * time.Minute),
 											Precision:  int64(time.Minute),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(48 * time.Hour),
 										},
 									},
@@ -2190,14 +2192,14 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName1",
 							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(30 * time.Second),
 											Precision:  int64(time.Second),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(6 * time.Hour),
 										},
 									},
@@ -2220,14 +2222,14 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName1",
 							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(10 * time.Second),
 											Precision:  int64(time.Second),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(12 * time.Hour),
 										},
 									},
@@ -2245,25 +2247,25 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName1",
 							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(10 * time.Second),
 											Precision:  int64(time.Second),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(2 * time.Hour),
 										},
 									},
 								},
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(time.Minute),
 											Precision:  int64(time.Minute),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(time.Hour),
 										},
 									},
@@ -2281,25 +2283,25 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName1",
 							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(10 * time.Second),
 											Precision:  int64(time.Second),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(2 * time.Hour),
 										},
 									},
 								},
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(time.Minute),
 											Precision:  int64(time.Minute),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(time.Hour),
 										},
 									},
@@ -2322,36 +2324,36 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName1",
 							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(10 * time.Second),
 											Precision:  int64(time.Second),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(12 * time.Hour),
 										},
 									},
 								},
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(time.Minute),
 											Precision:  int64(time.Minute),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(24 * time.Hour),
 										},
 									},
 								},
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(5 * time.Minute),
 											Precision:  int64(time.Minute),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(48 * time.Hour),
 										},
 									},
@@ -2361,14 +2363,14 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName2",
 							Tags: []string{"rtagName1"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(10 * time.Second),
 											Precision:  int64(time.Second),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(24 * time.Hour),
 										},
 									},
@@ -2386,25 +2388,25 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName1",
 							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(10 * time.Second),
 											Precision:  int64(time.Second),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(2 * time.Hour),
 										},
 									},
 								},
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(time.Minute),
 											Precision:  int64(time.Minute),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(time.Hour),
 										},
 									},
@@ -2427,14 +2429,14 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName3",
 							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(time.Minute),
 											Precision:  int64(time.Minute),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(time.Hour),
 										},
 									},
@@ -2457,14 +2459,14 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName4",
 							Tags: []string{"rtagName1"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(time.Second),
 											Precision:  int64(time.Second),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(time.Minute),
 										},
 									},
@@ -2487,14 +2489,14 @@ func testRollupRulesConfig() []*schema.RollupRule {
 						&schema.RollupTarget{
 							Name: "rName3",
 							Tags: []string{"rtagName1", "rtagName2"},
-							Policies: []*schema.Policy{
-								&schema.Policy{
-									StoragePolicy: &schema.StoragePolicy{
-										Resolution: &schema.Resolution{
+							Policies: []*policypb.Policy{
+								&policypb.Policy{
+									StoragePolicy: &policypb.StoragePolicy{
+										Resolution: &policypb.Resolution{
 											WindowSize: int64(time.Minute),
 											Precision:  int64(time.Minute),
 										},
-										Retention: &schema.Retention{
+										Retention: &policypb.Retention{
 											Period: int64(time.Hour),
 										},
 									},

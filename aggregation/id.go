@@ -23,7 +23,7 @@ package aggregation
 import (
 	"fmt"
 
-	"github.com/m3db/m3metrics/generated/proto/schema"
+	schema "github.com/m3db/m3metrics/generated/proto/aggregationpb"
 )
 
 const (
@@ -97,4 +97,22 @@ func (id ID) String() string {
 		return fmt.Sprintf("[invalid ID: %v]", err)
 	}
 	return aggTypes.String()
+}
+
+// ToProto converts the aggregation id to a protobuf message in place.
+func (id ID) ToProto(pb *schema.AggregationID) error {
+	if IDLen != 1 {
+		return fmt.Errorf("id length %d cannot be represented by a single integer", IDLen)
+	}
+	pb.Id = id[0]
+	return nil
+}
+
+// FromProto converts the protobuf message to an aggregation id in place.
+func (id *ID) FromProto(pb schema.AggregationID) error {
+	if IDLen != 1 {
+		return fmt.Errorf("id length %d cannot be represented by a single integer", IDLen)
+	}
+	(*id)[0] = pb.Id
+	return nil
 }

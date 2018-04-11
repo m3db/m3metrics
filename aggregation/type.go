@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/m3db/m3metrics/generated/proto/schema"
+	schema "github.com/m3db/m3metrics/generated/proto/aggregationpb"
 	"github.com/m3db/m3x/pool"
 )
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Uber Technologies, Inc.
+// Copyright (c) 2018 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,20 +19,13 @@
 // THE SOFTWARE.
 
 syntax = "proto3";
-package schema;
 
-message NamespaceSnapshot {
-  int32 for_ruleset_version = 1;
-  bool tombstoned = 2;
-  int64 last_updated_at_nanos = 3;
-  string last_updated_by = 4;
-}
+option go_package = "github.com/m3db/m3metrics/generated/proto/transformationpb";
 
-message Namespace {
-  string name = 1;
-  repeated NamespaceSnapshot snapshots = 2;
-}
+package transformationpb;
 
-message Namespaces {
-  repeated Namespace namespaces = 1;
+enum TransformationType {
+  UNKNOWN = 0;
+  ABSOLUTE = 1;
+  PERSECOND = 2;
 }

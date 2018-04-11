@@ -31,7 +31,7 @@ import (
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/aggregation"
 	"github.com/m3db/m3metrics/filters"
-	"github.com/m3db/m3metrics/generated/proto/schema"
+	schema "github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/metric"
 	metricID "github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
