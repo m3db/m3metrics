@@ -32,6 +32,7 @@ func resetMetricWithMetadatasProto(pb *metricpb.MetricWithMetadatas) {
 	if pb == nil {
 		return
 	}
+	pb.Type = metricpb.MetricWithMetadatas_UNKNOWN
 	resetCounterWithMetadatasProto(pb.CounterWithMetadatas)
 	resetBatchTimerWithMetadatasProto(pb.BatchTimerWithMetadatas)
 	resetGaugeWithMetadatasProto(pb.GaugeWithMetadatas)

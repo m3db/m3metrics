@@ -74,12 +74,14 @@ func TestResetMetricWithMetadatasProtoNilProto(t *testing.T) {
 
 func TestResetMetricWithMetadatasProtoOnlyCounter(t *testing.T) {
 	input := &metricpb.MetricWithMetadatas{
+		Type: metricpb.MetricWithMetadatas_COUNTER_WITH_METADATAS,
 		CounterWithMetadatas: &metricpb.CounterWithMetadatas{
 			Counter:   testCounterBeforeResetProto,
 			Metadatas: testMetadatasBeforeResetProto,
 		},
 	}
 	expected := &metricpb.MetricWithMetadatas{
+		Type: metricpb.MetricWithMetadatas_UNKNOWN,
 		CounterWithMetadatas: &metricpb.CounterWithMetadatas{
 			Counter:   testCounterAfterResetProto,
 			Metadatas: testMetadatasAfterResetProto,
@@ -93,12 +95,14 @@ func TestResetMetricWithMetadatasProtoOnlyCounter(t *testing.T) {
 
 func TestResetMetricWithMetadatasProtoOnlyBatchTimer(t *testing.T) {
 	input := &metricpb.MetricWithMetadatas{
+		Type: metricpb.MetricWithMetadatas_BATCH_TIMER_WITH_METADATAS,
 		BatchTimerWithMetadatas: &metricpb.BatchTimerWithMetadatas{
 			BatchTimer: testBatchTimerBeforeResetProto,
 			Metadatas:  testMetadatasBeforeResetProto,
 		},
 	}
 	expected := &metricpb.MetricWithMetadatas{
+		Type: metricpb.MetricWithMetadatas_UNKNOWN,
 		BatchTimerWithMetadatas: &metricpb.BatchTimerWithMetadatas{
 			BatchTimer: testBatchTimerAfterResetProto,
 			Metadatas:  testMetadatasAfterResetProto,
@@ -112,12 +116,14 @@ func TestResetMetricWithMetadatasProtoOnlyBatchTimer(t *testing.T) {
 
 func TestResetMetricWithMetadatasProtoOnlyGauge(t *testing.T) {
 	input := &metricpb.MetricWithMetadatas{
+		Type: metricpb.MetricWithMetadatas_GAUGE_WITH_METADATAS,
 		GaugeWithMetadatas: &metricpb.GaugeWithMetadatas{
 			Gauge:     testGaugeBeforeResetProto,
 			Metadatas: testMetadatasBeforeResetProto,
 		},
 	}
 	expected := &metricpb.MetricWithMetadatas{
+		Type: metricpb.MetricWithMetadatas_UNKNOWN,
 		GaugeWithMetadatas: &metricpb.GaugeWithMetadatas{
 			Gauge:     testGaugeAfterResetProto,
 			Metadatas: testMetadatasAfterResetProto,
@@ -131,6 +137,7 @@ func TestResetMetricWithMetadatasProtoOnlyGauge(t *testing.T) {
 
 func TestResetMetricWithMetadatasProtoAll(t *testing.T) {
 	input := &metricpb.MetricWithMetadatas{
+		Type: metricpb.MetricWithMetadatas_GAUGE_WITH_METADATAS,
 		CounterWithMetadatas: &metricpb.CounterWithMetadatas{
 			Counter:   testCounterBeforeResetProto,
 			Metadatas: testMetadatasBeforeResetProto,
@@ -145,6 +152,7 @@ func TestResetMetricWithMetadatasProtoAll(t *testing.T) {
 		},
 	}
 	expected := &metricpb.MetricWithMetadatas{
+		Type: metricpb.MetricWithMetadatas_UNKNOWN,
 		CounterWithMetadatas: &metricpb.CounterWithMetadatas{
 			Counter:   testCounterAfterResetProto,
 			Metadatas: testMetadatasAfterResetProto,
