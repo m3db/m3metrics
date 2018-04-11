@@ -55,7 +55,7 @@ var (
 	ruleActionErrorFmt       = "cannot %s rule %s"
 	ruleIDNotFoundErrorFmt   = "no rule with id %v"
 	ruleSetActionErrorFmt    = "cannot %s ruleset %s"
-	unknownOpTypeFmt         = "unknown op type %v, op"
+	unknownOpTypeFmt         = "unknown op type %v"
 )
 
 // Matcher matches metrics against rules to determine applicable policies.
