@@ -101,13 +101,9 @@ test-ci-integration:
 	$(test_ci_integration)
 
 .PHONY: install-mockgen
-install-mockgen:
+install-mockgen: install-vendor
 	@echo Installing mockgen
-	@which mockgen >/dev/null || (make install-vendor                               && \
-		rm -rf $(gopath_prefix)/$(mockgen_package)                                    && \
-		cp -r $(vendor_prefix)/$(mockgen_package) $(gopath_prefix)/$(mockgen_package) && \
-		go install $(mockgen_package)                                                    \
-	)
+	glide install
 
 .PHONY: mock-gen
 mock-gen: install-mockgen install-license-bin install-util-mockclean

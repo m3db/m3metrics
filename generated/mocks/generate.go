@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// mockgen rules for generating mocks for exported interfaces (reflection mode)
+// mockgen rules for generating mocks for exported interfaces (reflection mode).
 //go:generate sh -c "mockgen -package=rules $PACKAGE/rules Store| mockclean -pkg $PACKAGE/rules -out $GOPATH/src/$PACKAGE/rules/store_mock.go"
 
 package mocks
