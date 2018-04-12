@@ -54,15 +54,6 @@ func (b *Buffer) Close() {
 	b.buf = nil
 }
 
-// allocate allocates a byte slice with at least the specified size.
-func allocate(p pool.BytesPool, targetSize int) []byte {
-	if p == nil {
-		return make([]byte, targetSize)
-	}
-	b := p.Get(targetSize)
-	return b[:cap(b)]
-}
-
 type copyDataMode int
 
 const (
@@ -93,4 +84,13 @@ func ensureBufferSize(
 		p.Put(buf)
 	}
 	return newBuf
+}
+
+// allocate allocates a byte slice with at least the specified size.
+func allocate(p pool.BytesPool, targetSize int) []byte {
+	if p == nil {
+		return make([]byte, targetSize)
+	}
+	b := p.Get(targetSize)
+	return b[:cap(b)]
 }

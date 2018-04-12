@@ -77,7 +77,7 @@ func (it *unaggregatedIterator) Close() {
 	}
 	it.closed = true
 	it.reader = nil
-	it.pb = metricpb.MetricWithMetadatas{}
+	it.pb.Reset()
 	it.msg = encoding.UnaggregatedMessageUnion{}
 	if it.bytesPool != nil && it.buf != nil {
 		it.bytesPool.Put(it.buf)

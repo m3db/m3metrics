@@ -99,6 +99,8 @@ func toMetadata(policies []policy.Policy) metadata.Metadata {
 				break
 			}
 		}
+		// If there is no existing pipeline with the same aggregation ID,
+		// create a new pipeline with the aggregation ID.
 		if pipelineIdx == -1 {
 			res.Pipelines = append(res.Pipelines, metadata.PipelineMetadata{
 				AggregationID: p.AggregationID,
@@ -107,7 +109,7 @@ func toMetadata(policies []policy.Policy) metadata.Metadata {
 		}
 
 		// Find if the storage policy already exists in the set of storage
-		// policies in the pipeline.
+		// policies in the corresponding pipeline.
 		pipelines := res.Pipelines
 		policyIdx := -1
 		for i := 0; i < len(pipelines[pipelineIdx].StoragePolicies); i++ {
@@ -116,9 +118,12 @@ func toMetadata(policies []policy.Policy) metadata.Metadata {
 				break
 			}
 		}
+		// If the policy already exists in the pipeline, nothing to do.
 		if policyIdx != -1 {
 			continue
 		}
+		// Otherwise we append the policy to the end. This maintains the original
+		// ordering (if any) of the policies within each pipeline.
 		pipelines[pipelineIdx].StoragePolicies = append(pipelines[pipelineIdx].StoragePolicies, p.StoragePolicy)
 	}
 	return res
