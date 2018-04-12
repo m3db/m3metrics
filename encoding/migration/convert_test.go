@@ -163,7 +163,7 @@ func TestToStagedMetadatas(t *testing.T) {
 	require.Equal(t, testConvertStagedMetadatas, toStagedMetadatas(testConvertPoliciesList))
 }
 
-func ToUnaggregatedMessageUnion(t *testing.T) {
+func TestToUnaggregatedMessageUnion(t *testing.T) {
 	inputs := []struct {
 		metricUnion  unaggregated.MetricUnion
 		policiesList policy.PoliciesList
