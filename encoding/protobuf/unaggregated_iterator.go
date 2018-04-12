@@ -56,7 +56,7 @@ type unaggregatedIterator struct {
 	err    error
 }
 
-// NewUnaggregatedIterator creates a new unaggregated iterator.
+// NewUnaggregatedIterator creates a new unaggregated iterator. It is not thread-safe.
 func NewUnaggregatedIterator(
 	reader ByteReadScanner,
 	opts UnaggregatedOptions,
