@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/m3db/m3cluster/kv"
-	schema "github.com/m3db/m3metrics/generated/proto/rulepb"
+	"github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/rules"
 )
 
@@ -51,7 +51,7 @@ func (s *store) ReadNamespaces() (*rules.Namespaces, error) {
 	}
 
 	version := value.Version()
-	var namespaces schema.Namespaces
+	var namespaces rulepb.Namespaces
 	if err := value.Unmarshal(&namespaces); err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (s *store) ReadRuleSet(nsName string) (rules.RuleSet, error) {
 	}
 
 	version := value.Version()
-	var ruleSet schema.RuleSet
+	var ruleSet rulepb.RuleSet
 	if err := value.Unmarshal(&ruleSet); err != nil {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
