@@ -96,7 +96,7 @@ func TestValidatorValidateDuplicateMappingRules(t *testing.T) {
 	validator := NewValidator(testValidatorOptions())
 	err := validator.Validate(ruleSet)
 	require.Error(t, err)
-	_, ok := err.(errors.RuleConflictError)
+	_, ok := err.(errors.InvalidInputError)
 	require.True(t, ok)
 }
 
@@ -213,7 +213,7 @@ func TestValidatorValidateDuplicateRollupRules(t *testing.T) {
 	validator := NewValidator(testValidatorOptions())
 	err := validator.Validate(ruleSet)
 	require.Error(t, err)
-	_, ok := err.(errors.RuleConflictError)
+	_, ok := err.(errors.InvalidInputError)
 	require.True(t, ok)
 }
 
@@ -387,7 +387,7 @@ func TestValidatorValidateRollupRuleConflictingTargets(t *testing.T) {
 	validator := NewValidator(opts)
 	err := validator.Validate(ruleSet)
 	require.Error(t, err)
-	_, ok := err.(errors.RuleConflictError)
+	_, ok := err.(errors.InvalidInputError)
 	require.True(t, ok)
 }
 

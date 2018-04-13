@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3cluster/kv/mem"
+	merrors "github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/generated/proto/aggregationpb"
 	"github.com/m3db/m3metrics/generated/proto/policypb"
 	schema "github.com/m3db/m3metrics/generated/proto/rulepb"
@@ -524,6 +525,20 @@ func TestWriteRuleSetError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestWriteRuleSetStaleDataError(t *testing.T) {
+	s := testStore()
+	defer s.Close()
+
+	mutable := newMutableRuleSetFromSchema(t, 0, testRuleSet)
+	err := s.WriteRuleSet(mutable)
+	require.NoError(t, err)
+
+	jumpRuleSet := newMutableRuleSetFromSchema(t, 5, testRuleSet)
+	err = s.WriteRuleSet(jumpRuleSet)
+	require.Error(t, err)
+	require.IsType(t, merrors.NewStaleDataError(""), err)
+}
+
 func TestWriteAllNoNamespace(t *testing.T) {
 	s := testStore()
 	defer s.Close()
@@ -558,6 +573,23 @@ func TestWriteAllNoNamespace(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, nss.Version(), 1)
 	require.Equal(t, rs.Version(), 2)
+}
+func TestWriteAllStaleDataError(t *testing.T) {
+	s := testStore()
+	defer s.Close()
+
+	mutable := newMutableRuleSetFromSchema(t, 0, testRuleSet)
+	namespaces, err := rules.NewNamespaces(0, testNamespaces)
+	require.NoError(t, err)
+
+	err = s.WriteAll(&namespaces, mutable)
+	require.NoError(t, err)
+
+	jumpNamespaces, err := rules.NewNamespaces(5, testNamespaces)
+	require.NoError(t, err)
+	err = s.WriteAll(&jumpNamespaces, mutable)
+	require.Error(t, err)
+	require.IsType(t, merrors.NewStaleDataError(""), err)
 }
 
 func testStore() rules.Store {
