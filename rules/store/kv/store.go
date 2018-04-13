@@ -25,7 +25,8 @@ import (
 	"fmt"
 
 	"github.com/m3db/m3cluster/kv"
-	schema "github.com/m3db/m3metrics/generated/proto/rulepb"
+	merrors "github.com/m3db/m3metrics/errors"
+	"github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/rules"
 )
 
@@ -51,7 +52,7 @@ func (s *store) ReadNamespaces() (*rules.Namespaces, error) {
 	}
 
 	version := value.Version()
-	var namespaces schema.Namespaces
+	var namespaces rulepb.Namespaces
 	if err := value.Unmarshal(&namespaces); err != nil {
 		return nil, err
 	}
@@ -72,7 +73,7 @@ func (s *store) ReadRuleSet(nsName string) (rules.RuleSet, error) {
 	}
 
 	version := value.Version()
-	var ruleSet schema.RuleSet
+	var ruleSet rulepb.RuleSet
 	if err := value.Unmarshal(&ruleSet); err != nil {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
@@ -96,7 +97,7 @@ func (s *store) WriteRuleSet(rs rules.MutableRuleSet) error {
 	}
 	conditions, ops := []kv.Condition{rsCond}, []kv.Op{rsOp}
 	_, err = s.kvStore.Commit(conditions, ops)
-	return err
+	return wrapWriteError(err)
 }
 
 func (s *store) WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error {
@@ -124,7 +125,7 @@ func (s *store) WriteAll(nss *rules.Namespaces, rs rules.MutableRuleSet) error {
 	conditions = append(conditions, namespacesCond)
 	ops = append(ops, namespacesOp)
 	_, err = s.kvStore.Commit(conditions, ops)
-	return err
+	return wrapWriteError(err)
 }
 
 func (s *store) Close() {
@@ -175,4 +176,14 @@ func (s *store) namespacesTransaction(nss *rules.Namespaces) (kv.Condition, kv.O
 		SetValue(nss.Version())
 
 	return namespacesCond, kv.NewSetOp(namespacesKey, nssSchema), nil
+}
+
+func wrapWriteError(err error) error {
+	if err == kv.ErrConditionCheckFailed {
+		return merrors.NewStaleDataError(
+			fmt.Sprintf("stale write request: %s", err.Error()),
+		)
+	}
+
+	return err
 }

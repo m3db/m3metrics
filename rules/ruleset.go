@@ -30,12 +30,14 @@ import (
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3metrics/aggregation"
+	merrors "github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/filters"
-	schema "github.com/m3db/m3metrics/generated/proto/rulepb"
+	"github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/metric"
 	metricID "github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/models/changes"
 	xerrors "github.com/m3db/m3x/errors"
 
 	"github.com/pborman/uuid"
@@ -51,7 +53,9 @@ var (
 	errRuleNotFound         = errors.New("rule not found")
 	errNoRuleSnapshots      = errors.New("rule has no snapshots")
 	ruleActionErrorFmt      = "cannot %s rule %s"
+	ruleIDNotFoundErrorFmt  = "no rule with id %v"
 	ruleSetActionErrorFmt   = "cannot %s ruleset %s"
+	unknownOpTypeFmt        = "unknown op type %v"
 )
 
 // Matcher matches metrics against rules to determine applicable policies.
@@ -493,8 +497,8 @@ type RuleSet interface {
 type MutableRuleSet interface {
 	RuleSet
 
-	// Schema returns the schema.Ruleset representation of this ruleset.
-	Schema() (*schema.RuleSet, error)
+	// Schema returns the rulepb.Ruleset representation of this ruleset.
+	Schema() (*rulepb.RuleSet, error)
 
 	// Clone returns a copy of this MutableRuleSet.
 	Clone() MutableRuleSet
@@ -524,6 +528,9 @@ type MutableRuleSet interface {
 
 	// Revive removes the tombstone from this ruleset. It does not revive any rules.
 	Revive(UpdateMetadata) error
+
+	// ApplyRuleSetChanges takes set of rule set changes and applies them to a ruleset.
+	ApplyRuleSetChanges(changes.RuleSetChanges, UpdateMetadata) error
 }
 
 type ruleSet struct {
@@ -544,7 +551,7 @@ type ruleSet struct {
 }
 
 // NewRuleSetFromSchema creates a new RuleSet from a schema object.
-func NewRuleSetFromSchema(version int, rs *schema.RuleSet, opts Options) (RuleSet, error) {
+func NewRuleSetFromSchema(version int, rs *rulepb.RuleSet, opts Options) (RuleSet, error) {
 	if rs == nil {
 		return nil, errNilRuleSetSchema
 	}
@@ -632,8 +639,8 @@ func (rs *ruleSet) ToMutableRuleSet() MutableRuleSet {
 }
 
 // Schema returns the protobuf representation of a ruleset.
-func (rs *ruleSet) Schema() (*schema.RuleSet, error) {
-	res := &schema.RuleSet{
+func (rs *ruleSet) Schema() (*rulepb.RuleSet, error) {
+	res := &rulepb.RuleSet{
 		Uuid:               rs.uuid,
 		Namespace:          string(rs.namespace),
 		CreatedAtNanos:     rs.createdAtNanos,
@@ -643,7 +650,7 @@ func (rs *ruleSet) Schema() (*schema.RuleSet, error) {
 		CutoverNanos:       rs.cutoverNanos,
 	}
 
-	mappingRules := make([]*schema.MappingRule, len(rs.mappingRules))
+	mappingRules := make([]*rulepb.MappingRule, len(rs.mappingRules))
 	for i, m := range rs.mappingRules {
 		mr, err := m.Schema()
 		if err != nil {
@@ -653,7 +660,7 @@ func (rs *ruleSet) Schema() (*schema.RuleSet, error) {
 	}
 	res.MappingRules = mappingRules
 
-	rollupRules := make([]*schema.RollupRule, len(rs.rollupRules))
+	rollupRules := make([]*rulepb.RollupRule, len(rs.rollupRules))
 	for i, r := range rs.rollupRules {
 		rr, err := r.Schema()
 		if err != nil {
@@ -776,7 +783,7 @@ func (rs *ruleSet) AddMappingRule(mrv models.MappingRuleView, meta UpdateMetadat
 func (rs *ruleSet) UpdateMappingRule(mrv models.MappingRuleView, meta UpdateMetadata) error {
 	m, err := rs.getMappingRuleByID(mrv.ID)
 	if err != nil {
-		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "update", mrv.ID))
+		return merrors.NewInvalidInputError(fmt.Sprintf(ruleIDNotFoundErrorFmt, mrv.ID))
 	}
 	if err := m.addSnapshot(
 		mrv.Name,
@@ -793,7 +800,7 @@ func (rs *ruleSet) UpdateMappingRule(mrv models.MappingRuleView, meta UpdateMeta
 func (rs *ruleSet) DeleteMappingRule(id string, meta UpdateMetadata) error {
 	m, err := rs.getMappingRuleByID(id)
 	if err != nil {
-		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "delete", id))
+		return merrors.NewInvalidInputError(fmt.Sprintf(ruleIDNotFoundErrorFmt, id))
 	}
 
 	if err := m.markTombstoned(meta); err != nil {
@@ -836,7 +843,7 @@ func (rs *ruleSet) AddRollupRule(rrv models.RollupRuleView, meta UpdateMetadata)
 func (rs *ruleSet) UpdateRollupRule(rrv models.RollupRuleView, meta UpdateMetadata) error {
 	r, err := rs.getRollupRuleByID(rrv.ID)
 	if err != nil {
-		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "update", rrv.ID))
+		return merrors.NewInvalidInputError(fmt.Sprintf(ruleIDNotFoundErrorFmt, rrv.ID))
 	}
 	targets := newRollupTargetsFromView(rrv.Targets)
 	if err = r.addSnapshot(
@@ -854,7 +861,7 @@ func (rs *ruleSet) UpdateRollupRule(rrv models.RollupRuleView, meta UpdateMetada
 func (rs *ruleSet) DeleteRollupRule(id string, meta UpdateMetadata) error {
 	r, err := rs.getRollupRuleByID(id)
 	if err != nil {
-		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "delete", id))
+		return merrors.NewInvalidInputError(fmt.Sprintf(ruleIDNotFoundErrorFmt, id))
 	}
 
 	if err := r.markTombstoned(meta); err != nil {
@@ -882,6 +889,63 @@ func (rs *ruleSet) Delete(meta UpdateMetadata) error {
 	for _, r := range rs.rollupRules {
 		if t := r.Tombstoned(); !t {
 			_ = r.markTombstoned(meta)
+		}
+	}
+
+	return nil
+}
+
+func (rs *ruleSet) ApplyRuleSetChanges(rsc changes.RuleSetChanges, meta UpdateMetadata) error {
+	if err := rs.applyMappingRuleChanges(rsc.MappingRuleChanges, meta); err != nil {
+		return err
+	}
+	return rs.applyRollupRuleChanges(rsc.RollupRuleChanges, meta)
+}
+
+func (rs *ruleSet) applyMappingRuleChanges(mrChanges []changes.MappingRuleChange, meta UpdateMetadata) error {
+	for _, mrChange := range mrChanges {
+		switch mrChange.Op {
+		case changes.AddOp:
+			view := mrChange.RuleData.ToMappingRuleView()
+			if _, err := rs.AddMappingRule(*view, meta); err != nil {
+				return err
+			}
+		case changes.ChangeOp:
+			view := mrChange.RuleData.ToMappingRuleView()
+			if err := rs.UpdateMappingRule(*view, meta); err != nil {
+				return err
+			}
+		case changes.DeleteOp:
+			if err := rs.DeleteMappingRule(*mrChange.RuleID, meta); err != nil {
+				return err
+			}
+		default:
+			return merrors.NewInvalidInputError(fmt.Sprintf(unknownOpTypeFmt, mrChange.Op))
+		}
+	}
+
+	return nil
+}
+
+func (rs *ruleSet) applyRollupRuleChanges(rrChanges []changes.RollupRuleChange, meta UpdateMetadata) error {
+	for _, rrChange := range rrChanges {
+		switch rrChange.Op {
+		case changes.AddOp:
+			view := rrChange.RuleData.ToRollupRuleView()
+			if _, err := rs.AddRollupRule(*view, meta); err != nil {
+				return err
+			}
+		case changes.ChangeOp:
+			view := rrChange.RuleData.ToRollupRuleView()
+			if err := rs.UpdateRollupRule(*view, meta); err != nil {
+				return err
+			}
+		case changes.DeleteOp:
+			if err := rs.DeleteRollupRule(*rrChange.RuleID, meta); err != nil {
+				return err
+			}
+		default:
+			return merrors.NewInvalidInputError(fmt.Sprintf(unknownOpTypeFmt, rrChange.Op))
 		}
 	}
 

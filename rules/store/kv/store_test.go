@@ -27,9 +27,10 @@ import (
 	"time"
 
 	"github.com/m3db/m3cluster/kv/mem"
+	merrors "github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/generated/proto/aggregationpb"
 	"github.com/m3db/m3metrics/generated/proto/policypb"
-	schema "github.com/m3db/m3metrics/generated/proto/rulepb"
+	"github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/rules"
 	"github.com/m3db/m3metrics/rules/models"
 
@@ -43,29 +44,29 @@ const (
 )
 
 var (
-	testNamespaces = &schema.Namespaces{
-		Namespaces: []*schema.Namespace{
-			&schema.Namespace{
+	testNamespaces = &rulepb.Namespaces{
+		Namespaces: []*rulepb.Namespace{
+			&rulepb.Namespace{
 				Name: "fooNs",
-				Snapshots: []*schema.NamespaceSnapshot{
-					&schema.NamespaceSnapshot{
+				Snapshots: []*rulepb.NamespaceSnapshot{
+					&rulepb.NamespaceSnapshot{
 						ForRulesetVersion: 1,
 						Tombstoned:        false,
 					},
-					&schema.NamespaceSnapshot{
+					&rulepb.NamespaceSnapshot{
 						ForRulesetVersion: 2,
 						Tombstoned:        false,
 					},
 				},
 			},
-			&schema.Namespace{
+			&rulepb.Namespace{
 				Name: "barNs",
-				Snapshots: []*schema.NamespaceSnapshot{
-					&schema.NamespaceSnapshot{
+				Snapshots: []*rulepb.NamespaceSnapshot{
+					&rulepb.NamespaceSnapshot{
 						ForRulesetVersion: 1,
 						Tombstoned:        false,
 					},
-					&schema.NamespaceSnapshot{
+					&rulepb.NamespaceSnapshot{
 						ForRulesetVersion: 2,
 						Tombstoned:        true,
 					},
@@ -75,18 +76,18 @@ var (
 	}
 
 	testRuleSetKey = fmt.Sprintf(testRuleSetKeyFmt, testNamespace)
-	testRuleSet    = &schema.RuleSet{
+	testRuleSet    = &rulepb.RuleSet{
 		Uuid:               "ruleset",
 		Namespace:          "fooNs",
 		CreatedAtNanos:     1234,
 		LastUpdatedAtNanos: 5678,
 		Tombstoned:         false,
 		CutoverNanos:       34923,
-		MappingRules: []*schema.MappingRule{
-			&schema.MappingRule{
+		MappingRules: []*rulepb.MappingRule{
+			&rulepb.MappingRule{
 				Uuid: "12669817-13ae-40e6-ba2f-33087b262c68",
-				Snapshots: []*schema.MappingRuleSnapshot{
-					&schema.MappingRuleSnapshot{
+				Snapshots: []*rulepb.MappingRuleSnapshot{
+					&rulepb.MappingRuleSnapshot{
 						Name:         "foo",
 						Tombstoned:   false,
 						CutoverNanos: 12345,
@@ -108,7 +109,7 @@ var (
 							},
 						},
 					},
-					&schema.MappingRuleSnapshot{
+					&rulepb.MappingRuleSnapshot{
 						Name:         "foo",
 						Tombstoned:   false,
 						CutoverNanos: 67890,
@@ -140,10 +141,10 @@ var (
 					},
 				},
 			},
-			&schema.MappingRule{
+			&rulepb.MappingRule{
 				Uuid: "12669817-13ae-40e6-ba2f-33087b262c68",
-				Snapshots: []*schema.MappingRuleSnapshot{
-					&schema.MappingRuleSnapshot{
+				Snapshots: []*rulepb.MappingRuleSnapshot{
+					&rulepb.MappingRuleSnapshot{
 						Name:         "dup",
 						Tombstoned:   false,
 						CutoverNanos: 12345,
@@ -168,17 +169,17 @@ var (
 				},
 			},
 		},
-		RollupRules: []*schema.RollupRule{
-			&schema.RollupRule{
+		RollupRules: []*rulepb.RollupRule{
+			&rulepb.RollupRule{
 				Uuid: "12669817-13ae-40e6-ba2f-33087b262c68",
-				Snapshots: []*schema.RollupRuleSnapshot{
-					&schema.RollupRuleSnapshot{
+				Snapshots: []*rulepb.RollupRuleSnapshot{
+					&rulepb.RollupRuleSnapshot{
 						Name:         "foo2",
 						Tombstoned:   false,
 						CutoverNanos: 12345,
 						Filter:       "tag1:value1 tag2:value2",
-						Targets: []*schema.RollupTarget{
-							&schema.RollupTarget{
+						Targets: []*rulepb.RollupTarget{
+							&rulepb.RollupTarget{
 								Name: "rName1",
 								Tags: []string{"rtagName1", "rtagName2"},
 								Policies: []*policypb.Policy{
@@ -197,13 +198,13 @@ var (
 							},
 						},
 					},
-					&schema.RollupRuleSnapshot{
+					&rulepb.RollupRuleSnapshot{
 						Name:         "bar",
 						Tombstoned:   true,
 						CutoverNanos: 67890,
 						Filter:       "tag3:value3 tag4:value4",
-						Targets: []*schema.RollupTarget{
-							&schema.RollupTarget{
+						Targets: []*rulepb.RollupTarget{
+							&rulepb.RollupTarget{
 								Name: "rName1",
 								Tags: []string{"rtagName1", "rtagName2"},
 								Policies: []*policypb.Policy{
@@ -238,16 +239,16 @@ var (
 					},
 				},
 			},
-			&schema.RollupRule{
+			&rulepb.RollupRule{
 				Uuid: "12669817-13ae-40e6-ba2f-33087b262c68",
-				Snapshots: []*schema.RollupRuleSnapshot{
-					&schema.RollupRuleSnapshot{
+				Snapshots: []*rulepb.RollupRuleSnapshot{
+					&rulepb.RollupRuleSnapshot{
 						Name:         "foo",
 						Tombstoned:   false,
 						CutoverNanos: 12345,
 						Filter:       "tag1:value1 tag2:value2",
-						Targets: []*schema.RollupTarget{
-							&schema.RollupTarget{
+						Targets: []*rulepb.RollupTarget{
+							&rulepb.RollupTarget{
 								Name: "rName1",
 								Tags: []string{"rtagName1", "rtagName2"},
 								Policies: []*policypb.Policy{
@@ -266,13 +267,13 @@ var (
 							},
 						},
 					},
-					&schema.RollupRuleSnapshot{
+					&rulepb.RollupRuleSnapshot{
 						Name:         "baz",
 						Tombstoned:   false,
 						CutoverNanos: 67890,
 						Filter:       "tag3:value3 tag4:value4",
-						Targets: []*schema.RollupTarget{
-							&schema.RollupTarget{
+						Targets: []*rulepb.RollupTarget{
+							&rulepb.RollupTarget{
 								Name: "rName1",
 								Tags: []string{"rtagName1", "rtagName2"},
 								Policies: []*policypb.Policy{
@@ -307,16 +308,16 @@ var (
 					},
 				},
 			},
-			&schema.RollupRule{
+			&rulepb.RollupRule{
 				Uuid: "12669817-13ae-40e6-ba2f-33087b262c68",
-				Snapshots: []*schema.RollupRuleSnapshot{
-					&schema.RollupRuleSnapshot{
+				Snapshots: []*rulepb.RollupRuleSnapshot{
+					&rulepb.RollupRuleSnapshot{
 						Name:         "dup",
 						Tombstoned:   false,
 						CutoverNanos: 12345,
 						Filter:       "tag1:value1 tag2:value2",
-						Targets: []*schema.RollupTarget{
-							&schema.RollupTarget{
+						Targets: []*rulepb.RollupTarget{
+							&rulepb.RollupTarget{
 								Name: "rName1",
 								Tags: []string{"rtagName1", "rtagName2"},
 								Policies: []*policypb.Policy{
@@ -374,7 +375,7 @@ func TestReadNamespacesError(t *testing.T) {
 	s := testStore()
 	defer s.Close()
 
-	_, e := s.(*store).kvStore.Set(testNamespaceKey, &schema.RollupRule{Uuid: "x"})
+	_, e := s.(*store).kvStore.Set(testNamespaceKey, &rulepb.RollupRule{Uuid: "x"})
 	require.NoError(t, e)
 	nss, err := s.ReadNamespaces()
 	require.Error(t, err)
@@ -396,7 +397,7 @@ func TestReadRuleSetError(t *testing.T) {
 	s := testStore()
 	defer s.Close()
 
-	_, e := s.(*store).kvStore.Set(testRuleSetKey, &schema.Namespace{Name: "x"})
+	_, e := s.(*store).kvStore.Set(testRuleSetKey, &rulepb.Namespace{Name: "x"})
 	require.NoError(t, e)
 	rs, err := s.ReadRuleSet("blah")
 	require.Error(t, err)
@@ -524,6 +525,20 @@ func TestWriteRuleSetError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestWriteRuleSetStaleDataError(t *testing.T) {
+	s := testStore()
+	defer s.Close()
+
+	mutable := newMutableRuleSetFromSchema(t, 0, testRuleSet)
+	err := s.WriteRuleSet(mutable)
+	require.NoError(t, err)
+
+	jumpRuleSet := newMutableRuleSetFromSchema(t, 5, testRuleSet)
+	err = s.WriteRuleSet(jumpRuleSet)
+	require.Error(t, err)
+	require.IsType(t, merrors.NewStaleDataError(""), err)
+}
+
 func TestWriteAllNoNamespace(t *testing.T) {
 	s := testStore()
 	defer s.Close()
@@ -559,6 +574,23 @@ func TestWriteAllNoNamespace(t *testing.T) {
 	require.Equal(t, nss.Version(), 1)
 	require.Equal(t, rs.Version(), 2)
 }
+func TestWriteAllStaleDataError(t *testing.T) {
+	s := testStore()
+	defer s.Close()
+
+	mutable := newMutableRuleSetFromSchema(t, 0, testRuleSet)
+	namespaces, err := rules.NewNamespaces(0, testNamespaces)
+	require.NoError(t, err)
+
+	err = s.WriteAll(&namespaces, mutable)
+	require.NoError(t, err)
+
+	jumpNamespaces, err := rules.NewNamespaces(5, testNamespaces)
+	require.NoError(t, err)
+	err = s.WriteAll(&jumpNamespaces, mutable)
+	require.Error(t, err)
+	require.IsType(t, merrors.NewStaleDataError(""), err)
+}
 
 func testStore() rules.Store {
 	return testStoreWithValidator(nil)
@@ -574,7 +606,7 @@ func testStoreWithValidator(validator rules.Validator) rules.Store {
 func newMutableRuleSetFromSchema(
 	t *testing.T,
 	version int,
-	rs *schema.RuleSet,
+	rs *rulepb.RuleSet,
 ) rules.MutableRuleSet {
 	// Takes a blank Options stuct because none of the mutation functions need the options.
 	roRuleSet, err := rules.NewRuleSetFromSchema(version, rs, rules.NewOptions())
