@@ -368,13 +368,12 @@ func (c *cache) invalidateWithLock(namespace, id []byte, results results) result
 		results.elems = newElemMap(elemMapOptions{})
 		c.namespaces.Set(namespace, results)
 	} else {
-		elem, ok := results.elems.Get(id)
-		if ok {
-			results.elems.Delete(id)
-			c.list.Lock()
-			c.list.Remove(elem)
-			c.list.Unlock()
-		}
+		// Guarenteed to be in the map when invalidateWithLock is called
+		elem, _ := results.elems.Get(id)
+		results.elems.Delete(id)
+		c.list.Lock()
+		c.list.Remove(elem)
+		c.list.Unlock()
 	}
 	return results
 }
