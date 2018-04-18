@@ -26,13 +26,12 @@ import (
 	"time"
 
 	"github.com/m3db/m3metrics/rules"
-	xid "github.com/m3db/m3x/ident"
 )
 
 // element is a list element
 type element struct {
-	nsHash      xid.Hash
-	idHash      xid.Hash
+	namespace   []byte
+	id          []byte
 	result      rules.MatchResult
 	deleted     bool
 	expiryNanos int64
