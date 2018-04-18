@@ -2,6 +2,7 @@ language: go
 go:
   - 1.8.3
   - 1.9.2
+  - "1.10.x"
 branches:
   only:
     - master
@@ -11,7 +12,7 @@ dist: trusty
 env:
   global:
     - TEST_TIMEOUT_SCALE=20
-    - PACKAGE=github.com/m3db/m3db
+    - PACKAGE=github.com/m3db/m3metrics
   matrix:
     - MAKE_TARGET="test-ci-unit"
     - MAKE_TARGET="test-ci-integration"
