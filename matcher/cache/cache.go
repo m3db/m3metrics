@@ -316,7 +316,7 @@ func (c *cache) setWithLock(
 		results = c.invalidateWithLock(namespace, id, results)
 	}
 	res := results.source.ForwardMatch(id, fromNanos, toNanos)
-	newElem := &element{namespace: namespace, id: id, result: res}
+	newElem := newElement(namespace, id, res)
 	newElem.SetPromotionExpiry(c.newPromotionExpiry(c.nowFn()))
 	results.elems.Set(id, newElem)
 	// NB(xichen): we don't evict until the number of cached items goes

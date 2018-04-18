@@ -39,6 +39,17 @@ type element struct {
 	next        *element
 }
 
+func newElement(
+	namespace, id []byte,
+	result rules.MatchResult,
+) *element {
+	return &element{
+		namespace: append([]byte(nil), namespace...),
+		id:        append([]byte(nil), id...),
+		result:    result,
+	}
+}
+
 // ShouldPromote determines whether the previous promotion has expired
 // and we should perform a new promotion.
 func (e *element) ShouldPromote(now time.Time) bool {
