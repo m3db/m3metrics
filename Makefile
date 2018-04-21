@@ -15,15 +15,18 @@ lint_check           := .ci/lint.sh
 metalint_check       := .ci/metalint.sh
 metalint_config      := .metalinter.json
 metalint_exclude     := .excludemetalint
+package_root         := github.com/m3db/m3metrics
 gopath_prefix        := $(GOPATH)/src
 vendor_prefix        := vendor
-m3metrics_package    := github.com/m3db/m3metrics
-license_dir          := .ci/uber-licence
-license_node_modules := $(license_dir)/node_modules
-auto_gen             := .ci/auto-gen.sh
+mockgen_package      := github.com/golang/mock/mockgen
+mocks_output_dir     := generated/mocks/mocks
+mocks_rules_dir      := generated/mocks
 protoc_go_package    := github.com/golang/protobuf/protoc-gen-go
 proto_output_dir     := generated/proto
 proto_rules_dir      := generated/proto
+auto_gen             := .ci/auto-gen.sh
+license_dir          := .ci/uber-licence
+license_node_modules := $(license_dir)/node_modules
 
 BUILD           := $(abspath ./bin)
 LINUX_AMD64_ENV := GOOS=linux GOARCH=amd64 CGO_ENABLED=0
@@ -38,11 +41,27 @@ install-license-bin: install-vendor
 	git submodule update --init --recursive
 	[ -d $(license_node_modules) ] || (cd $(license_dir) && npm install)
 
+.PHONY: install-mockgen
+install-mockgen: install-vendor
+	@echo Installing mockgen
+	glide install
+
 .PHONY: install-proto-bin
 install-proto-bin: install-vendor
 	@echo Installing protobuf binaries
 	@echo Note: the protobuf compiler v3.0.0 can be downloaded from https://github.com/google/protobuf/releases or built from source at https://github.com/google/protobuf.
-	go install $(m3metrics_package)/$(vendor_prefix)/$(protoc_go_package)
+	go install $(package_root)/$(vendor_prefix)/$(protoc_go_package)
+
+.PHONY: mock-gen
+mock-gen: install-mockgen install-license-bin install-util-mockclean
+	@echo Generating mocks
+	PACKAGE=$(package_root) $(auto_gen) $(mocks_output_dir) $(mocks_rules_dir)
+
+.PHONY: mock-gen-deps
+mock-gen-no-deps:
+	@echo Generating mocks
+	PACKAGE=$(package_root) $(auto_gen) $(mocks_output_dir) $(mocks_rules_dir)
+
 
 .PHONY: proto-gen
 proto-gen: install-proto-bin install-license-bin

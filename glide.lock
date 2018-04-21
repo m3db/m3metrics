@@ -1,5 +1,5 @@
 hash: 44753b05e871f26cdeb1f9f15ce521e22f97f10fce5ecd5e23c6226752618823
-updated: 2018-04-10T22:48:18.11349567-04:00
+updated: 2018-04-21T18:30:35.236936-04:00
 imports:
 - name: github.com/apache/thrift
   version: 9549b25c77587b29be4e0b5c258221a4ed85d37a
@@ -97,7 +97,7 @@ imports:
 - name: go.uber.org/multierr
   version: 3c4937480c32f4c13a875a1829af76c98ca3d40a
 - name: go.uber.org/zap
-  version: 35aad584952c3e7020db7b839f6b102de6271f89
+  version: eeedf312bc6c57391d84767a4cd413f02a917974
   subpackages:
   - buffer
   - internal/bufferpool
@@ -138,7 +138,7 @@ testImports:
   subpackages:
   - spew
 - name: github.com/fortytw2/leaktest
-  version: 7dad53304f9614c1c365755c1176a8e876fee3e8
+  version: a5ef70473c97b71626b9abeda80ee92ba2a7de9e
 - name: github.com/google/go-cmp
   version: 5411ab924f9ffa6566244a9e504bc347edacffd3
   subpackages:
