@@ -67,7 +67,7 @@ mock-gen-no-deps:
 .PHONY: proto-gen
 proto-gen: install-proto-bin install-license-bin
 	@echo Generating protobuf files
-	PACKAGE=$(m3metrics_package) $(auto_gen) $(proto_output_dir) $(proto_rules_dir)
+	PACKAGE=$(package_root) $(auto_gen) $(proto_output_dir) $(proto_rules_dir)
 
 .PHONY: all-gen
 all-gen: proto-gen
