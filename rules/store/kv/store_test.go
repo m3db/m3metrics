@@ -415,7 +415,7 @@ func TestWriteAll(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	mutable := newMutableRuleSetFromSchema(t, 0, testRuleSet)
+	mutable := newMutableRuleSetFromProto(t, 0, testRuleSet)
 	namespaces, err := rules.NewNamespaces(0, testNamespaces)
 	require.NoError(t, err)
 
@@ -424,15 +424,15 @@ func TestWriteAll(t *testing.T) {
 
 	rs, err = s.ReadRuleSet(testNamespace)
 	require.NoError(t, err)
-	rsSchema, err := rs.ToMutableRuleSet().Schema()
+	rsProto, err := rs.ToMutableRuleSet().Proto()
 	require.NoError(t, err)
-	require.Equal(t, rsSchema, testRuleSet)
+	require.Equal(t, rsProto, testRuleSet)
 
 	nss, err = s.ReadNamespaces()
 	require.NoError(t, err)
-	nssSchema, err := nss.Schema()
+	nssProto, err := nss.Proto()
 	require.NoError(t, err)
-	require.Equal(t, nssSchema, testNamespaces)
+	require.Equal(t, nssProto, testNamespaces)
 }
 
 func TestWriteAllValidationError(t *testing.T) {
@@ -457,7 +457,7 @@ func TestWriteAllError(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	mutable := newMutableRuleSetFromSchema(t, 1, testRuleSet)
+	mutable := newMutableRuleSetFromProto(t, 1, testRuleSet)
 	namespaces, err := rules.NewNamespaces(0, testNamespaces)
 	require.NoError(t, err)
 
@@ -510,7 +510,7 @@ func TestWriteRuleSetError(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	mutable := newMutableRuleSetFromSchema(t, 1, testRuleSet)
+	mutable := newMutableRuleSetFromProto(t, 1, testRuleSet)
 	badRuleSets := []rules.MutableRuleSet{mutable, nil}
 	for _, rs := range badRuleSets {
 		err = s.WriteRuleSet(rs)
@@ -536,7 +536,7 @@ func TestWriteAllNoNamespace(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, nss)
 
-	mutable := newMutableRuleSetFromSchema(t, 0, testRuleSet)
+	mutable := newMutableRuleSetFromProto(t, 0, testRuleSet)
 	namespaces, err := rules.NewNamespaces(0, testNamespaces)
 	require.NoError(t, err)
 
@@ -570,14 +570,14 @@ func testStoreWithValidator(validator rules.Validator) rules.Store {
 	return NewStore(kvStore, opts)
 }
 
-// newMutableRuleSetFromSchema creates a new MutableRuleSet from a schema object.
-func newMutableRuleSetFromSchema(
+// newMutableRuleSetFromProto creates a new MutableRuleSet from a proto object.
+func newMutableRuleSetFromProto(
 	t *testing.T,
 	version int,
 	rs *rulepb.RuleSet,
 ) rules.MutableRuleSet {
 	// Takes a blank Options stuct because none of the mutation functions need the options.
-	roRuleSet, err := rules.NewRuleSetFromSchema(version, rs, rules.NewOptions())
+	roRuleSet, err := rules.NewRuleSetFromProto(version, rs, rules.NewOptions())
 	require.NoError(t, err)
 	return roRuleSet.ToMutableRuleSet()
 }
