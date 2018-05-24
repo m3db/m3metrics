@@ -77,7 +77,7 @@ func (s *store) ReadRuleSet(nsName string) (rules.RuleSet, error) {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
 
-	rs, err := rules.NewRuleSetFromSchema(version, &ruleSet, rules.NewOptions())
+	rs, err := rules.NewRuleSetFromProto(version, &ruleSet, rules.NewOptions())
 	if err != nil {
 		return nil, fmt.Errorf("Could not fetch RuleSet %s: %v", nsName, err.Error())
 	}
@@ -144,7 +144,7 @@ func (s *store) ruleSetTransaction(rs rules.MutableRuleSet) (kv.Condition, kv.Op
 	}
 
 	ruleSetKey := s.ruleSetKey(string(rs.Namespace()))
-	rsSchema, err := rs.Schema()
+	rsProto, err := rs.Proto()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -155,7 +155,7 @@ func (s *store) ruleSetTransaction(rs rules.MutableRuleSet) (kv.Condition, kv.Op
 		SetTargetType(kv.TargetVersion).
 		SetValue(rs.Version())
 
-	return ruleSetCond, kv.NewSetOp(ruleSetKey, rsSchema), nil
+	return ruleSetCond, kv.NewSetOp(ruleSetKey, rsProto), nil
 }
 
 func (s *store) namespacesTransaction(nss *rules.Namespaces) (kv.Condition, kv.Op, error) {
@@ -164,7 +164,7 @@ func (s *store) namespacesTransaction(nss *rules.Namespaces) (kv.Condition, kv.O
 	}
 
 	namespacesKey := s.opts.NamespacesKey
-	nssSchema, err := nss.Schema()
+	nssProto, err := nss.Proto()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -174,5 +174,5 @@ func (s *store) namespacesTransaction(nss *rules.Namespaces) (kv.Condition, kv.O
 		SetTargetType(kv.TargetVersion).
 		SetValue(nss.Version())
 
-	return namespacesCond, kv.NewSetOp(namespacesKey, nssSchema), nil
+	return namespacesCond, kv.NewSetOp(namespacesKey, nssProto), nil
 }
