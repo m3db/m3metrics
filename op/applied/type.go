@@ -176,11 +176,11 @@ func NewPipeline(ops []Union) Pipeline {
 	return Pipeline{operations: ops}
 }
 
-// NumSteps returns the number of steps in a pipeline.
-func (p Pipeline) NumSteps() int { return len(p.operations) }
+// Len returns the number of steps in a pipeline.
+func (p Pipeline) Len() int { return len(p.operations) }
 
 // IsEmpty determines whether a pipeline is empty.
-func (p Pipeline) IsEmpty() bool { return p.NumSteps() == 0 }
+func (p Pipeline) IsEmpty() bool { return p.Len() == 0 }
 
 // At returns the operation at a given step.
 func (p Pipeline) At(i int) Union { return p.operations[i] }

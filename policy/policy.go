@@ -203,6 +203,7 @@ func (p Policies) Equals(other Policies) bool {
 	return true
 }
 
+/*
 // ByResolutionAscRetentionDesc implements the sort.Sort interface to sort policies first
 // by resolution in ascending order, then by rention in descending order.
 type ByResolutionAscRetentionDesc []Policy
@@ -246,3 +247,4 @@ func (pr ByResolutionAscRetentionDesc) Less(i, j int) bool {
 	// If everything equals, prefer the first one
 	return true
 }
+*/

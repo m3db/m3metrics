@@ -36,6 +36,11 @@ const (
 	PerSecond
 )
 
+// IsValid checks if the transformation type is valid.
+func (t Type) IsValid() bool {
+	return t.IsUnaryTransform() || t.IsBinaryTransform()
+}
+
 // IsUnaryTransform returns whether this is a unary transformation.
 func (t Type) IsUnaryTransform() bool {
 	_, exists := unaryTransforms[t]

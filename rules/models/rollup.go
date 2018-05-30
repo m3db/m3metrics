@@ -23,30 +23,15 @@ package models
 import (
 	"sort"
 
+	"github.com/m3db/m3metrics/op"
 	"github.com/m3db/m3metrics/policy"
 )
 
 // RollupTarget is a common json serializable rollup target.
 type RollupTarget struct {
-	Name     string          `json:"name" validate:"required"`
-	Tags     []string        `json:"tags" validate:"required"`
-	Policies []policy.Policy `json:"policies" validate:"required"`
+	Pipeline        op.Pipeline            `json:"pipeline" validate:"required"`
+	StoragePolicies policy.StoragePolicies `json:"storagePolicies" validate:"required"`
 }
-
-// RollupRule is a common json serializable rollup rule. Implements Sort interface.
-type RollupRule struct {
-	ID                  string         `json:"id,omitempty"`
-	Name                string         `json:"name" validate:"required"`
-	Filter              string         `json:"filter" validate:"required"`
-	Targets             []RollupTarget `json:"targets" validate:"required,dive,required"`
-	CutoverMillis       int64          `json:"cutoverMillis,omitempty"`
-	LastUpdatedBy       string         `json:"lastUpdatedBy"`
-	LastUpdatedAtMillis int64          `json:"lastUpdatedAtMillis"`
-}
-
-// RollupRuleViews belonging to a ruleset indexed by uuid.
-// Each value contains the entire snapshot history of the rule.
-type RollupRuleViews map[string][]*RollupRuleView
 
 // NewRollupTarget takes a RollupTargetView and returns the equivalent RollupTarget.
 func NewRollupTarget(t RollupTargetView) RollupTarget {
@@ -58,32 +43,44 @@ func (t RollupTarget) ToRollupTargetView() RollupTargetView {
 	return RollupTargetView(t)
 }
 
-// Sort sorts the policies inside the rollup target.
+// Sort sorts the storage policies inside the rollup target.
 func (t *RollupTarget) Sort() {
-	sort.Strings(t.Tags)
-	sort.Sort(policy.ByResolutionAscRetentionDesc(t.Policies))
+	sort.Sort(policy.ByResolutionAscRetentionDesc(t.StoragePolicies))
 }
 
-// Equals determines whether two rollup targets are equal.
-func (t *RollupTarget) Equals(other *RollupTarget) bool {
+// Equal determines whether two rollup targets are equal.
+func (t *RollupTarget) Equal(other *RollupTarget) bool {
 	if t == nil && other == nil {
 		return true
 	}
 	if t == nil || other == nil {
 		return false
 	}
-	if t.Name != other.Name {
-		return false
-	}
-	if len(t.Tags) != len(other.Tags) {
-		return false
-	}
-	for i := 0; i < len(t.Tags); i++ {
-		if t.Tags[i] != other.Tags[i] {
-			return false
-		}
-	}
-	return policy.Policies(t.Policies).Equals(policy.Policies(other.Policies))
+	return t.Pipeline.Equal(other.Pipeline) && t.StoragePolicies.Equal(other.StoragePolicies)
+}
+
+// RollupTargetView is a human friendly representation of a rollup rule target at a given point in time.
+type RollupTargetView struct {
+	Pipeline        op.Pipeline
+	StoragePolicies policy.StoragePolicies
+}
+
+/*
+// IsCompatibleWith returns whether two rollup target views are compatible.
+func (rtv *RollupTargetView) IsCompatibleWith(other RollupTargetView) bool {
+	rollup
+}
+*/
+
+// RollupRule is a common json serializable rollup rule. Implements Sort interface.
+type RollupRule struct {
+	ID                  string         `json:"id,omitempty"`
+	Name                string         `json:"name" validate:"required"`
+	Filter              string         `json:"filter" validate:"required"`
+	Targets             []RollupTarget `json:"targets" validate:"required,dive,required"`
+	CutoverMillis       int64          `json:"cutoverMillis,omitempty"`
+	LastUpdatedBy       string         `json:"lastUpdatedBy"`
+	LastUpdatedAtMillis int64          `json:"lastUpdatedAtMillis"`
 }
 
 // NewRollupRule takes a RollupRuleView and returns the equivalent RollupRule.
@@ -131,6 +128,7 @@ func (r *RollupRule) Equals(other *RollupRule) bool {
 		rollupTargets(r.Targets).Equals(other.Targets)
 }
 
+/*
 // Sort sorts the rollup targets inside the rollup rule.
 func (r *RollupRule) Sort() {
 	for i := range r.Targets {
@@ -138,13 +136,7 @@ func (r *RollupRule) Sort() {
 	}
 	sort.Sort(rollupTargetsByNameTagsAsc(r.Targets))
 }
-
-// RollupTargetView is a human friendly representation of a rollup rule target at a given point in time.
-type RollupTargetView struct {
-	Name     string
-	Tags     []string
-	Policies []policy.Policy
-}
+*/
 
 // RollupRuleView is a human friendly representation of a rollup rule at a given point in time.
 type RollupRuleView struct {
@@ -158,28 +150,11 @@ type RollupRuleView struct {
 	LastUpdatedAtNanos int64
 }
 
-// SameTransform returns whether two rollup targets have the same transformation.
-func (rtv *RollupTargetView) SameTransform(other RollupTargetView) bool {
-	if rtv.Name != other.Name {
-		return false
-	}
-	if len(rtv.Tags) != len(other.Tags) {
-		return false
-	}
-	clonedTags := make([]string, len(rtv.Tags))
-	otherClonedTags := make([]string, len(other.Tags))
-	copy(clonedTags, rtv.Tags)
-	sort.Strings(clonedTags)
-	copy(otherClonedTags, other.Tags)
-	sort.Strings(otherClonedTags)
-	for i := 0; i < len(clonedTags); i++ {
-		if clonedTags[i] != otherClonedTags[i] {
-			return false
-		}
-	}
-	return true
-}
+// RollupRuleViews belonging to a ruleset indexed by uuid.
+// Each value contains the entire snapshot history of the rule.
+type RollupRuleViews map[string][]*RollupRuleView
 
+/*
 type rollupTargetsByNameTagsAsc []RollupTarget
 
 func (a rollupTargetsByNameTagsAsc) Len() int      { return len(a) }
@@ -205,6 +180,7 @@ func (a rollupTargetsByNameTagsAsc) Less(i, j int) bool {
 	}
 	return len(a[i].Tags) < len(a[j].Tags)
 }
+*/
 
 type rollupTargets []RollupTarget
 
@@ -213,7 +189,7 @@ func (t rollupTargets) Equals(other rollupTargets) bool {
 		return false
 	}
 	for i := 0; i < len(t); i++ {
-		if !t[i].Equals(&other[i]) {
+		if !t[i].Equal(&other[i]) {
 			return false
 		}
 	}

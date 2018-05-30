@@ -29,11 +29,15 @@ import (
 )
 
 var (
+	// DefaultPipelineMetadata is a default pipeline metadata.
+	DefaultPipelineMetadata PipelineMetadata
+
+	// DefaultPipelineMetadatas is a default list of pipeline metadatas.
+	DefaultPipelineMetadatas = []PipelineMetadata{DefaultPipelineMetadata}
+
 	// DefaultStagedMetadata is a default staged metadata.
 	DefaultStagedMetadata = StagedMetadata{
-		Metadata: Metadata{
-			Pipelines: []PipelineMetadata{PipelineMetadata{}},
-		},
+		Metadata: Metadata{Pipelines: DefaultPipelineMetadatas},
 	}
 
 	// DefaultStagedMetadatas represents default staged metadatas.
@@ -46,10 +50,17 @@ type PipelineMetadata struct {
 	AggregationID aggregation.ID
 
 	// List of storage policies.
-	StoragePolicies []policy.StoragePolicy
+	StoragePolicies policy.StoragePolicies
 
 	// Pipeline operations.
 	Pipeline applied.Pipeline
+}
+
+// Equal returns true if two pipeline metadata are considered equal.
+func (m PipelineMetadata) Equal(other PipelineMetadata) bool {
+	return m.AggregationID.Equal(other.AggregationID) &&
+		m.StoragePolicies.Equal(other.StoragePolicies) &&
+		m.Pipeline.Equal(other.Pipeline)
 }
 
 // IsDefault returns whether this is the default standard pipeline metadata.
