@@ -221,7 +221,7 @@ func (as *activeRuleSet) mappingsForNonRollupID(
 func (as *activeRuleSet) rollupResultsFor(id []byte, timeNanos int64) rollupResults {
 	var (
 		cutoverNanos  int64
-		rollupTargets []rollupTargetV2
+		rollupTargets []rollupTarget
 	)
 	for _, rollupRule := range as.rollupRules {
 		snapshot := rollupRule.ActiveSnapshot(timeNanos)
@@ -259,7 +259,7 @@ func (as *activeRuleSet) rollupResultsFor(id []byte, timeNanos int64) rollupResu
 func (as *activeRuleSet) toRollupResults(
 	id []byte,
 	cutoverNanos int64,
-	targets []rollupTargetV2,
+	targets []rollupTarget,
 ) (rollupResults, error) {
 	if len(targets) == 0 {
 		return rollupResults{}, nil

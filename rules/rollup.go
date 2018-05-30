@@ -46,7 +46,7 @@ type rollupRuleSnapshot struct {
 	tombstoned         bool
 	cutoverNanos       int64
 	filter             filters.Filter
-	targets            []rollupTargetV2
+	targets            []rollupTarget
 	rawFilter          string
 	lastUpdatedAtNanos int64
 	lastUpdatedBy      string
@@ -59,12 +59,12 @@ func newRollupRuleSnapshot(
 	if r == nil {
 		return nil, errNilRollupRuleSnapshotProto
 	}
-	var targets []rollupTargetV2
+	var targets []rollupTarget
 	if len(r.Targets) > 0 {
 		// Convert v1 (i.e., legacy) rollup targets proto to rollup targets v2.
-		targets = make([]rollupTargetV2, 0, len(r.Targets))
+		targets = make([]rollupTarget, 0, len(r.Targets))
 		for _, t := range r.Targets {
-			target, err := newRollupTargetV2FromV1Proto(t)
+			target, err := newRollupTargetFromV1Proto(t)
 			if err != nil {
 				return nil, err
 			}
@@ -72,9 +72,9 @@ func newRollupRuleSnapshot(
 		}
 	} else if len(r.TargetsV2) > 0 {
 		// Convert v2 rollup targets proto to rollup targest v2.
-		targets = make([]rollupTargetV2, 0, len(r.TargetsV2))
+		targets = make([]rollupTarget, 0, len(r.TargetsV2))
 		for _, t := range r.TargetsV2 {
-			target, err := newRollupTargetV2FromV2Proto(t)
+			target, err := newRollupTargetFromV2Proto(t)
 			if err != nil {
 				return nil, err
 			}
@@ -109,7 +109,7 @@ func newRollupRuleSnapshotFromFields(
 	name string,
 	cutoverNanos int64,
 	rawFilter string,
-	targets []rollupTargetV2,
+	targets []rollupTarget,
 	filter filters.Filter,
 	lastUpdatedAtNanos int64,
 	lastUpdatedBy string,
@@ -136,7 +136,7 @@ func newRollupRuleSnapshotFromFieldsInternal(
 	tombstoned bool,
 	cutoverNanos int64,
 	rawFilter string,
-	targets []rollupTargetV2,
+	targets []rollupTarget,
 	filter filters.Filter,
 	lastUpdatedAtNanos int64,
 	lastUpdatedBy string,
@@ -154,7 +154,7 @@ func newRollupRuleSnapshotFromFieldsInternal(
 }
 
 func (rrs *rollupRuleSnapshot) clone() rollupRuleSnapshot {
-	targets := make([]rollupTargetV2, len(rrs.targets))
+	targets := make([]rollupTarget, len(rrs.targets))
 	for i, t := range rrs.targets {
 		targets[i] = t.clone()
 	}
@@ -251,7 +251,7 @@ func newRollupRule(
 func newRollupRuleFromFields(
 	name string,
 	rawFilter string,
-	targets []rollupTargetV2,
+	targets []rollupTarget,
 	meta UpdateMetadata,
 ) (*rollupRule, error) {
 	rr := rollupRule{uuid: uuid.New()}
@@ -323,7 +323,7 @@ func (rc *rollupRule) Tombstoned() bool {
 func (rc *rollupRule) addSnapshot(
 	name string,
 	rawFilter string,
-	rollupTargets []rollupTargetV2,
+	rollupTargets []rollupTarget,
 	meta UpdateMetadata,
 ) error {
 	snapshot, err := newRollupRuleSnapshotFromFields(
@@ -369,7 +369,7 @@ func (rc *rollupRule) markTombstoned(meta UpdateMetadata) error {
 func (rc *rollupRule) revive(
 	name string,
 	rawFilter string,
-	targets []rollupTargetV2,
+	targets []rollupTarget,
 	meta UpdateMetadata,
 ) error {
 	n, err := rc.Name()
