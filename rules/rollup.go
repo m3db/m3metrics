@@ -52,7 +52,7 @@ type rollupRuleSnapshot struct {
 	lastUpdatedBy      string
 }
 
-func newRollupRuleSnapshot(
+func newRollupRuleSnapshotFromProto(
 	r *rulepb.RollupRuleSnapshot,
 	opts filters.TagsFilterOptions,
 ) (*rollupRuleSnapshot, error) {
@@ -174,8 +174,8 @@ func (rrs *rollupRuleSnapshot) clone() rollupRuleSnapshot {
 	}
 }
 
-// Proto returns the given MappingRuleSnapshot in protobuf form.
-func (rrs *rollupRuleSnapshot) Proto() (*rulepb.RollupRuleSnapshot, error) {
+// proto returns the given MappingRuleSnapshot in protobuf form.
+func (rrs *rollupRuleSnapshot) proto() (*rulepb.RollupRuleSnapshot, error) {
 	res := &rulepb.RollupRuleSnapshot{
 		Name:               rrs.name,
 		Tombstoned:         rrs.tombstoned,
@@ -187,7 +187,7 @@ func (rrs *rollupRuleSnapshot) Proto() (*rulepb.RollupRuleSnapshot, error) {
 
 	targets := make([]*rulepb.RollupTargetV2, len(rrs.targets))
 	for i, t := range rrs.targets {
-		target, err := t.Proto()
+		target, err := t.proto()
 		if err != nil {
 			return nil, err
 		}
@@ -198,36 +198,17 @@ func (rrs *rollupRuleSnapshot) Proto() (*rulepb.RollupRuleSnapshot, error) {
 	return res, nil
 }
 
-func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*models.RollupRuleView, error) {
-	if snapshotIdx < 0 || snapshotIdx >= len(rc.snapshots) {
-		return nil, errRollupRuleSnapshotIndexOutOfRange
-	}
-
-	rrs := rc.snapshots[snapshotIdx].clone()
-	targets := make([]models.RollupTargetView, len(rrs.targets))
-	for i, t := range rrs.targets {
-		targets[i] = t.rollupTargetView()
-	}
-
-	return &models.RollupRuleView{
-		ID:                 rc.uuid,
-		Name:               rrs.name,
-		Tombstoned:         rrs.tombstoned,
-		CutoverNanos:       rrs.cutoverNanos,
-		Filter:             rrs.rawFilter,
-		Targets:            targets,
-		LastUpdatedAtNanos: rrs.lastUpdatedAtNanos,
-		LastUpdatedBy:      rrs.lastUpdatedBy,
-	}, nil
-}
-
 // rollupRule stores rollup rule snapshots.
 type rollupRule struct {
 	uuid      string
 	snapshots []*rollupRuleSnapshot
 }
 
-func newRollupRule(
+func newEmptyRollupRule() *rollupRule {
+	return &rollupRule{uuid: uuid.New()}
+}
+
+func newRollupRuleFromProto(
 	rc *rulepb.RollupRule,
 	opts filters.TagsFilterOptions,
 ) (*rollupRule, error) {
@@ -236,7 +217,7 @@ func newRollupRule(
 	}
 	snapshots := make([]*rollupRuleSnapshot, 0, len(rc.Snapshots))
 	for i := 0; i < len(rc.Snapshots); i++ {
-		rr, err := newRollupRuleSnapshot(rc.Snapshots[i], opts)
+		rr, err := newRollupRuleSnapshotFromProto(rc.Snapshots[i], opts)
 		if err != nil {
 			return nil, err
 		}
@@ -246,19 +227,6 @@ func newRollupRule(
 		uuid:      rc.Uuid,
 		snapshots: snapshots,
 	}, nil
-}
-
-func newRollupRuleFromFields(
-	name string,
-	rawFilter string,
-	targets []rollupTarget,
-	meta UpdateMetadata,
-) (*rollupRule, error) {
-	rr := rollupRule{uuid: uuid.New()}
-	if err := rr.addSnapshot(name, rawFilter, targets, meta); err != nil {
-		return nil, err
-	}
-	return &rr, nil
 }
 
 func (rc rollupRule) clone() rollupRule {
@@ -273,9 +241,26 @@ func (rc rollupRule) clone() rollupRule {
 	}
 }
 
-// ActiveSnapshot returns the latest rule snapshot whose cutover time is earlier
+// proto returns the proto message for the given rollup rule.
+func (rc *rollupRule) proto() (*rulepb.RollupRule, error) {
+	snapshots := make([]*rulepb.RollupRuleSnapshot, len(rc.snapshots))
+	for i, s := range rc.snapshots {
+		snapshot, err := s.proto()
+		if err != nil {
+			return nil, err
+		}
+		snapshots[i] = snapshot
+	}
+
+	return &rulepb.RollupRule{
+		Uuid:      rc.uuid,
+		Snapshots: snapshots,
+	}, nil
+}
+
+// activeSnapshot returns the latest rule snapshot whose cutover time is earlier
 // than or equal to timeNanos, or nil if not found.
-func (rc *rollupRule) ActiveSnapshot(timeNanos int64) *rollupRuleSnapshot {
+func (rc *rollupRule) activeSnapshot(timeNanos int64) *rollupRuleSnapshot {
 	idx := rc.activeIndex(timeNanos)
 	if idx < 0 {
 		return nil
@@ -283,9 +268,9 @@ func (rc *rollupRule) ActiveSnapshot(timeNanos int64) *rollupRuleSnapshot {
 	return rc.snapshots[idx]
 }
 
-// ActiveRule returns the rule containing snapshots that's in effect at time timeNanos
+// activeRule returns the rule containing snapshots that's in effect at time timeNanos
 // and all future rules after time timeNanos.
-func (rc *rollupRule) ActiveRule(timeNanos int64) *rollupRule {
+func (rc *rollupRule) activeRule(timeNanos int64) *rollupRule {
 	idx := rc.activeIndex(timeNanos)
 	if idx < 0 {
 		return rc
@@ -303,7 +288,7 @@ func (rc *rollupRule) activeIndex(timeNanos int64) int {
 	return idx
 }
 
-func (rc *rollupRule) Name() (string, error) {
+func (rc *rollupRule) name() (string, error) {
 	if len(rc.snapshots) == 0 {
 		return "", errNoRuleSnapshots
 	}
@@ -311,7 +296,7 @@ func (rc *rollupRule) Name() (string, error) {
 	return latest.name, nil
 }
 
-func (rc *rollupRule) Tombstoned() bool {
+func (rc *rollupRule) tombstoned() bool {
 	if len(rc.snapshots) == 0 {
 		return true
 	}
@@ -343,12 +328,12 @@ func (rc *rollupRule) addSnapshot(
 }
 
 func (rc *rollupRule) markTombstoned(meta UpdateMetadata) error {
-	n, err := rc.Name()
+	n, err := rc.name()
 	if err != nil {
 		return err
 	}
 
-	if rc.Tombstoned() {
+	if rc.tombstoned() {
 		return fmt.Errorf("%s is already tombstoned", n)
 	}
 
@@ -372,11 +357,11 @@ func (rc *rollupRule) revive(
 	targets []rollupTarget,
 	meta UpdateMetadata,
 ) error {
-	n, err := rc.Name()
+	n, err := rc.name()
 	if err != nil {
 		return err
 	}
-	if !rc.Tombstoned() {
+	if !rc.tombstoned() {
 		return merrors.NewRuleConflictError(fmt.Sprintf("%s is not tombstoned", n))
 	}
 	return rc.addSnapshot(name, rawFilter, targets, meta)
@@ -396,19 +381,25 @@ func (rc *rollupRule) history() ([]*models.RollupRuleView, error) {
 	return views, nil
 }
 
-// Proto returns the given RollupRule in protobuf form.
-func (rc *rollupRule) Proto() (*rulepb.RollupRule, error) {
-	snapshots := make([]*rulepb.RollupRuleSnapshot, len(rc.snapshots))
-	for i, s := range rc.snapshots {
-		snapshot, err := s.Proto()
-		if err != nil {
-			return nil, err
-		}
-		snapshots[i] = snapshot
+func (rc *rollupRule) rollupRuleView(snapshotIdx int) (*models.RollupRuleView, error) {
+	if snapshotIdx < 0 || snapshotIdx >= len(rc.snapshots) {
+		return nil, errRollupRuleSnapshotIndexOutOfRange
 	}
 
-	return &rulepb.RollupRule{
-		Uuid:      rc.uuid,
-		Snapshots: snapshots,
+	rrs := rc.snapshots[snapshotIdx].clone()
+	targets := make([]models.RollupTargetView, len(rrs.targets))
+	for i, t := range rrs.targets {
+		targets[i] = t.rollupTargetView()
+	}
+
+	return &models.RollupRuleView{
+		ID:                 rc.uuid,
+		Name:               rrs.name,
+		Tombstoned:         rrs.tombstoned,
+		CutoverNanos:       rrs.cutoverNanos,
+		Filter:             rrs.rawFilter,
+		Targets:            targets,
+		LastUpdatedAtNanos: rrs.lastUpdatedAtNanos,
+		LastUpdatedBy:      rrs.lastUpdatedBy,
 	}, nil
 }

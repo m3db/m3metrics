@@ -21,8 +21,6 @@
 package models
 
 import (
-	"sort"
-
 	"github.com/m3db/m3metrics/op"
 	"github.com/m3db/m3metrics/policy"
 )
@@ -43,11 +41,6 @@ func (t RollupTarget) ToRollupTargetView() RollupTargetView {
 	return RollupTargetView(t)
 }
 
-// Sort sorts the storage policies inside the rollup target.
-func (t *RollupTarget) Sort() {
-	sort.Sort(policy.ByResolutionAscRetentionDesc(t.StoragePolicies))
-}
-
 // Equal determines whether two rollup targets are equal.
 func (t *RollupTarget) Equal(other *RollupTarget) bool {
 	if t == nil && other == nil {
@@ -64,13 +57,6 @@ type RollupTargetView struct {
 	Pipeline        op.Pipeline
 	StoragePolicies policy.StoragePolicies
 }
-
-/*
-// IsCompatibleWith returns whether two rollup target views are compatible.
-func (rtv *RollupTargetView) IsCompatibleWith(other RollupTargetView) bool {
-	rollup
-}
-*/
 
 // RollupRule is a common json serializable rollup rule. Implements Sort interface.
 type RollupRule struct {
@@ -108,35 +94,30 @@ func (r RollupRule) ToRollupRuleView() *RollupRuleView {
 	}
 
 	return &RollupRuleView{
-		ID:      r.ID,
-		Name:    r.Name,
-		Filter:  r.Filter,
-		Targets: targets,
+		ID:                 r.ID,
+		Name:               r.Name,
+		Tombstoned:         false,
+		CutoverNanos:       r.CutoverMillis * nanosPerMilli,
+		Filter:             r.Filter,
+		Targets:            targets,
+		LastUpdatedBy:      r.LastUpdatedBy,
+		LastUpdatedAtNanos: r.LastUpdatedAtMillis * nanosPerMilli,
 	}
 }
 
-// Equals determines whether two rollup rules are equal.
-func (r *RollupRule) Equals(other *RollupRule) bool {
+// Equal determines whether two rollup rules are equal.
+func (r *RollupRule) Equal(other *RollupRule) bool {
 	if r == nil && other == nil {
 		return true
 	}
 	if r == nil || other == nil {
 		return false
 	}
-	return r.Name == other.Name &&
+	return r.ID == other.ID &&
+		r.Name == other.Name &&
 		r.Filter == other.Filter &&
-		rollupTargets(r.Targets).Equals(other.Targets)
+		rollupTargets(r.Targets).Equal(other.Targets)
 }
-
-/*
-// Sort sorts the rollup targets inside the rollup rule.
-func (r *RollupRule) Sort() {
-	for i := range r.Targets {
-		r.Targets[i].Sort()
-	}
-	sort.Sort(rollupTargetsByNameTagsAsc(r.Targets))
-}
-*/
 
 // RollupRuleView is a human friendly representation of a rollup rule at a given point in time.
 type RollupRuleView struct {
@@ -154,37 +135,9 @@ type RollupRuleView struct {
 // Each value contains the entire snapshot history of the rule.
 type RollupRuleViews map[string][]*RollupRuleView
 
-/*
-type rollupTargetsByNameTagsAsc []RollupTarget
-
-func (a rollupTargetsByNameTagsAsc) Len() int      { return len(a) }
-func (a rollupTargetsByNameTagsAsc) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a rollupTargetsByNameTagsAsc) Less(i, j int) bool {
-	if a[i].Name < a[j].Name {
-		return true
-	}
-	if a[i].Name > a[j].Name {
-		return false
-	}
-	tIdx := 0
-	for tIdx < len(a[i].Tags) && tIdx < len(a[j].Tags) {
-		ti := a[i].Tags[tIdx]
-		tj := a[j].Tags[tIdx]
-		if ti < tj {
-			return true
-		}
-		if ti > tj {
-			return false
-		}
-		tIdx++
-	}
-	return len(a[i].Tags) < len(a[j].Tags)
-}
-*/
-
 type rollupTargets []RollupTarget
 
-func (t rollupTargets) Equals(other rollupTargets) bool {
+func (t rollupTargets) Equal(other rollupTargets) bool {
 	if len(t) != len(other) {
 		return false
 	}

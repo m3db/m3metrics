@@ -50,7 +50,7 @@ type activeRuleSet struct {
 	mappingRules    []*mappingRule
 	rollupRules     []*rollupRule
 	cutoverTimesAsc []int64
-	tagFilterOpts   filters.TagsFilterOptions
+	tagsFilterOpts  filters.TagsFilterOptions
 	newRollupIDFn   metricID.NewIDFn
 	isRollupIDFn    metricID.MatchIDFn
 	aggTypeOpts     aggregation.TypesOptions
@@ -60,7 +60,7 @@ func newActiveRuleSet(
 	version int,
 	mappingRules []*mappingRule,
 	rollupRules []*rollupRule,
-	tagFilterOpts filters.TagsFilterOptions,
+	tagsFilterOpts filters.TagsFilterOptions,
 	newRollupIDFn metricID.NewIDFn,
 	isRollupIDFn metricID.MatchIDFn,
 	aggOpts aggregation.TypesOptions,
@@ -88,13 +88,14 @@ func newActiveRuleSet(
 		mappingRules:    mappingRules,
 		rollupRules:     rollupRules,
 		cutoverTimesAsc: cutoverTimesAsc,
-		tagFilterOpts:   tagFilterOpts,
+		tagsFilterOpts:  tagsFilterOpts,
 		newRollupIDFn:   newRollupIDFn,
 		isRollupIDFn:    isRollupIDFn,
 		aggTypeOpts:     aggOpts,
 	}
 }
 
+// NB(xichen): can further consolidate consecutive staged metadata to deduplicate.
 func (as *activeRuleSet) ForwardMatch(
 	id []byte,
 	fromNanos, toNanos int64,
@@ -122,7 +123,7 @@ func (as *activeRuleSet) ForwardMatch(
 }
 
 // TODO(xichen): look into whether we should simply pass in the aggregation type options
-// here as opposed to settign it in the active ruleset options.
+// here as opposed to setting it in the active ruleset options.
 func (as *activeRuleSet) ReverseMatch(
 	id []byte,
 	fromNanos, toNanos int64,
@@ -137,7 +138,7 @@ func (as *activeRuleSet) ReverseMatch(
 	)
 
 	// Determine whether the ID is a rollup metric ID.
-	name, tags, err := as.tagFilterOpts.NameAndTagsFn(id)
+	name, tags, err := as.tagsFilterOpts.NameAndTagsFn(id)
 	if err == nil {
 		isRollupID = as.isRollupIDFn(name, tags)
 	}
@@ -155,6 +156,9 @@ func (as *activeRuleSet) ReverseMatch(
 	return NewMatchResult(as.version, nextCutoverNanos, forExistingID, nil)
 }
 
+// NB(xichen): can further consolidate pipelines with the same aggregation ID
+// and same applied pipeline but different storage policies to reduce amount of
+// data that needed to be stored in memory and sent across the wire.
 func (as *activeRuleSet) forwardMatchAt(
 	id []byte,
 	timeNanos int64,
@@ -190,7 +194,7 @@ func (as *activeRuleSet) mappingsForNonRollupID(
 		pipelines    []metadata.PipelineMetadata
 	)
 	for _, mappingRule := range as.mappingRules {
-		snapshot := mappingRule.ActiveSnapshot(timeNanos)
+		snapshot := mappingRule.activeSnapshot(timeNanos)
 		if snapshot == nil {
 			continue
 		}
@@ -224,7 +228,7 @@ func (as *activeRuleSet) rollupResultsFor(id []byte, timeNanos int64) rollupResu
 		rollupTargets []rollupTarget
 	)
 	for _, rollupRule := range as.rollupRules {
-		snapshot := rollupRule.ActiveSnapshot(timeNanos)
+		snapshot := rollupRule.activeSnapshot(timeNanos)
 		if snapshot == nil {
 			continue
 		}
@@ -256,6 +260,7 @@ func (as *activeRuleSet) rollupResultsFor(id []byte, timeNanos int64) rollupResu
 // operation from those that aren't since the former pipelines are applied against the
 // original metric ID and the latter are applied against new rollup IDs due to the
 // application of the rollup operation.
+// nolint: unparam
 func (as *activeRuleSet) toRollupResults(
 	id []byte,
 	cutoverNanos int64,
@@ -267,7 +272,7 @@ func (as *activeRuleSet) toRollupResults(
 
 	// If we cannot extract tags from the id, this is likely an invalid
 	// metric and we bail early.
-	_, sortedTagPairBytes, err := as.tagFilterOpts.NameAndTagsFn(id)
+	_, sortedTagPairBytes, err := as.tagsFilterOpts.NameAndTagsFn(id)
 	if err != nil {
 		return rollupResults{}, err
 	}
@@ -371,7 +376,7 @@ func (as *activeRuleSet) matchRollupTarget(
 	opts matchRollupTargetOptions,
 ) ([]byte, bool) {
 	var (
-		sortedTagIter = as.tagFilterOpts.SortedTagIteratorFn(sortedTagPairBytes)
+		sortedTagIter = as.tagsFilterOpts.SortedTagIteratorFn(sortedTagPairBytes)
 		hasMoreTags   = sortedTagIter.Next()
 		currTagIdx    = 0
 	)
@@ -498,7 +503,7 @@ func (as *activeRuleSet) reverseMappingsForRollupID(
 	at aggregation.Type,
 ) (metadata.StagedMetadata, bool) {
 	for _, rollupRule := range as.rollupRules {
-		snapshot := rollupRule.ActiveSnapshot(timeNanos)
+		snapshot := rollupRule.activeSnapshot(timeNanos)
 		if snapshot == nil || snapshot.tombstoned {
 			continue
 		}
@@ -631,6 +636,7 @@ func mergeResultsForNewRollupIDs(
 			tombstonedMetadata := metadata.StagedMetadata{CutoverNanos: nextCutoverNanos, Tombstoned: true}
 			currResults[currIdx].Metadatas = append(currResults[currIdx].Metadatas, tombstonedMetadata)
 			currIdx++
+			continue
 		}
 
 		// Otherwise the current ID is larger, meaning a new ID is added at the next cutover time.

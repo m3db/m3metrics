@@ -35,7 +35,6 @@ var (
 	// emptyRollupTarget   rollupTarget
 	emptyRollupTarget rollupTarget
 
-	errNilPipelineProto       = errors.New("nil pipeline proto")
 	errNilRollupTargetV1Proto = errors.New("nil rollup target v1 proto")
 	errNilRollupTargetV2Proto = errors.New("nil rollup target v2 proto")
 )
@@ -117,8 +116,8 @@ func (t *rollupTarget) clone() rollupTarget {
 	}
 }
 
-// Proto returns the proto representation of a rollup target.
-func (t *rollupTarget) Proto() (*rulepb.RollupTargetV2, error) {
+// proto returns the proto representation of a rollup target.
+func (t *rollupTarget) proto() (*rulepb.RollupTargetV2, error) {
 	pipeline, err := t.Pipeline.Proto()
 	if err != nil {
 		return nil, err

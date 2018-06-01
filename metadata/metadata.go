@@ -35,10 +35,11 @@ var (
 	// DefaultPipelineMetadatas is a default list of pipeline metadatas.
 	DefaultPipelineMetadatas = []PipelineMetadata{DefaultPipelineMetadata}
 
+	// DefaultMetadata is a default metadata.
+	DefaultMetadata = Metadata{Pipelines: DefaultPipelineMetadatas}
+
 	// DefaultStagedMetadata is a default staged metadata.
-	DefaultStagedMetadata = StagedMetadata{
-		Metadata: Metadata{Pipelines: DefaultPipelineMetadatas},
-	}
+	DefaultStagedMetadata = StagedMetadata{Metadata: DefaultMetadata}
 
 	// DefaultStagedMetadatas represents default staged metadatas.
 	DefaultStagedMetadatas = StagedMetadatas{DefaultStagedMetadata}

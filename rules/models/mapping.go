@@ -71,11 +71,15 @@ func NewMappingRule(mrv *MappingRuleView) MappingRule {
 // ToMappingRuleView returns a ToMappingRuleView type.
 func (m MappingRule) ToMappingRuleView() *MappingRuleView {
 	return &MappingRuleView{
-		ID:              m.ID,
-		Name:            m.Name,
-		Filter:          m.Filter,
-		AggregationID:   m.AggregationID,
-		StoragePolicies: m.StoragePolicies,
+		ID:                 m.ID,
+		Name:               m.Name,
+		Tombstoned:         false,
+		CutoverNanos:       m.CutoverMillis * nanosPerMilli,
+		Filter:             m.Filter,
+		AggregationID:      m.AggregationID,
+		StoragePolicies:    m.StoragePolicies,
+		LastUpdatedBy:      m.LastUpdatedBy,
+		LastUpdatedAtNanos: m.LastUpdatedAtMillis * nanosPerMilli,
 	}
 }
 

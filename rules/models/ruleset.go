@@ -114,6 +114,7 @@ func (r RuleSet) ToRuleSetSnapshotView(IDGenType IDGenType) (*RuleSetSnapshotVie
 	return &RuleSetSnapshotView{
 		Namespace:    r.Namespace,
 		Version:      r.Version,
+		CutoverNanos: r.CutoverMillis * nanosPerMilli,
 		MappingRules: mappingRules,
 		RollupRules:  rollupRules,
 	}, nil

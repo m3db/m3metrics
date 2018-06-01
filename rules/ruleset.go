@@ -50,7 +50,7 @@ var (
 	ruleSetActionErrorFmt   = "cannot %s ruleset %s"
 )
 
-// RuleSet is a set of rules associated with a namespace.
+// RuleSet is a read-only set of rules associated with a namespace.
 type RuleSet interface {
 	// Namespace is the metrics namespace the ruleset applies to.
 	Namespace() []byte
@@ -70,8 +70,8 @@ type RuleSet interface {
 	// LastUpdatedAtNanos returns the time when this ruleset was last updated.
 	LastUpdatedAtNanos() int64
 
-	// ActiveSet returns the active ruleset at a given time.
-	ActiveSet(timeNanos int64) Matcher
+	// Proto returns the rulepb.Ruleset representation of this ruleset.
+	Proto() (*rulepb.RuleSet, error)
 
 	// MappingRuleHistory returns a map of mapping rule id to states that rule has been in.
 	MappingRules() (models.MappingRuleViews, error)
@@ -83,16 +83,16 @@ type RuleSet interface {
 	// of each rule in the ruleset.
 	Latest() (*models.RuleSetSnapshotView, error)
 
+	// ActiveSet returns the active ruleset at a given time.
+	ActiveSet(timeNanos int64) Matcher
+
 	// ToMutableRuleSet returns a mutable version of this ruleset.
 	ToMutableRuleSet() MutableRuleSet
 }
 
-// MutableRuleSet is an extension of a RuleSet that implements mutation functions.
+// MutableRuleSet is mutable ruleset.
 type MutableRuleSet interface {
 	RuleSet
-
-	// Proto returns the rulepb.Ruleset representation of this ruleset.
-	Proto() (*rulepb.RuleSet, error)
 
 	// Clone returns a copy of this MutableRuleSet.
 	Clone() MutableRuleSet
@@ -149,7 +149,7 @@ func NewRuleSetFromProto(version int, rs *rulepb.RuleSet, opts Options) (RuleSet
 	tagsFilterOpts := opts.TagsFilterOptions()
 	mappingRules := make([]*mappingRule, 0, len(rs.MappingRules))
 	for _, mappingRule := range rs.MappingRules {
-		mc, err := newMappingRule(mappingRule, tagsFilterOpts)
+		mc, err := newMappingRuleFromProto(mappingRule, tagsFilterOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +157,7 @@ func NewRuleSetFromProto(version int, rs *rulepb.RuleSet, opts Options) (RuleSet
 	}
 	rollupRules := make([]*rollupRule, 0, len(rs.RollupRules))
 	for _, rollupRule := range rs.RollupRules {
-		rc, err := newRollupRule(rollupRule, tagsFilterOpts)
+		rc, err := newRollupRuleFromProto(rollupRule, tagsFilterOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -196,22 +196,23 @@ func NewEmptyRuleSet(namespaceName string, meta UpdateMetadata) MutableRuleSet {
 	return rs
 }
 
-func (rs *ruleSet) Namespace() []byte         { return rs.namespace }
-func (rs *ruleSet) Version() int              { return rs.version }
-func (rs *ruleSet) CutoverNanos() int64       { return rs.cutoverNanos }
-func (rs *ruleSet) Tombstoned() bool          { return rs.tombstoned }
-func (rs *ruleSet) LastUpdatedAtNanos() int64 { return rs.lastUpdatedAtNanos }
-func (rs *ruleSet) CreatedAtNanos() int64     { return rs.createdAtNanos }
+func (rs *ruleSet) Namespace() []byte                { return rs.namespace }
+func (rs *ruleSet) Version() int                     { return rs.version }
+func (rs *ruleSet) CutoverNanos() int64              { return rs.cutoverNanos }
+func (rs *ruleSet) Tombstoned() bool                 { return rs.tombstoned }
+func (rs *ruleSet) LastUpdatedAtNanos() int64        { return rs.lastUpdatedAtNanos }
+func (rs *ruleSet) CreatedAtNanos() int64            { return rs.createdAtNanos }
+func (rs *ruleSet) ToMutableRuleSet() MutableRuleSet { return rs }
 
 func (rs *ruleSet) ActiveSet(timeNanos int64) Matcher {
 	mappingRules := make([]*mappingRule, 0, len(rs.mappingRules))
 	for _, mappingRule := range rs.mappingRules {
-		activeRule := mappingRule.ActiveRule(timeNanos)
+		activeRule := mappingRule.activeRule(timeNanos)
 		mappingRules = append(mappingRules, activeRule)
 	}
 	rollupRules := make([]*rollupRule, 0, len(rs.rollupRules))
 	for _, rollupRule := range rs.rollupRules {
-		activeRule := rollupRule.ActiveRule(timeNanos)
+		activeRule := rollupRule.activeRule(timeNanos)
 		rollupRules = append(rollupRules, activeRule)
 	}
 	return newActiveRuleSet(
@@ -223,10 +224,6 @@ func (rs *ruleSet) ActiveSet(timeNanos int64) Matcher {
 		rs.isRollupIDFn,
 		rs.aggTypesOpts,
 	)
-}
-
-func (rs *ruleSet) ToMutableRuleSet() MutableRuleSet {
-	return rs
 }
 
 // Proto returns the protobuf representation of a ruleset.
@@ -243,7 +240,7 @@ func (rs *ruleSet) Proto() (*rulepb.RuleSet, error) {
 
 	mappingRules := make([]*rulepb.MappingRule, len(rs.mappingRules))
 	for i, m := range rs.mappingRules {
-		mr, err := m.Proto()
+		mr, err := m.proto()
 		if err != nil {
 			return nil, err
 		}
@@ -253,7 +250,7 @@ func (rs *ruleSet) Proto() (*rulepb.RuleSet, error) {
 
 	rollupRules := make([]*rulepb.RollupRule, len(rs.rollupRules))
 	for i, r := range rs.rollupRules {
-		rr, err := r.Proto()
+		rr, err := r.proto()
 		if err != nil {
 			return nil, err
 		}
@@ -348,7 +345,8 @@ func (rs *ruleSet) AddMappingRule(mrv models.MappingRuleView, meta UpdateMetadat
 		return "", xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "add", mrv.Name))
 	}
 	if err == errRuleNotFound {
-		if m, err = newMappingRuleFromFields(
+		m = newEmptyMappingRule()
+		if err = m.addSnapshot(
 			mrv.Name,
 			mrv.Filter,
 			mrv.AggregationID,
@@ -411,7 +409,8 @@ func (rs *ruleSet) AddRollupRule(rrv models.RollupRuleView, meta UpdateMetadata)
 	}
 	targets := newRollupTargetsFromView(rrv.Targets)
 	if err == errRuleNotFound {
-		if r, err = newRollupRuleFromFields(
+		r = newEmptyRollupRule()
+		if err = r.addSnapshot(
 			rrv.Name,
 			rrv.Filter,
 			targets,
@@ -475,13 +474,13 @@ func (rs *ruleSet) Delete(meta UpdateMetadata) error {
 
 	// Make sure that all of the rules in the ruleset are tombstoned as well.
 	for _, m := range rs.mappingRules {
-		if t := m.Tombstoned(); !t {
+		if t := m.tombstoned(); !t {
 			_ = m.markTombstoned(meta)
 		}
 	}
 
 	for _, r := range rs.rollupRules {
-		if t := r.Tombstoned(); !t {
+		if t := r.tombstoned(); !t {
 			_ = r.markTombstoned(meta)
 		}
 	}
@@ -507,7 +506,7 @@ func (rs *ruleSet) updateMetadata(meta UpdateMetadata) {
 
 func (rs *ruleSet) getMappingRuleByName(name string) (*mappingRule, error) {
 	for _, m := range rs.mappingRules {
-		n, err := m.Name()
+		n, err := m.name()
 		if err != nil {
 			continue
 		}
@@ -530,7 +529,7 @@ func (rs *ruleSet) getMappingRuleByID(id string) (*mappingRule, error) {
 
 func (rs *ruleSet) getRollupRuleByName(name string) (*rollupRule, error) {
 	for _, r := range rs.rollupRules {
-		n, err := r.Name()
+		n, err := r.name()
 		if err != nil {
 			return nil, err
 		}

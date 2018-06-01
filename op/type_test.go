@@ -27,6 +27,7 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/pipelinepb"
 	"github.com/m3db/m3metrics/generated/proto/transformationpb"
 	"github.com/m3db/m3metrics/transformation"
+	"github.com/m3db/m3metrics/x/bytes"
 
 	"github.com/stretchr/testify/require"
 )
@@ -106,7 +107,7 @@ func TestPipelineString(t *testing.T) {
 	}{
 		{
 			p: Pipeline{
-				Operations: []Union{
+				operations: []Union{
 					{
 						Type:        AggregationType,
 						Aggregation: Aggregation{Type: aggregation.Last},
@@ -118,9 +119,9 @@ func TestPipelineString(t *testing.T) {
 					{
 						Type: RollupType,
 						Rollup: Rollup{
-							NewName:         b("foo"),
-							Tags:            [][]byte{b("tag1"), b("tag2")},
-							AggregationType: aggregation.Sum,
+							NewName:       b("foo"),
+							Tags:          [][]byte{b("tag1"), b("tag2")},
+							AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 						},
 					},
 				},
@@ -129,7 +130,7 @@ func TestPipelineString(t *testing.T) {
 		},
 		{
 			p: Pipeline{
-				Operations: []Union{
+				operations: []Union{
 					{
 						Type: Type(10),
 					},
@@ -176,4 +177,48 @@ func TestTransformationOpRoundTrip(t *testing.T) {
 	require.Equal(t, testTransformationOp, res)
 }
 
-func b(str string) []byte { return []byte(str) }
+func TestRollupOpSameTransform(t *testing.T) {
+	rollupOp := Rollup{
+		NewName: b("foo"),
+		Tags:    bs("bar1", "bar2"),
+	}
+	inputs := []struct {
+		op     Rollup
+		result bool
+	}{
+		{
+			op:     Rollup{NewName: b("foo"), Tags: bs("bar1", "bar2")},
+			result: true,
+		},
+		{
+			op:     Rollup{NewName: b("foo"), Tags: bs("bar2", "bar1")},
+			result: true,
+		},
+		{
+			op:     Rollup{NewName: b("foo"), Tags: bs("bar1")},
+			result: false,
+		},
+		{
+			op:     Rollup{NewName: b("foo"), Tags: bs("bar1", "bar2", "bar3")},
+			result: false,
+		},
+		{
+			op:     Rollup{NewName: b("foo"), Tags: bs("bar1", "bar3")},
+			result: false,
+		},
+		{
+			op:     Rollup{NewName: b("baz"), Tags: bs("bar1", "bar2")},
+			result: false,
+		},
+		{
+			op:     Rollup{NewName: b("baz"), Tags: bs("bar2", "bar1")},
+			result: false,
+		},
+	}
+	for _, input := range inputs {
+		require.Equal(t, input.result, rollupOp.SameTransform(input.op))
+	}
+}
+
+func b(v string) []byte       { return []byte(v) }
+func bs(v ...string) [][]byte { return bytes.ArraysFromStringArray(v) }

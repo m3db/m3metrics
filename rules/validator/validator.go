@@ -98,6 +98,9 @@ func (v *validator) validateNamespace(ns string) error {
 func (v *validator) validateMappingRules(mrv map[string]*models.MappingRuleView) error {
 	namesSeen := make(map[string]struct{}, len(mrv))
 	for _, rule := range mrv {
+		if rule.Tombstoned {
+			continue
+		}
 		// Validate that no rules with the same name exist.
 		if _, exists := namesSeen[rule.Name]; exists {
 			return merrors.NewRuleConflictError(fmt.Sprintf("mapping rule '%s' already exists", rule.Name))
@@ -138,6 +141,9 @@ func (v *validator) validateRollupRules(rrv map[string]*models.RollupRuleView) e
 		pipelines = make([]op.Pipeline, 0, len(rrv))
 	)
 	for _, rule := range rrv {
+		if rule.Tombstoned {
+			continue
+		}
 		// Validate that no rules with the same name exist.
 		if _, exists := namesSeen[rule.Name]; exists {
 			return merrors.NewRuleConflictError(fmt.Sprintf("rollup rule '%s' already exists", rule.Name))
@@ -383,7 +389,7 @@ func (v *validator) validateRollupTags(tags [][]byte) error {
 		if _, exists := rollupTags[tagStr]; exists {
 			return fmt.Errorf("duplicate rollup tag: '%s'", tagStr)
 		}
-		rollupTags[string(tagStr)] = struct{}{}
+		rollupTags[tagStr] = struct{}{}
 	}
 
 	// Validating the list of rollup tags in the rule contain all required tags.
@@ -412,7 +418,7 @@ func validateNoDuplicateRollupIDIn(pipelines []op.Pipeline) error {
 			rollupOp := pipelineOp.Rollup
 			for _, existing := range rollupOps {
 				if rollupOp.SameTransform(existing) {
-					return fmt.Errorf("more than one rollup operations with name '%s' and tags '%s' exist", rollupOp.NewName, rollupOp.Tags)
+					return merrors.NewRuleConflictError(fmt.Sprintf("more than one rollup operations with name '%s' and tags '%s' exist", rollupOp.NewName, rollupOp.Tags))
 				}
 			}
 			rollupOps = append(rollupOps, rollupOp)

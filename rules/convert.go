@@ -23,6 +23,7 @@ package rules
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/m3db/m3metrics/aggregation"
 	"github.com/m3db/m3metrics/generated/proto/policypb"
@@ -69,5 +70,7 @@ func toAggregationIDAndStoragePolicies(
 	for sp := range storagePoliciesSet {
 		storagePolicies = append(storagePolicies, sp)
 	}
+	// NB: for deterministic ordering.
+	sort.Sort(policy.ByResolutionAscRetentionDesc(storagePolicies))
 	return aggregationID, storagePolicies, nil
 }

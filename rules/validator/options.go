@@ -59,9 +59,9 @@ type Options interface {
 	// aggregation types.
 	SetDefaultAllowedFirstLevelAggregationTypes(value aggregation.Types) Options
 
-	// SetDefaultAllowedNonFirstLevelAggregationTypesFor sets the default list of allowed
+	// SetDefaultAllowedNonFirstLevelAggregationTypes sets the default list of allowed
 	// non-first-level aggregation types.
-	SetDefaultAllowedNonFirstLevelAggregationTypesFor(value aggregation.Types) Options
+	SetDefaultAllowedNonFirstLevelAggregationTypes(value aggregation.Types) Options
 
 	// SetAllowedStoragePoliciesFor sets the list of allowed storage policies for a given metric type.
 	SetAllowedStoragePoliciesFor(t metric.Type, policies []policy.StoragePolicy) Options
@@ -176,7 +176,7 @@ func (o *options) SetDefaultAllowedFirstLevelAggregationTypes(value aggregation.
 	return o
 }
 
-func (o *options) SetDefaultAllowedNonFirstLevelAggregationTypesFor(value aggregation.Types) Options {
+func (o *options) SetDefaultAllowedNonFirstLevelAggregationTypes(value aggregation.Types) Options {
 	o.defaultAllowedNonFirstLevelAggregationTypes = toAggregationTypeSet(value)
 	return o
 }

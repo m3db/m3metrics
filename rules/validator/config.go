@@ -65,7 +65,7 @@ func (c Configuration) NewValidator(
 		SetMetricTypesFn(c.MetricTypes.NewMetricTypesFn()).
 		SetDefaultAllowedStoragePolicies(c.Policies.DefaultAllowed.StoragePolicies).
 		SetDefaultAllowedFirstLevelAggregationTypes(c.Policies.DefaultAllowed.FirstLevelAggregationTypes).
-		SetDefaultAllowedNonFirstLevelAggregationTypesFor(c.Policies.DefaultAllowed.NonFirstLevelAggregationTypes).
+		SetDefaultAllowedNonFirstLevelAggregationTypes(c.Policies.DefaultAllowed.NonFirstLevelAggregationTypes).
 		SetTagNameInvalidChars(toRunes(c.TagNameInvalidChars)).
 		SetMetricNameInvalidChars(toRunes(c.MetricNameInvalidChars))
 	for _, override := range c.Policies.Overrides {

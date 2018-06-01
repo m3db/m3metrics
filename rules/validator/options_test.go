@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package models
+package validator
 
 import (
 	"testing"
@@ -26,46 +26,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewNamespace(t *testing.T) {
-	view := &NamespaceView{
-		Name:              "name",
-		ForRuleSetVersion: 1,
+func TestValidateChars(t *testing.T) {
+	invalidChars := map[rune]struct{}{
+		'$': struct{}{},
 	}
-	res := NewNamespace(view)
-	expected := Namespace{
-		ID:                "name",
-		ForRuleSetVersion: 1,
-	}
-	require.Equal(t, expected, res)
-}
-
-func TestNewNamespaces(t *testing.T) {
-	view := &NamespacesView{
-		Version: 1,
-		Namespaces: []*NamespaceView{
-			&NamespaceView{
-				Name:              "name1",
-				ForRuleSetVersion: 1,
-			},
-			&NamespaceView{
-				Name:              "name2",
-				ForRuleSetVersion: 1,
-			},
-		},
-	}
-	res := NewNamespaces(view)
-	expected := Namespaces{
-		Version: 1,
-		Namespaces: []Namespace{
-			{
-				ID:                "name1",
-				ForRuleSetVersion: 1,
-			},
-			{
-				ID:                "name2",
-				ForRuleSetVersion: 1,
-			},
-		},
-	}
-	require.Equal(t, expected, res)
+	require.Error(t, validateChars("test$", invalidChars))
+	require.NoError(t, validateChars("test", invalidChars))
 }
