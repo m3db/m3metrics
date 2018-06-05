@@ -21,6 +21,7 @@
 package op
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/m3db/m3metrics/aggregation"
@@ -28,6 +29,7 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/transformationpb"
 	"github.com/m3db/m3metrics/transformation"
 	"github.com/m3db/m3metrics/x/bytes"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/stretchr/testify/require"
 )
@@ -218,6 +220,219 @@ func TestRollupOpSameTransform(t *testing.T) {
 	for _, input := range inputs {
 		require.Equal(t, input.result, rollupOp.SameTransform(input.op))
 	}
+}
+
+func TestOpUnionMarshalJSON(t *testing.T) {
+	inputs := []struct {
+		op       Union
+		expected string
+	}{
+		{
+			op: Union{
+				Type:        AggregationType,
+				Aggregation: Aggregation{Type: aggregation.Sum},
+			},
+			expected: `{"aggregation":"Sum"}`,
+		},
+		{
+			op: Union{
+				Type:           TransformationType,
+				Transformation: Transformation{Type: transformation.PerSecond},
+			},
+			expected: `{"transformation":"PerSecond"}`,
+		},
+		{
+			op: Union{
+				Type: RollupType,
+				Rollup: Rollup{
+					NewName:       b("testRollup"),
+					Tags:          bs("tag1", "tag2"),
+					AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
+				},
+			},
+			expected: `{"rollup":{"newName":"testRollup","tags":["tag1","tag2"],"aggregation":["Min","Max"]}}`,
+		},
+		{
+			op: Union{
+				Type: RollupType,
+				Rollup: Rollup{
+					NewName:       b("testRollup"),
+					Tags:          bs("tag1", "tag2"),
+					AggregationID: aggregation.DefaultID,
+				},
+			},
+			expected: `{"rollup":{"newName":"testRollup","tags":["tag1","tag2"]}}`,
+		},
+	}
+
+	for _, input := range inputs {
+		b, err := json.Marshal(input.op)
+		require.NoError(t, err)
+		require.Equal(t, input.expected, string(b))
+	}
+}
+
+func TestOpUnionMarshalJSONError(t *testing.T) {
+	op := Union{}
+	_, err := json.Marshal(op)
+	require.Error(t, err)
+}
+
+func TestOpUnionMarshalJSONRoundtrip(t *testing.T) {
+	ops := []Union{
+		{
+			Type:        AggregationType,
+			Aggregation: Aggregation{Type: aggregation.Sum},
+		},
+		{
+			Type:           TransformationType,
+			Transformation: Transformation{Type: transformation.PerSecond},
+		},
+		{
+			Type: RollupType,
+			Rollup: Rollup{
+				NewName:       b("testRollup"),
+				Tags:          bs("tag1", "tag2"),
+				AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
+			},
+		},
+		{
+			Type: RollupType,
+			Rollup: Rollup{
+				NewName:       b("testRollup"),
+				Tags:          bs("tag1", "tag2"),
+				AggregationID: aggregation.DefaultID,
+			},
+		},
+	}
+
+	for _, op := range ops {
+		b, err := json.Marshal(op)
+		require.NoError(t, err)
+		var res Union
+		require.NoError(t, json.Unmarshal(b, &res))
+		require.Equal(t, op, res)
+	}
+}
+
+func TestPipelineMarshalJSON(t *testing.T) {
+	p := NewPipeline([]Union{
+		{
+			Type:        AggregationType,
+			Aggregation: Aggregation{Type: aggregation.Sum},
+		},
+		{
+			Type:           TransformationType,
+			Transformation: Transformation{Type: transformation.PerSecond},
+		},
+		{
+			Type: RollupType,
+			Rollup: Rollup{
+				NewName:       b("testRollup"),
+				Tags:          bs("tag1", "tag2"),
+				AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
+			},
+		},
+		{
+			Type: RollupType,
+			Rollup: Rollup{
+				NewName:       b("testRollup"),
+				Tags:          bs("tag1", "tag2"),
+				AggregationID: aggregation.DefaultID,
+			},
+		},
+	})
+	b, err := json.Marshal(p)
+	require.NoError(t, err)
+
+	expected := `[{"aggregation":"Sum"},` +
+		`{"transformation":"PerSecond"},` +
+		`{"rollup":{"newName":"testRollup","tags":["tag1","tag2"],"aggregation":["Min","Max"]}},` +
+		`{"rollup":{"newName":"testRollup","tags":["tag1","tag2"]}}]`
+	require.Equal(t, expected, string(b))
+}
+
+func TestPipelineMarshalJSONRoundtrip(t *testing.T) {
+	p := NewPipeline([]Union{
+		{
+			Type:        AggregationType,
+			Aggregation: Aggregation{Type: aggregation.Sum},
+		},
+		{
+			Type:           TransformationType,
+			Transformation: Transformation{Type: transformation.PerSecond},
+		},
+		{
+			Type: RollupType,
+			Rollup: Rollup{
+				NewName:       b("testRollup"),
+				Tags:          bs("tag1", "tag2"),
+				AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
+			},
+		},
+		{
+			Type: RollupType,
+			Rollup: Rollup{
+				NewName:       b("testRollup"),
+				Tags:          bs("tag1", "tag2"),
+				AggregationID: aggregation.DefaultID,
+			},
+		},
+	})
+	b, err := json.Marshal(p)
+	require.NoError(t, err)
+	var res Pipeline
+	require.NoError(t, json.Unmarshal(b, &res))
+	require.Equal(t, p, res)
+}
+
+func TestPipelineUnmarshalYAML(t *testing.T) {
+	input := `
+- aggregation: Sum
+- transformation: PerSecond
+- rollup:
+    newName: testRollup
+    tags:
+      - tag1
+      - tag2
+    aggregation: Min,Max
+- rollup:
+    newName: testRollup2
+    tags:
+      - tag3
+      - tag4
+`
+
+	var pipeline Pipeline
+	require.NoError(t, yaml.Unmarshal([]byte(input), &pipeline))
+
+	expected := NewPipeline([]Union{
+		{
+			Type:        AggregationType,
+			Aggregation: Aggregation{Type: aggregation.Sum},
+		},
+		{
+			Type:           TransformationType,
+			Transformation: Transformation{Type: transformation.PerSecond},
+		},
+		{
+			Type: RollupType,
+			Rollup: Rollup{
+				NewName:       b("testRollup"),
+				Tags:          bs("tag1", "tag2"),
+				AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
+			},
+		},
+		{
+			Type: RollupType,
+			Rollup: Rollup{
+				NewName:       b("testRollup2"),
+				Tags:          bs("tag3", "tag4"),
+				AggregationID: aggregation.DefaultID,
+			},
+		},
+	})
+	require.Equal(t, expected, pipeline)
 }
 
 func b(v string) []byte       { return []byte(v) }

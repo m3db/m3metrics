@@ -187,7 +187,6 @@ func MustParseStoragePolicy(str string) StoragePolicy {
 }
 
 // StoragePolicies is a list of storage policies.
-// TODO(xichen): need json marshaling / unmarshaling.
 type StoragePolicies []StoragePolicy
 
 // NewStoragePoliciesFromProto creates a list of storage policies from given storage policies proto.
