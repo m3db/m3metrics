@@ -29,9 +29,9 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/transformationpb"
 	"github.com/m3db/m3metrics/transformation"
 	"github.com/m3db/m3metrics/x/bytes"
-	yaml "gopkg.in/yaml.v2"
 
 	"github.com/stretchr/testify/require"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (

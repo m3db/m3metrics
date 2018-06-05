@@ -29,14 +29,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/m3db/m3metrics/generated/proto/pipelinepb"
-
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/kv/mem"
 	"github.com/m3db/m3metrics/aggregation"
 	"github.com/m3db/m3metrics/filters"
+	"github.com/m3db/m3metrics/generated/proto/pipelinepb"
 	"github.com/m3db/m3metrics/generated/proto/policypb"
 	"github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/matcher"
@@ -49,6 +46,8 @@ import (
 	"github.com/m3db/m3x/pool"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -278,7 +277,6 @@ func validateMatchResult(
 		cmpopts.EquateEmpty(),
 	}
 	require.True(t, cmp.Equal(expected, actual, testMatchResultCmpOpts...))
-	//require.Equal(t, expected, actual)
 }
 
 func updateStore(
