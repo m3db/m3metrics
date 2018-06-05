@@ -30,7 +30,7 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/policypb"
 	"github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/generated/proto/transformationpb"
-	"github.com/m3db/m3metrics/op"
+	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/transformation"
 	xtime "github.com/m3db/m3x/time"
@@ -108,10 +108,10 @@ func TestNewRollupTargetV1ProtoWithDefaultAggregationID(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := rollupTarget{
-		Pipeline: op.NewPipeline([]op.Union{
+		Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 			{
-				Type: op.RollupType,
-				Rollup: op.Rollup{
+				Type: pipeline.RollupOpType,
+				Rollup: pipeline.RollupOp{
 					NewName:       []byte("testV1Proto"),
 					Tags:          bs("testTag1", "testTag2"),
 					AggregationID: aggregation.DefaultID,
@@ -174,10 +174,10 @@ func TestNewRollupTargetV1ProtoWithCustomAggregationID(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := rollupTarget{
-		Pipeline: op.NewPipeline([]op.Union{
+		Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 			{
-				Type: op.RollupType,
-				Rollup: op.Rollup{
+				Type: pipeline.RollupOpType,
+				Rollup: pipeline.RollupOp{
 					NewName:       []byte("testV1Proto"),
 					Tags:          bs("testTag1", "testTag2"),
 					AggregationID: aggregation.MustCompressTypes(aggregation.Last, aggregation.Min),
@@ -301,22 +301,22 @@ func TestNewRollupTargetV2Proto(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := rollupTarget{
-		Pipeline: op.NewPipeline([]op.Union{
+		Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 			{
-				Type: op.AggregationType,
-				Aggregation: op.Aggregation{
+				Type: pipeline.AggregationOpType,
+				Aggregation: pipeline.AggregationOp{
 					Type: aggregation.Sum,
 				},
 			},
 			{
-				Type: op.TransformationType,
-				Transformation: op.Transformation{
+				Type: pipeline.TransformationOpType,
+				Transformation: pipeline.TransformationOp{
 					Type: transformation.Absolute,
 				},
 			},
 			{
-				Type: op.RollupType,
-				Rollup: op.Rollup{
+				Type: pipeline.RollupOpType,
+				Rollup: pipeline.RollupOp{
 					NewName:       []byte("testRollupOp"),
 					Tags:          bs("testTag1", "testTag2"),
 					AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
@@ -334,22 +334,22 @@ func TestNewRollupTargetV2Proto(t *testing.T) {
 
 func TestRollupTargetClone(t *testing.T) {
 	source := rollupTarget{
-		Pipeline: op.NewPipeline([]op.Union{
+		Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 			{
-				Type: op.AggregationType,
-				Aggregation: op.Aggregation{
+				Type: pipeline.AggregationOpType,
+				Aggregation: pipeline.AggregationOp{
 					Type: aggregation.Sum,
 				},
 			},
 			{
-				Type: op.TransformationType,
-				Transformation: op.Transformation{
+				Type: pipeline.TransformationOpType,
+				Transformation: pipeline.TransformationOp{
 					Type: transformation.Absolute,
 				},
 			},
 			{
-				Type: op.RollupType,
-				Rollup: op.Rollup{
+				Type: pipeline.RollupOpType,
+				Rollup: pipeline.RollupOp{
 					NewName:       []byte("testRollupOp"),
 					Tags:          bs("testTag1", "testTag2"),
 					AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
@@ -373,10 +373,10 @@ func TestRollupTargetClone(t *testing.T) {
 
 func TestRollupTargetProtoInvalidPipeline(t *testing.T) {
 	target := rollupTarget{
-		Pipeline: op.NewPipeline([]op.Union{
+		Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 			{
-				Type: op.TransformationType,
-				Transformation: op.Transformation{
+				Type: pipeline.TransformationOpType,
+				Transformation: pipeline.TransformationOp{
 					Type: transformation.UnknownType,
 				},
 			},
@@ -393,10 +393,10 @@ func TestRollupTargetProtoInvalidPipeline(t *testing.T) {
 
 func TestRollupTargetProtoInvalidStoragePolicies(t *testing.T) {
 	target := rollupTarget{
-		Pipeline: op.NewPipeline([]op.Union{
+		Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 			{
-				Type: op.TransformationType,
-				Transformation: op.Transformation{
+				Type: pipeline.TransformationOpType,
+				Transformation: pipeline.TransformationOp{
 					Type: transformation.Absolute,
 				},
 			},
@@ -411,22 +411,22 @@ func TestRollupTargetProtoInvalidStoragePolicies(t *testing.T) {
 
 func TestRollupTargetProto(t *testing.T) {
 	target := rollupTarget{
-		Pipeline: op.NewPipeline([]op.Union{
+		Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 			{
-				Type: op.AggregationType,
-				Aggregation: op.Aggregation{
+				Type: pipeline.AggregationOpType,
+				Aggregation: pipeline.AggregationOp{
 					Type: aggregation.Sum,
 				},
 			},
 			{
-				Type: op.TransformationType,
-				Transformation: op.Transformation{
+				Type: pipeline.TransformationOpType,
+				Transformation: pipeline.TransformationOp{
 					Type: transformation.Absolute,
 				},
 			},
 			{
-				Type: op.RollupType,
-				Rollup: op.Rollup{
+				Type: pipeline.RollupOpType,
+				Rollup: pipeline.RollupOp{
 					NewName:       []byte("testRollupOp"),
 					Tags:          bs("testTag1", "testTag2"),
 					AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),

@@ -25,14 +25,13 @@ import (
 	"sort"
 
 	"github.com/m3db/m3metrics/generated/proto/rulepb"
-	"github.com/m3db/m3metrics/op"
+	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules/models"
 	xbytes "github.com/m3db/m3metrics/x/bytes"
 )
 
 var (
-	// emptyRollupTarget   rollupTarget
 	emptyRollupTarget rollupTarget
 
 	errNilRollupTargetV1Proto = errors.New("nil rollup target v1 proto")
@@ -43,7 +42,7 @@ var (
 // target will be rolled up as dictated by the operations in the pipeline, and stored
 // under the provided storage policies.
 type rollupTarget struct {
-	Pipeline        op.Pipeline
+	Pipeline        pipeline.Pipeline
 	StoragePolicies policy.StoragePolicies
 }
 
@@ -60,15 +59,15 @@ func newRollupTargetFromV1Proto(pb *rulepb.RollupTarget) (rollupTarget, error) {
 	tags := make([]string, len(pb.Tags))
 	copy(tags, pb.Tags)
 	sort.Strings(tags)
-	rollupOp := op.Union{
-		Type: op.RollupType,
-		Rollup: op.Rollup{
+	rollupOp := pipeline.OpUnion{
+		Type: pipeline.RollupOpType,
+		Rollup: pipeline.RollupOp{
 			NewName:       []byte(pb.Name),
 			Tags:          xbytes.ArraysFromStringArray(tags),
 			AggregationID: aggregationID,
 		},
 	}
-	pipeline := op.NewPipeline([]op.Union{rollupOp})
+	pipeline := pipeline.NewPipeline([]pipeline.OpUnion{rollupOp})
 	return rollupTarget{
 		Pipeline:        pipeline,
 		StoragePolicies: storagePolicies,
@@ -80,7 +79,7 @@ func newRollupTargetFromV2Proto(pb *rulepb.RollupTargetV2) (rollupTarget, error)
 	if pb == nil {
 		return emptyRollupTarget, errNilRollupTargetV2Proto
 	}
-	pipeline, err := op.NewPipelineFromProto(pb.Pipeline)
+	pipeline, err := pipeline.NewPipelineFromProto(pb.Pipeline)
 	if err != nil {
 		return emptyRollupTarget, err
 	}

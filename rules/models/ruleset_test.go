@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3metrics/aggregation"
-	"github.com/m3db/m3metrics/op"
+	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/transformation"
 	xtime "github.com/m3db/m3x/time"
@@ -68,10 +68,10 @@ func TestRuleSetToToRuleSetSnapshotViewDontGenerateMissingID(t *testing.T) {
 				Filter:        "filter3",
 				Targets: []RollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("name"),
 									Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 									AggregationID: aggregation.DefaultID,
@@ -93,18 +93,18 @@ func TestRuleSetToToRuleSetSnapshotViewDontGenerateMissingID(t *testing.T) {
 				Filter:        "filter4",
 				Targets: []RollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{Type: aggregation.Sum},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{Type: aggregation.Sum},
 							},
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("name"),
 									Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 									AggregationID: aggregation.DefaultID,
@@ -158,10 +158,10 @@ func TestRuleSetToToRuleSetSnapshotViewDontGenerateMissingID(t *testing.T) {
 				Filter:       "filter3",
 				Targets: []RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("name"),
 									Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 									AggregationID: aggregation.DefaultID,
@@ -183,18 +183,18 @@ func TestRuleSetToToRuleSetSnapshotViewDontGenerateMissingID(t *testing.T) {
 				Filter:       "filter4",
 				Targets: []RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{Type: aggregation.Sum},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{Type: aggregation.Sum},
 							},
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("name"),
 									Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 									AggregationID: aggregation.DefaultID,
@@ -260,10 +260,10 @@ func TestRuleSetToRuleSetSnapshotViewNoRollupRuleIDDontGenerateMissingID(t *test
 				Filter:        "filter3",
 				Targets: []RollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("name"),
 									Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 									AggregationID: aggregation.DefaultID,
@@ -297,10 +297,10 @@ func TestRuleSetToRuleSetSnapshotViewNoRuleIDGenerateMissingID(t *testing.T) {
 				Filter:        "filter3",
 				Targets: []RollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("name"),
 									Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 									AggregationID: aggregation.DefaultID,
@@ -362,10 +362,10 @@ func TestRuleSetSort(t *testing.T) {
 				Filter:        "filter3",
 				Targets: []RollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("name"),
 									Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 									AggregationID: aggregation.DefaultID,
@@ -387,18 +387,18 @@ func TestRuleSetSort(t *testing.T) {
 				Filter:        "filter4",
 				Targets: []RollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{Type: aggregation.Sum},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{Type: aggregation.Sum},
 							},
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("name"),
 									Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 									AggregationID: aggregation.DefaultID,
@@ -451,18 +451,18 @@ func TestRuleSetSort(t *testing.T) {
 				Filter:        "filter4",
 				Targets: []RollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{Type: aggregation.Sum},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{Type: aggregation.Sum},
 							},
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("name"),
 									Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 									AggregationID: aggregation.DefaultID,
@@ -486,10 +486,10 @@ func TestRuleSetSort(t *testing.T) {
 				Filter:        "filter3",
 				Targets: []RollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("name"),
 									Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 									AggregationID: aggregation.DefaultID,
@@ -548,18 +548,18 @@ func TestRuleSetsSort(t *testing.T) {
 					Filter:        "filter4",
 					Targets: []RollupTarget{
 						{
-							Pipeline: op.NewPipeline([]op.Union{
+							Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 								{
-									Type:        op.AggregationType,
-									Aggregation: op.Aggregation{Type: aggregation.Sum},
+									Type:        pipeline.AggregationOpType,
+									Aggregation: pipeline.AggregationOp{Type: aggregation.Sum},
 								},
 								{
-									Type:           op.TransformationType,
-									Transformation: op.Transformation{Type: transformation.PerSecond},
+									Type:           pipeline.TransformationOpType,
+									Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 								},
 								{
-									Type: op.RollupType,
-									Rollup: op.Rollup{
+									Type: pipeline.RollupOpType,
+									Rollup: pipeline.RollupOp{
 										NewName:       []byte("name"),
 										Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 										AggregationID: aggregation.DefaultID,
@@ -583,10 +583,10 @@ func TestRuleSetsSort(t *testing.T) {
 					Filter:        "filter3",
 					Targets: []RollupTarget{
 						{
-							Pipeline: op.NewPipeline([]op.Union{
+							Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 								{
-									Type: op.RollupType,
-									Rollup: op.Rollup{
+									Type: pipeline.RollupOpType,
+									Rollup: pipeline.RollupOp{
 										NewName:       []byte("name"),
 										Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 										AggregationID: aggregation.DefaultID,
@@ -644,10 +644,10 @@ func TestRuleSetsSort(t *testing.T) {
 					Filter:        "filter3",
 					Targets: []RollupTarget{
 						{
-							Pipeline: op.NewPipeline([]op.Union{
+							Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 								{
-									Type: op.RollupType,
-									Rollup: op.Rollup{
+									Type: pipeline.RollupOpType,
+									Rollup: pipeline.RollupOp{
 										NewName:       []byte("name"),
 										Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 										AggregationID: aggregation.DefaultID,
@@ -669,18 +669,18 @@ func TestRuleSetsSort(t *testing.T) {
 					Filter:        "filter4",
 					Targets: []RollupTarget{
 						{
-							Pipeline: op.NewPipeline([]op.Union{
+							Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 								{
-									Type:        op.AggregationType,
-									Aggregation: op.Aggregation{Type: aggregation.Sum},
+									Type:        pipeline.AggregationOpType,
+									Aggregation: pipeline.AggregationOp{Type: aggregation.Sum},
 								},
 								{
-									Type:           op.TransformationType,
-									Transformation: op.Transformation{Type: transformation.PerSecond},
+									Type:           pipeline.TransformationOpType,
+									Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 								},
 								{
-									Type: op.RollupType,
-									Rollup: op.Rollup{
+									Type: pipeline.RollupOpType,
+									Rollup: pipeline.RollupOp{
 										NewName:       []byte("name"),
 										Tags:          [][]byte{[]byte("tag2"), []byte("tag1")},
 										AggregationID: aggregation.DefaultID,

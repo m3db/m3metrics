@@ -30,8 +30,8 @@ import (
 	"github.com/m3db/m3metrics/metadata"
 	"github.com/m3db/m3metrics/metric"
 	metricID "github.com/m3db/m3metrics/metric/id"
-	"github.com/m3db/m3metrics/op"
-	"github.com/m3db/m3metrics/op/applied"
+	mpipeline "github.com/m3db/m3metrics/pipeline"
+	"github.com/m3db/m3metrics/pipeline/applied"
 	xerrors "github.com/m3db/m3x/errors"
 )
 
@@ -298,10 +298,10 @@ func (as *activeRuleSet) toRollupResults(
 			rollupID      []byte
 			numSteps      = pipeline.Len()
 			firstOp       = pipeline.At(0)
-			toApply       op.Pipeline
+			toApply       mpipeline.Pipeline
 		)
 		switch firstOp.Type {
-		case op.AggregationType:
+		case mpipeline.AggregationOpType:
 			aggregationID, err = aggregation.CompressTypes(firstOp.Aggregation.Type)
 			if err != nil {
 				err = fmt.Errorf("target %v operation 0 aggregation type compression error: %v", target, err)
@@ -309,10 +309,10 @@ func (as *activeRuleSet) toRollupResults(
 				continue
 			}
 			toApply = pipeline.SubPipeline(1, numSteps)
-		case op.TransformationType:
+		case mpipeline.TransformationOpType:
 			aggregationID = aggregation.DefaultID
 			toApply = pipeline
-		case op.RollupType:
+		case mpipeline.RollupOpType:
 			tagPairs = tagPairs[:0]
 			var matched bool
 			rollupID, matched = as.matchRollupTarget(
@@ -412,20 +412,20 @@ func (as *activeRuleSet) matchRollupTarget(
 
 func (as *activeRuleSet) applyIDToPipeline(
 	sortedTagPairBytes []byte,
-	pipeline op.Pipeline,
+	pipeline mpipeline.Pipeline,
 	tagPairs []metricID.TagPair, // buffer for reuse across calls
 ) (applied.Pipeline, error) {
-	operations := make([]applied.Union, 0, pipeline.Len())
+	operations := make([]applied.OpUnion, 0, pipeline.Len())
 	for i := 0; i < pipeline.Len(); i++ {
 		pipelineOp := pipeline.At(i)
-		var opUnion applied.Union
+		var opUnion applied.OpUnion
 		switch pipelineOp.Type {
-		case op.TransformationType:
-			opUnion = applied.Union{
-				Type:           op.TransformationType,
+		case mpipeline.TransformationOpType:
+			opUnion = applied.OpUnion{
+				Type:           mpipeline.TransformationOpType,
 				Transformation: pipelineOp.Transformation,
 			}
-		case op.RollupType:
+		case mpipeline.RollupOpType:
 			rollupOp := pipelineOp.Rollup
 			var matched bool
 			rollupID, matched := as.matchRollupTarget(
@@ -439,9 +439,9 @@ func (as *activeRuleSet) applyIDToPipeline(
 				err := fmt.Errorf("existing tag pairs %s do not contain all rollup tags %s", sortedTagPairBytes, rollupOp.Tags)
 				return applied.Pipeline{}, err
 			}
-			opUnion = applied.Union{
-				Type:   op.RollupType,
-				Rollup: applied.Rollup{ID: rollupID, AggregationID: rollupOp.AggregationID},
+			opUnion = applied.OpUnion{
+				Type:   mpipeline.RollupOpType,
+				Rollup: applied.RollupOp{ID: rollupID, AggregationID: rollupOp.AggregationID},
 			}
 		default:
 			return applied.Pipeline{}, fmt.Errorf("unexpected pipeline op type: %v", pipelineOp.Type)
@@ -510,7 +510,7 @@ func (as *activeRuleSet) reverseMappingsForRollupID(
 		for _, target := range snapshot.targets {
 			for i := 0; i < target.Pipeline.Len(); i++ {
 				pipelineOp := target.Pipeline.At(i)
-				if pipelineOp.Type != op.RollupType {
+				if pipelineOp.Type != mpipeline.RollupOpType {
 					continue
 				}
 				rollupOp := pipelineOp.Rollup

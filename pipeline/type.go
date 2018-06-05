@@ -18,8 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// TODO(xichen): rename this package to pipeline.
-package op
+package pipeline
 
 import (
 	"bytes"
@@ -42,26 +41,26 @@ var (
 	errNoOpInUnionMarshaler     = errors.New("no operation in union JSON value")
 )
 
-// Type defines the type of an operation.
-type Type int
+// OpType defines the type of an operation.
+type OpType int
 
 // List of supported operation types.
 const (
-	UnknownType Type = iota
-	AggregationType
-	TransformationType
-	RollupType
+	UnknownOpType OpType = iota
+	AggregationOpType
+	TransformationOpType
+	RollupOpType
 )
 
-// Aggregation is an aggregation operation.
-type Aggregation struct {
+// AggregationOp is an aggregation operation.
+type AggregationOp struct {
 	// Type of aggregation performed.
 	Type aggregation.Type
 }
 
 // NewAggregationOpFromProto creates a new aggregation op from proto.
-func NewAggregationOpFromProto(pb *pipelinepb.AggregationOp) (Aggregation, error) {
-	var agg Aggregation
+func NewAggregationOpFromProto(pb *pipelinepb.AggregationOp) (AggregationOp, error) {
+	var agg AggregationOp
 	if pb == nil {
 		return agg, errNilAggregationOpProto
 	}
@@ -74,17 +73,17 @@ func NewAggregationOpFromProto(pb *pipelinepb.AggregationOp) (Aggregation, error
 }
 
 // Clone clones the aggregation operation.
-func (op Aggregation) Clone() Aggregation {
+func (op AggregationOp) Clone() AggregationOp {
 	return op
 }
 
 // Equal determines whether two aggregation operations are equal.
-func (op Aggregation) Equal(other Aggregation) bool {
+func (op AggregationOp) Equal(other AggregationOp) bool {
 	return op.Type == other.Type
 }
 
 // Proto returns the proto message for the given aggregation operation.
-func (op Aggregation) Proto() (*pipelinepb.AggregationOp, error) {
+func (op AggregationOp) Proto() (*pipelinepb.AggregationOp, error) {
 	pbOpType, err := op.Type.Proto()
 	if err != nil {
 		return nil, err
@@ -92,17 +91,17 @@ func (op Aggregation) Proto() (*pipelinepb.AggregationOp, error) {
 	return &pipelinepb.AggregationOp{Type: pbOpType}, nil
 }
 
-func (op Aggregation) String() string {
+func (op AggregationOp) String() string {
 	return op.Type.String()
 }
 
 // MarshalJSON returns the JSON encoding of an aggregation operation.
-func (op Aggregation) MarshalJSON() ([]byte, error) {
+func (op AggregationOp) MarshalJSON() ([]byte, error) {
 	return json.Marshal(op.Type)
 }
 
 // UnmarshalJSON unmarshals JSON-encoded data into an aggregation operation.
-func (op *Aggregation) UnmarshalJSON(data []byte) error {
+func (op *AggregationOp) UnmarshalJSON(data []byte) error {
 	var t aggregation.Type
 	if err := json.Unmarshal(data, &t); err != nil {
 		return err
@@ -112,7 +111,7 @@ func (op *Aggregation) UnmarshalJSON(data []byte) error {
 }
 
 // UnmarshalYAML unmarshals YAML-encoded data into an aggregation operation.
-func (op *Aggregation) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (op *AggregationOp) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var t aggregation.Type
 	if err := unmarshal(&t); err != nil {
 		return err
@@ -121,33 +120,33 @@ func (op *Aggregation) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// Transformation is a transformation operation.
-type Transformation struct {
+// TransformationOp is a transformation operation.
+type TransformationOp struct {
 	// Type of transformation performed.
 	Type transformation.Type
 }
 
 // NewTransformationOpFromProto creates a new transformation op from proto.
-func NewTransformationOpFromProto(pb *pipelinepb.TransformationOp) (Transformation, error) {
-	var tf Transformation
+func NewTransformationOpFromProto(pb *pipelinepb.TransformationOp) (TransformationOp, error) {
+	var tf TransformationOp
 	if err := tf.FromProto(pb); err != nil {
-		return Transformation{}, err
+		return TransformationOp{}, err
 	}
 	return tf, nil
 }
 
 // Equal determines whether two transformation operations are equal.
-func (op Transformation) Equal(other Transformation) bool {
+func (op TransformationOp) Equal(other TransformationOp) bool {
 	return op.Type == other.Type
 }
 
 // Clone clones the transformation operation.
-func (op Transformation) Clone() Transformation {
+func (op TransformationOp) Clone() TransformationOp {
 	return op
 }
 
 // Proto returns the proto message for the given transformation op.
-func (op Transformation) Proto() (*pipelinepb.TransformationOp, error) {
+func (op TransformationOp) Proto() (*pipelinepb.TransformationOp, error) {
 	var pbOp pipelinepb.TransformationOp
 	if err := op.ToProto(&pbOp); err != nil {
 		return nil, err
@@ -155,17 +154,17 @@ func (op Transformation) Proto() (*pipelinepb.TransformationOp, error) {
 	return &pbOp, nil
 }
 
-func (op Transformation) String() string {
+func (op TransformationOp) String() string {
 	return op.Type.String()
 }
 
 // ToProto converts the transformation op to a protobuf message in place.
-func (op Transformation) ToProto(pb *pipelinepb.TransformationOp) error {
+func (op TransformationOp) ToProto(pb *pipelinepb.TransformationOp) error {
 	return op.Type.ToProto(&pb.Type)
 }
 
 // FromProto converts the protobuf message to a transformation in place.
-func (op *Transformation) FromProto(pb *pipelinepb.TransformationOp) error {
+func (op *TransformationOp) FromProto(pb *pipelinepb.TransformationOp) error {
 	if pb == nil {
 		return errNilTransformationOpProto
 	}
@@ -173,12 +172,12 @@ func (op *Transformation) FromProto(pb *pipelinepb.TransformationOp) error {
 }
 
 // MarshalJSON returns the JSON encoding of a transformation operation.
-func (op Transformation) MarshalJSON() ([]byte, error) {
+func (op TransformationOp) MarshalJSON() ([]byte, error) {
 	return json.Marshal(op.Type)
 }
 
 // UnmarshalJSON unmarshals JSON-encoded data into a transformation operation.
-func (op *Transformation) UnmarshalJSON(data []byte) error {
+func (op *TransformationOp) UnmarshalJSON(data []byte) error {
 	var t transformation.Type
 	if err := json.Unmarshal(data, &t); err != nil {
 		return err
@@ -188,7 +187,7 @@ func (op *Transformation) UnmarshalJSON(data []byte) error {
 }
 
 // UnmarshalYAML unmarshals YAML-encoded data into a transformation operation.
-func (op *Transformation) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (op *TransformationOp) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var t transformation.Type
 	if err := unmarshal(&t); err != nil {
 		return err
@@ -197,8 +196,8 @@ func (op *Transformation) UnmarshalYAML(unmarshal func(interface{}) error) error
 	return nil
 }
 
-// Rollup is a rollup operation.
-type Rollup struct {
+// RollupOp is a rollup operation.
+type RollupOp struct {
 	// New metric name generated as a result of the rollup.
 	NewName []byte
 	// Dimensions along which the rollup is performed.
@@ -209,8 +208,8 @@ type Rollup struct {
 
 // NewRollupOpFromProto creates a new rollup op from proto.
 // NB: the rollup tags are always sorted on construction.
-func NewRollupOpFromProto(pb *pipelinepb.RollupOp) (Rollup, error) {
-	var rollup Rollup
+func NewRollupOpFromProto(pb *pipelinepb.RollupOp) (RollupOp, error) {
+	var rollup RollupOp
 	if pb == nil {
 		return rollup, errNilRollupOpProto
 	}
@@ -221,7 +220,7 @@ func NewRollupOpFromProto(pb *pipelinepb.RollupOp) (Rollup, error) {
 	tags := make([]string, len(pb.Tags))
 	copy(tags, pb.Tags)
 	sort.Strings(tags)
-	return Rollup{
+	return RollupOp{
 		NewName:       []byte(pb.NewName),
 		Tags:          xbytes.ArraysFromStringArray(tags),
 		AggregationID: aggregationID,
@@ -230,7 +229,7 @@ func NewRollupOpFromProto(pb *pipelinepb.RollupOp) (Rollup, error) {
 
 // SameTransform returns true if the two rollup operations have the same rollup transformation
 // (i.e., same new rollup metric name and same set of rollup tags).
-func (op Rollup) SameTransform(other Rollup) bool {
+func (op RollupOp) SameTransform(other RollupOp) bool {
 	if !bytes.Equal(op.NewName, other.NewName) {
 		return false
 	}
@@ -251,7 +250,7 @@ func (op Rollup) SameTransform(other Rollup) bool {
 }
 
 // Equal returns true if two rollup operations are equal.
-func (op Rollup) Equal(other Rollup) bool {
+func (op RollupOp) Equal(other RollupOp) bool {
 	if !op.AggregationID.Equal(other.AggregationID) {
 		return false
 	}
@@ -259,10 +258,10 @@ func (op Rollup) Equal(other Rollup) bool {
 }
 
 // Clone clones the rollup operation.
-func (op Rollup) Clone() Rollup {
+func (op RollupOp) Clone() RollupOp {
 	newName := make([]byte, len(op.NewName))
 	copy(newName, op.NewName)
-	return Rollup{
+	return RollupOp{
 		NewName:       newName,
 		Tags:          xbytes.ArrayCopy(op.Tags),
 		AggregationID: op.AggregationID,
@@ -270,7 +269,7 @@ func (op Rollup) Clone() Rollup {
 }
 
 // Proto returns the proto message for the given rollup op.
-func (op Rollup) Proto() (*pipelinepb.RollupOp, error) {
+func (op RollupOp) Proto() (*pipelinepb.RollupOp, error) {
 	aggTypes, err := op.AggregationID.Types()
 	if err != nil {
 		return nil, err
@@ -286,7 +285,7 @@ func (op Rollup) Proto() (*pipelinepb.RollupOp, error) {
 	}, nil
 }
 
-func (op Rollup) String() string {
+func (op RollupOp) String() string {
 	var b bytes.Buffer
 	b.WriteString("{")
 	fmt.Fprintf(&b, "name: %s, ", op.NewName)
@@ -304,7 +303,7 @@ func (op Rollup) String() string {
 }
 
 // MarshalJSON returns the JSON encoding of a rollup operation.
-func (op Rollup) MarshalJSON() ([]byte, error) {
+func (op RollupOp) MarshalJSON() ([]byte, error) {
 	converted, err := newRollupMarshaler(op)
 	if err != nil {
 		return nil, err
@@ -313,12 +312,12 @@ func (op Rollup) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON unmarshals JSON-encoded data into a rollup operation.
-func (op *Rollup) UnmarshalJSON(data []byte) error {
+func (op *RollupOp) UnmarshalJSON(data []byte) error {
 	var converted rollupMarshaler
 	if err := json.Unmarshal(data, &converted); err != nil {
 		return err
 	}
-	rollupOp, err := converted.Rollup()
+	rollupOp, err := converted.RollupOp()
 	if err != nil {
 		return err
 	}
@@ -327,12 +326,12 @@ func (op *Rollup) UnmarshalJSON(data []byte) error {
 }
 
 // UnmarshalYAML unmarshals YAML-encoded data into a rollup operation.
-func (op *Rollup) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (op *RollupOp) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var converted rollupMarshaler
 	if err := unmarshal(&converted); err != nil {
 		return err
 	}
-	rollupOp, err := converted.Rollup()
+	rollupOp, err := converted.RollupOp()
 	if err != nil {
 		return err
 	}
@@ -346,7 +345,7 @@ type rollupMarshaler struct {
 	Aggregation aggregation.Types `json:"aggregation,omitempty" yaml:"aggregation"`
 }
 
-func newRollupMarshaler(op Rollup) (rollupMarshaler, error) {
+func newRollupMarshaler(op RollupOp) (rollupMarshaler, error) {
 	types, err := op.AggregationID.Types()
 	if err != nil {
 		return rollupMarshaler{}, fmt.Errorf("invalid aggregation ID %v: %v", op.AggregationID, err)
@@ -358,41 +357,41 @@ func newRollupMarshaler(op Rollup) (rollupMarshaler, error) {
 	}, nil
 }
 
-func (m rollupMarshaler) Rollup() (Rollup, error) {
+func (m rollupMarshaler) RollupOp() (RollupOp, error) {
 	aggregationID, err := aggregation.CompressTypes(m.Aggregation...)
 	if err != nil {
-		return Rollup{}, fmt.Errorf("invalid aggregation types %v: %v", m.Aggregation, err)
+		return RollupOp{}, fmt.Errorf("invalid aggregation types %v: %v", m.Aggregation, err)
 	}
-	return Rollup{
+	return RollupOp{
 		NewName:       []byte(m.NewName),
 		Tags:          xbytes.ArraysFromStringArray(m.Tags),
 		AggregationID: aggregationID,
 	}, nil
 }
 
-// Union is a union of different types of operation.
-type Union struct {
-	Type           Type
-	Aggregation    Aggregation
-	Transformation Transformation
-	Rollup         Rollup
+// OpUnion is a union of different types of operation.
+type OpUnion struct {
+	Type           OpType
+	Aggregation    AggregationOp
+	Transformation TransformationOp
+	Rollup         RollupOp
 }
 
 // NewOpUnionFromProto creates a new operation union from proto.
-func NewOpUnionFromProto(pb pipelinepb.PipelineOp) (Union, error) {
+func NewOpUnionFromProto(pb pipelinepb.PipelineOp) (OpUnion, error) {
 	var (
-		u   Union
+		u   OpUnion
 		err error
 	)
 	switch pb.Type {
 	case pipelinepb.PipelineOp_AGGREGATION:
-		u.Type = AggregationType
+		u.Type = AggregationOpType
 		u.Aggregation, err = NewAggregationOpFromProto(pb.Aggregation)
 	case pipelinepb.PipelineOp_TRANSFORMATION:
-		u.Type = TransformationType
+		u.Type = TransformationOpType
 		u.Transformation, err = NewTransformationOpFromProto(pb.Transformation)
 	case pipelinepb.PipelineOp_ROLLUP:
-		u.Type = RollupType
+		u.Type = RollupOpType
 		u.Rollup, err = NewRollupOpFromProto(pb.Rollup)
 	default:
 		err = fmt.Errorf("unknown op type in proto: %v", pb.Type)
@@ -401,49 +400,49 @@ func NewOpUnionFromProto(pb pipelinepb.PipelineOp) (Union, error) {
 }
 
 // Equal determines whether two operation unions are equal.
-func (u Union) Equal(other Union) bool {
+func (u OpUnion) Equal(other OpUnion) bool {
 	if u.Type != other.Type {
 		return false
 	}
 	switch u.Type {
-	case AggregationType:
+	case AggregationOpType:
 		return u.Aggregation.Equal(other.Aggregation)
-	case TransformationType:
+	case TransformationOpType:
 		return u.Transformation.Equal(other.Transformation)
-	case RollupType:
+	case RollupOpType:
 		return u.Rollup.Equal(other.Rollup)
 	}
 	return true
 }
 
 // Clone clones an operation union.
-func (u Union) Clone() Union {
-	clone := Union{Type: u.Type}
+func (u OpUnion) Clone() OpUnion {
+	clone := OpUnion{Type: u.Type}
 	switch u.Type {
-	case AggregationType:
+	case AggregationOpType:
 		clone.Aggregation = u.Aggregation.Clone()
-	case TransformationType:
+	case TransformationOpType:
 		clone.Transformation = u.Transformation.Clone()
-	case RollupType:
+	case RollupOpType:
 		clone.Rollup = u.Rollup.Clone()
 	}
 	return clone
 }
 
 // Proto creates a proto message for the given operation.
-func (u Union) Proto() (*pipelinepb.PipelineOp, error) {
+func (u OpUnion) Proto() (*pipelinepb.PipelineOp, error) {
 	var (
 		pbOp pipelinepb.PipelineOp
 		err  error
 	)
 	switch u.Type {
-	case AggregationType:
+	case AggregationOpType:
 		pbOp.Type = pipelinepb.PipelineOp_AGGREGATION
 		pbOp.Aggregation, err = u.Aggregation.Proto()
-	case TransformationType:
+	case TransformationOpType:
 		pbOp.Type = pipelinepb.PipelineOp_TRANSFORMATION
 		pbOp.Transformation, err = u.Transformation.Proto()
-	case RollupType:
+	case RollupOpType:
 		pbOp.Type = pipelinepb.PipelineOp_ROLLUP
 		pbOp.Rollup, err = u.Rollup.Proto()
 	default:
@@ -452,15 +451,15 @@ func (u Union) Proto() (*pipelinepb.PipelineOp, error) {
 	return &pbOp, err
 }
 
-func (u Union) String() string {
+func (u OpUnion) String() string {
 	var b bytes.Buffer
 	b.WriteString("{")
 	switch u.Type {
-	case AggregationType:
+	case AggregationOpType:
 		fmt.Fprintf(&b, "aggregation: %s", u.Aggregation.String())
-	case TransformationType:
+	case TransformationOpType:
 		fmt.Fprintf(&b, "transformation: %s", u.Transformation.String())
-	case RollupType:
+	case RollupOpType:
 		fmt.Fprintf(&b, "rollup: %s", u.Rollup.String())
 	default:
 		fmt.Fprintf(&b, "unknown op type: %v", u.Type)
@@ -470,7 +469,7 @@ func (u Union) String() string {
 }
 
 // MarshalJSON returns the JSON encoding of an operation union.
-func (u Union) MarshalJSON() ([]byte, error) {
+func (u OpUnion) MarshalJSON() ([]byte, error) {
 	converted, err := newUnionMarshaler(u)
 	if err != nil {
 		return nil, err
@@ -479,12 +478,12 @@ func (u Union) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON unmarshals JSON-encoded data into an operation union.
-func (u *Union) UnmarshalJSON(data []byte) error {
+func (u *OpUnion) UnmarshalJSON(data []byte) error {
 	var converted unionMarshaler
 	if err := json.Unmarshal(data, &converted); err != nil {
 		return err
 	}
-	union, err := converted.Union()
+	union, err := converted.OpUnion()
 	if err != nil {
 		return err
 	}
@@ -493,12 +492,12 @@ func (u *Union) UnmarshalJSON(data []byte) error {
 }
 
 // UnmarshalYAML unmarshals YAML-encoded data into an operation union.
-func (u *Union) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (u *OpUnion) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var converted unionMarshaler
 	if err := unmarshal(&converted); err != nil {
 		return err
 	}
-	union, err := converted.Union()
+	union, err := converted.OpUnion()
 	if err != nil {
 		return err
 	}
@@ -508,19 +507,19 @@ func (u *Union) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // unionMarshaler is a helper type to facilitate marshaling and unmarshaling operation unions.
 type unionMarshaler struct {
-	Aggregation    *Aggregation    `json:"aggregation,omitempty" yaml:"aggregation"`
-	Transformation *Transformation `json:"transformation,omitempty" yaml:"transformation"`
-	Rollup         *Rollup         `json:"rollup,omitempty" yaml:"rollup"`
+	Aggregation    *AggregationOp    `json:"aggregation,omitempty" yaml:"aggregation"`
+	Transformation *TransformationOp `json:"transformation,omitempty" yaml:"transformation"`
+	Rollup         *RollupOp         `json:"rollup,omitempty" yaml:"rollup"`
 }
 
-func newUnionMarshaler(u Union) (unionMarshaler, error) {
+func newUnionMarshaler(u OpUnion) (unionMarshaler, error) {
 	var converted unionMarshaler
 	switch u.Type {
-	case AggregationType:
+	case AggregationOpType:
 		converted.Aggregation = &u.Aggregation
-	case TransformationType:
+	case TransformationOpType:
 		converted.Transformation = &u.Transformation
-	case RollupType:
+	case RollupOpType:
 		converted.Rollup = &u.Rollup
 	default:
 		return unionMarshaler{}, fmt.Errorf("unknown op type: %v", u.Type)
@@ -528,27 +527,27 @@ func newUnionMarshaler(u Union) (unionMarshaler, error) {
 	return converted, nil
 }
 
-func (m unionMarshaler) Union() (Union, error) {
+func (m unionMarshaler) OpUnion() (OpUnion, error) {
 	if m.Aggregation != nil {
-		return Union{Type: AggregationType, Aggregation: *m.Aggregation}, nil
+		return OpUnion{Type: AggregationOpType, Aggregation: *m.Aggregation}, nil
 	}
 	if m.Transformation != nil {
-		return Union{Type: TransformationType, Transformation: *m.Transformation}, nil
+		return OpUnion{Type: TransformationOpType, Transformation: *m.Transformation}, nil
 	}
 	if m.Rollup != nil {
-		return Union{Type: RollupType, Rollup: *m.Rollup}, nil
+		return OpUnion{Type: RollupOpType, Rollup: *m.Rollup}, nil
 	}
-	return Union{}, errNoOpInUnionMarshaler
+	return OpUnion{}, errNoOpInUnionMarshaler
 }
 
 // Pipeline is a pipeline of operations.
 type Pipeline struct {
 	// a list of pipeline operations.
-	operations []Union
+	operations []OpUnion
 }
 
 // NewPipeline creates a new pipeline.
-func NewPipeline(ops []Union) Pipeline {
+func NewPipeline(ops []OpUnion) Pipeline {
 	return Pipeline{operations: ops}
 }
 
@@ -557,7 +556,7 @@ func NewPipelineFromProto(pb *pipelinepb.Pipeline) (Pipeline, error) {
 	if pb == nil {
 		return Pipeline{}, errNilPipelineProto
 	}
-	operations := make([]Union, 0, len(pb.Ops))
+	operations := make([]OpUnion, 0, len(pb.Ops))
 	for _, pbOp := range pb.Ops {
 		operation, err := NewOpUnionFromProto(pbOp)
 		if err != nil {
@@ -575,7 +574,7 @@ func (p Pipeline) Len() int { return len(p.operations) }
 func (p Pipeline) IsEmpty() bool { return p.Len() == 0 }
 
 // At returns the operation at a given step.
-func (p Pipeline) At(i int) Union { return p.operations[i] }
+func (p Pipeline) At(i int) OpUnion { return p.operations[i] }
 
 // Equal determines whether two pipelines are equal.
 func (p Pipeline) Equal(other Pipeline) bool {
@@ -598,7 +597,7 @@ func (p Pipeline) SubPipeline(startInclusive int, endExclusive int) Pipeline {
 
 // Clone clones the pipeline.
 func (p Pipeline) Clone() Pipeline {
-	clone := make([]Union, len(p.operations))
+	clone := make([]OpUnion, len(p.operations))
 	for i, op := range p.operations {
 		clone[i] = op.Clone()
 	}
@@ -638,7 +637,7 @@ func (p Pipeline) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals JSON-encoded data into a pipeline.
 func (p *Pipeline) UnmarshalJSON(data []byte) error {
-	var operations []Union
+	var operations []OpUnion
 	if err := json.Unmarshal(data, &operations); err != nil {
 		return err
 	}
@@ -648,7 +647,7 @@ func (p *Pipeline) UnmarshalJSON(data []byte) error {
 
 // UnmarshalYAML unmarshals YAML-encoded data into a pipeline.
 func (p *Pipeline) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var operations []Union
+	var operations []OpUnion
 	if err := unmarshal(&operations); err != nil {
 		return err
 	}

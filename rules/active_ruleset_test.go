@@ -29,8 +29,8 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/metadata"
 	"github.com/m3db/m3metrics/metric"
-	"github.com/m3db/m3metrics/op"
-	"github.com/m3db/m3metrics/op/applied"
+	"github.com/m3db/m3metrics/pipeline"
+	"github.com/m3db/m3metrics/pipeline/applied"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/transformation"
 	xtime "github.com/m3db/m3x/time"
@@ -495,10 +495,10 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
 									policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 48*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -511,16 +511,16 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
 									policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 										},
@@ -662,10 +662,10 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
 									policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 48*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -687,10 +687,10 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
 									policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 48*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -703,16 +703,16 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
 									policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 										},
@@ -734,10 +734,10 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
 									policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 48*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -750,16 +750,16 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
 									policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 										},
@@ -779,16 +779,16 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 								StoragePolicies: policy.StoragePolicies{
 									policy.NewStoragePolicy(30*time.Second, xtime.Second, 6*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -801,16 +801,16 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
 									policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 										},
@@ -830,16 +830,16 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 								StoragePolicies: policy.StoragePolicies{
 									policy.NewStoragePolicy(30*time.Second, xtime.Second, 6*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -852,16 +852,16 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
 									policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 										},
@@ -881,16 +881,16 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 								StoragePolicies: policy.StoragePolicies{
 									policy.NewStoragePolicy(30*time.Second, xtime.Second, 6*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -910,16 +910,16 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 								StoragePolicies: policy.StoragePolicies{
 									policy.NewStoragePolicy(30*time.Second, xtime.Second, 6*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -1283,10 +1283,10 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
 									policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 48*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -1299,16 +1299,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
 									policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 										},
@@ -1391,16 +1391,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 								StoragePolicies: policy.StoragePolicies{
 									policy.NewStoragePolicy(30*time.Second, xtime.Second, 6*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -1588,10 +1588,10 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
 									policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 48*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -1636,10 +1636,10 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
 									policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 48*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -1652,16 +1652,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
 									policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 										},
@@ -1706,10 +1706,10 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(5*time.Minute, xtime.Minute, 48*time.Hour),
 									policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 48*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -1722,16 +1722,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
 									policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 										},
@@ -1772,16 +1772,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 								StoragePolicies: policy.StoragePolicies{
 									policy.NewStoragePolicy(30*time.Second, xtime.Second, 6*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -1794,16 +1794,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
 									policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 										},
@@ -1843,16 +1843,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 								StoragePolicies: policy.StoragePolicies{
 									policy.NewStoragePolicy(30*time.Second, xtime.Second, 6*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -1865,16 +1865,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 									policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
 									policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 										},
@@ -1907,16 +1907,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 								StoragePolicies: policy.StoragePolicies{
 									policy.NewStoragePolicy(30*time.Second, xtime.Second, 6*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -1949,16 +1949,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 								StoragePolicies: policy.StoragePolicies{
 									policy.NewStoragePolicy(30*time.Second, xtime.Second, 6*time.Hour),
 								},
-								Pipeline: applied.NewPipeline([]applied.Union{
+								Pipeline: applied.NewPipeline([]applied.OpUnion{
 									{
-										Type: op.TransformationType,
-										Transformation: op.Transformation{
+										Type: pipeline.TransformationOpType,
+										Transformation: pipeline.TransformationOp{
 											Type: transformation.PerSecond,
 										},
 									},
 									{
-										Type: op.RollupType,
-										Rollup: applied.Rollup{
+										Type: pipeline.RollupOpType,
+										Rollup: applied.RollupOp{
 											ID:            b("rName1|rtagName1=rtagValue1,rtagName2=rtagValue2"),
 											AggregationID: aggregation.DefaultID,
 										},
@@ -3089,10 +3089,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter1,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName1"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.DefaultID,
@@ -3112,16 +3112,16 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter1,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.AggregationType,
-								Aggregation: op.Aggregation{
+								Type: pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{
 									Type: aggregation.Sum,
 								},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName1"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.DefaultID,
@@ -3143,16 +3143,16 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter1,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.TransformationType,
-								Transformation: op.Transformation{
+								Type: pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{
 									Type: transformation.PerSecond,
 								},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName1"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.DefaultID,
@@ -3178,10 +3178,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter1,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName2"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.DefaultID,
@@ -3201,22 +3201,22 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter1,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.AggregationType,
-								Aggregation: op.Aggregation{
+								Type: pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{
 									Type: aggregation.Last,
 								},
 							},
 							{
-								Type: op.TransformationType,
-								Transformation: op.Transformation{
+								Type: pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{
 									Type: transformation.PerSecond,
 								},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName2"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
@@ -3237,10 +3237,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter1,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName2"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.DefaultID,
@@ -3266,10 +3266,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter1,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName3"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.DefaultID,
@@ -3283,10 +3283,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 						},
 					},
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName3"),
 									Tags:          bs("rtagName1"),
 									AggregationID: aggregation.DefaultID,
@@ -3306,10 +3306,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter1,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName3"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.DefaultID,
@@ -3330,10 +3330,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter1,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName3"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.DefaultID,
@@ -3360,10 +3360,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter2,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName4"),
 									Tags:          bs("rtagName1"),
 									AggregationID: aggregation.DefaultID,
@@ -3391,10 +3391,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				lastUpdatedBy:      "test",
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName5"),
 									Tags:          bs("rtagName1"),
 									AggregationID: aggregation.DefaultID,
@@ -3420,10 +3420,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				filter:       filter1,
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName6"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.DefaultID,
@@ -3451,10 +3451,10 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				lastUpdatedBy:      "test",
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName7"),
 									Tags:          bs("rtagName1"),
 									AggregationID: aggregation.MustCompressTypes(aggregation.Sum, aggregation.P90),
@@ -3483,26 +3483,26 @@ func testRollupRules(t *testing.T) []*rollupRule {
 				lastUpdatedBy:      "test",
 				targets: []rollupTarget{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName81"),
 									Tags:          bs("rtagName1", "rtagName2", "rtagName3"),
 									AggregationID: aggregation.MustCompressTypes(aggregation.Sum, aggregation.P90),
 								},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName82"),
 									Tags:          bs("rtagName1", "rtagName2"),
 									AggregationID: aggregation.MustCompressTypes(aggregation.Count),
 								},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       b("rName83"),
 									Tags:          bs("rtagName1"),
 									AggregationID: aggregation.MustCompressTypes(aggregation.Min),

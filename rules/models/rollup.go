@@ -21,13 +21,13 @@
 package models
 
 import (
-	"github.com/m3db/m3metrics/op"
+	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
 )
 
 // RollupTarget is a common json serializable rollup target.
 type RollupTarget struct {
-	Pipeline        op.Pipeline            `json:"pipeline" validate:"required"`
+	Pipeline        pipeline.Pipeline      `json:"pipeline" validate:"required"`
 	StoragePolicies policy.StoragePolicies `json:"storagePolicies" validate:"required"`
 }
 
@@ -54,7 +54,7 @@ func (t *RollupTarget) Equal(other *RollupTarget) bool {
 
 // RollupTargetView is a human friendly representation of a rollup rule target at a given point in time.
 type RollupTargetView struct {
-	Pipeline        op.Pipeline
+	Pipeline        pipeline.Pipeline
 	StoragePolicies policy.StoragePolicies
 }
 

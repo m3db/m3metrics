@@ -33,7 +33,7 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/policypb"
 	"github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/generated/proto/transformationpb"
-	"github.com/m3db/m3metrics/op"
+	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules/models"
 	"github.com/m3db/m3metrics/transformation"
@@ -272,10 +272,10 @@ var (
 		rawFilter:    "tag1:value1 tag2:value2",
 		targets: []rollupTarget{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       []byte("rName1"),
 							Tags:          bs("rtagName1", "rtagName2"),
 							AggregationID: aggregation.DefaultID,
@@ -297,10 +297,10 @@ var (
 		rawFilter:    "tag3:value3 tag4:value4",
 		targets: []rollupTarget{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       []byte("rName1"),
 							Tags:          bs("rtagName1", "rtagName2"),
 							AggregationID: aggregation.MustCompressTypes(aggregation.Mean),
@@ -323,22 +323,22 @@ var (
 		rawFilter:    "tag1:value1 tag2:value2",
 		targets: []rollupTarget{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.AggregationType,
-						Aggregation: op.Aggregation{
+						Type: pipeline.AggregationOpType,
+						Aggregation: pipeline.AggregationOp{
 							Type: aggregation.Sum,
 						},
 					},
 					{
-						Type: op.TransformationType,
-						Transformation: op.Transformation{
+						Type: pipeline.TransformationOpType,
+						Transformation: pipeline.TransformationOp{
 							Type: transformation.Absolute,
 						},
 					},
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       []byte("testRollupOp"),
 							Tags:          bs("testTag1", "testTag2"),
 							AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
@@ -352,16 +352,16 @@ var (
 				},
 			},
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.TransformationType,
-						Transformation: op.Transformation{
+						Type: pipeline.TransformationOpType,
+						Transformation: pipeline.TransformationOp{
 							Type: transformation.PerSecond,
 						},
 					},
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       []byte("testRollupOp2"),
 							Tags:          bs("testTag3", "testTag4"),
 							AggregationID: aggregation.DefaultID,
@@ -383,10 +383,10 @@ var (
 		rawFilter:    "tag3:value3 tag4:value4",
 		targets: []rollupTarget{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       []byte("testRollupOp2"),
 							Tags:          bs("testTag3", "testTag4"),
 							AggregationID: aggregation.MustCompressTypes(aggregation.Last),
@@ -723,10 +723,10 @@ func TestRollupRuleRollupRuleView(t *testing.T) {
 		Filter:       "tag3:value3 tag4:value4",
 		Targets: []models.RollupTargetView{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       []byte("testRollupOp2"),
 							Tags:          bs("testTag3", "testTag4"),
 							AggregationID: aggregation.MustCompressTypes(aggregation.Last),
@@ -766,10 +766,10 @@ func TestNewRollupRuleHistory(t *testing.T) {
 			Filter:       "tag3:value3 tag4:value4",
 			Targets: []models.RollupTargetView{
 				{
-					Pipeline: op.NewPipeline([]op.Union{
+					Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 						{
-							Type: op.RollupType,
-							Rollup: op.Rollup{
+							Type: pipeline.RollupOpType,
+							Rollup: pipeline.RollupOp{
 								NewName:       []byte("testRollupOp2"),
 								Tags:          bs("testTag3", "testTag4"),
 								AggregationID: aggregation.MustCompressTypes(aggregation.Last),
@@ -792,22 +792,22 @@ func TestNewRollupRuleHistory(t *testing.T) {
 			Filter:       "tag1:value1 tag2:value2",
 			Targets: []models.RollupTargetView{
 				{
-					Pipeline: op.NewPipeline([]op.Union{
+					Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 						{
-							Type: op.AggregationType,
-							Aggregation: op.Aggregation{
+							Type: pipeline.AggregationOpType,
+							Aggregation: pipeline.AggregationOp{
 								Type: aggregation.Sum,
 							},
 						},
 						{
-							Type: op.TransformationType,
-							Transformation: op.Transformation{
+							Type: pipeline.TransformationOpType,
+							Transformation: pipeline.TransformationOp{
 								Type: transformation.Absolute,
 							},
 						},
 						{
-							Type: op.RollupType,
-							Rollup: op.Rollup{
+							Type: pipeline.RollupOpType,
+							Rollup: pipeline.RollupOp{
 								NewName:       []byte("testRollupOp"),
 								Tags:          bs("testTag1", "testTag2"),
 								AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
@@ -821,16 +821,16 @@ func TestNewRollupRuleHistory(t *testing.T) {
 					},
 				},
 				{
-					Pipeline: op.NewPipeline([]op.Union{
+					Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 						{
-							Type: op.TransformationType,
-							Transformation: op.Transformation{
+							Type: pipeline.TransformationOpType,
+							Transformation: pipeline.TransformationOp{
 								Type: transformation.PerSecond,
 							},
 						},
 						{
-							Type: op.RollupType,
-							Rollup: op.Rollup{
+							Type: pipeline.RollupOpType,
+							Rollup: pipeline.RollupOp{
 								NewName:       []byte("testRollupOp2"),
 								Tags:          bs("testTag3", "testTag4"),
 								AggregationID: aggregation.DefaultID,

@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package op
+package pipeline
 
 import (
 	"encoding/json"
@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	testTransformationOp = Transformation{
+	testTransformationOp = TransformationOp{
 		Type: transformation.PerSecond,
 	}
 	testTransformationOpProto = pipelinepb.TransformationOp{
@@ -46,20 +46,20 @@ var (
 	}
 )
 
-func TestAggregationEqual(t *testing.T) {
+func TestAggregationOpEqual(t *testing.T) {
 	inputs := []struct {
-		a1       Aggregation
-		a2       Aggregation
+		a1       AggregationOp
+		a2       AggregationOp
 		expected bool
 	}{
 		{
-			a1:       Aggregation{aggregation.Count},
-			a2:       Aggregation{aggregation.Count},
+			a1:       AggregationOp{aggregation.Count},
+			a2:       AggregationOp{aggregation.Count},
 			expected: true,
 		},
 		{
-			a1:       Aggregation{aggregation.Count},
-			a2:       Aggregation{aggregation.Sum},
+			a1:       AggregationOp{aggregation.Count},
+			a2:       AggregationOp{aggregation.Sum},
 			expected: false,
 		},
 	}
@@ -70,20 +70,20 @@ func TestAggregationEqual(t *testing.T) {
 	}
 }
 
-func TestTransformationEqual(t *testing.T) {
+func TestTransformationOpEqual(t *testing.T) {
 	inputs := []struct {
-		a1       Transformation
-		a2       Transformation
+		a1       TransformationOp
+		a2       TransformationOp
 		expected bool
 	}{
 		{
-			a1:       Transformation{transformation.Absolute},
-			a2:       Transformation{transformation.Absolute},
+			a1:       TransformationOp{transformation.Absolute},
+			a2:       TransformationOp{transformation.Absolute},
 			expected: true,
 		},
 		{
-			a1:       Transformation{transformation.Absolute},
-			a2:       Transformation{transformation.PerSecond},
+			a1:       TransformationOp{transformation.Absolute},
+			a2:       TransformationOp{transformation.PerSecond},
 			expected: false,
 		},
 	}
@@ -94,8 +94,8 @@ func TestTransformationEqual(t *testing.T) {
 	}
 }
 
-func TestTransformationClone(t *testing.T) {
-	source := Transformation{transformation.Absolute}
+func TestTransformationOpClone(t *testing.T) {
+	source := TransformationOp{transformation.Absolute}
 	clone := source.Clone()
 	require.Equal(t, source, clone)
 	clone.Type = transformation.PerSecond
@@ -109,18 +109,18 @@ func TestPipelineString(t *testing.T) {
 	}{
 		{
 			p: Pipeline{
-				operations: []Union{
+				operations: []OpUnion{
 					{
-						Type:        AggregationType,
-						Aggregation: Aggregation{Type: aggregation.Last},
+						Type:        AggregationOpType,
+						Aggregation: AggregationOp{Type: aggregation.Last},
 					},
 					{
-						Type:           TransformationType,
-						Transformation: Transformation{Type: transformation.PerSecond},
+						Type:           TransformationOpType,
+						Transformation: TransformationOp{Type: transformation.PerSecond},
 					},
 					{
-						Type: RollupType,
-						Rollup: Rollup{
+						Type: RollupOpType,
+						Rollup: RollupOp{
 							NewName:       b("foo"),
 							Tags:          [][]byte{b("tag1"), b("tag2")},
 							AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
@@ -132,13 +132,13 @@ func TestPipelineString(t *testing.T) {
 		},
 		{
 			p: Pipeline{
-				operations: []Union{
+				operations: []OpUnion{
 					{
-						Type: Type(10),
+						Type: OpType(10),
 					},
 				},
 			},
-			expected: "{operations: [{unknown op type: Type(10)}]}",
+			expected: "{operations: [{unknown op type: OpType(10)}]}",
 		},
 	}
 
@@ -154,25 +154,25 @@ func TestTransformationOpToProto(t *testing.T) {
 }
 
 func TestTransformationOpFromProto(t *testing.T) {
-	var res Transformation
+	var res TransformationOp
 	require.NoError(t, res.FromProto(&testTransformationOpProto))
 	require.Equal(t, testTransformationOp, res)
 }
 
 func TestTransformationOpFromProtoNilProto(t *testing.T) {
-	var res Transformation
+	var res TransformationOp
 	require.Equal(t, errNilTransformationOpProto, res.FromProto(nil))
 }
 
 func TestTransformationOpFromProtoBadProto(t *testing.T) {
-	var res Transformation
+	var res TransformationOp
 	require.Error(t, res.FromProto(&testBadTransformationOpProto))
 }
 
 func TestTransformationOpRoundTrip(t *testing.T) {
 	var (
 		pb  pipelinepb.TransformationOp
-		res Transformation
+		res TransformationOp
 	)
 	require.NoError(t, testTransformationOp.ToProto(&pb))
 	require.NoError(t, res.FromProto(&pb))
@@ -180,40 +180,40 @@ func TestTransformationOpRoundTrip(t *testing.T) {
 }
 
 func TestRollupOpSameTransform(t *testing.T) {
-	rollupOp := Rollup{
+	rollupOp := RollupOp{
 		NewName: b("foo"),
 		Tags:    bs("bar1", "bar2"),
 	}
 	inputs := []struct {
-		op     Rollup
+		op     RollupOp
 		result bool
 	}{
 		{
-			op:     Rollup{NewName: b("foo"), Tags: bs("bar1", "bar2")},
+			op:     RollupOp{NewName: b("foo"), Tags: bs("bar1", "bar2")},
 			result: true,
 		},
 		{
-			op:     Rollup{NewName: b("foo"), Tags: bs("bar2", "bar1")},
+			op:     RollupOp{NewName: b("foo"), Tags: bs("bar2", "bar1")},
 			result: true,
 		},
 		{
-			op:     Rollup{NewName: b("foo"), Tags: bs("bar1")},
+			op:     RollupOp{NewName: b("foo"), Tags: bs("bar1")},
 			result: false,
 		},
 		{
-			op:     Rollup{NewName: b("foo"), Tags: bs("bar1", "bar2", "bar3")},
+			op:     RollupOp{NewName: b("foo"), Tags: bs("bar1", "bar2", "bar3")},
 			result: false,
 		},
 		{
-			op:     Rollup{NewName: b("foo"), Tags: bs("bar1", "bar3")},
+			op:     RollupOp{NewName: b("foo"), Tags: bs("bar1", "bar3")},
 			result: false,
 		},
 		{
-			op:     Rollup{NewName: b("baz"), Tags: bs("bar1", "bar2")},
+			op:     RollupOp{NewName: b("baz"), Tags: bs("bar1", "bar2")},
 			result: false,
 		},
 		{
-			op:     Rollup{NewName: b("baz"), Tags: bs("bar2", "bar1")},
+			op:     RollupOp{NewName: b("baz"), Tags: bs("bar2", "bar1")},
 			result: false,
 		},
 	}
@@ -224,27 +224,27 @@ func TestRollupOpSameTransform(t *testing.T) {
 
 func TestOpUnionMarshalJSON(t *testing.T) {
 	inputs := []struct {
-		op       Union
+		op       OpUnion
 		expected string
 	}{
 		{
-			op: Union{
-				Type:        AggregationType,
-				Aggregation: Aggregation{Type: aggregation.Sum},
+			op: OpUnion{
+				Type:        AggregationOpType,
+				Aggregation: AggregationOp{Type: aggregation.Sum},
 			},
 			expected: `{"aggregation":"Sum"}`,
 		},
 		{
-			op: Union{
-				Type:           TransformationType,
-				Transformation: Transformation{Type: transformation.PerSecond},
+			op: OpUnion{
+				Type:           TransformationOpType,
+				Transformation: TransformationOp{Type: transformation.PerSecond},
 			},
 			expected: `{"transformation":"PerSecond"}`,
 		},
 		{
-			op: Union{
-				Type: RollupType,
-				Rollup: Rollup{
+			op: OpUnion{
+				Type: RollupOpType,
+				Rollup: RollupOp{
 					NewName:       b("testRollup"),
 					Tags:          bs("tag1", "tag2"),
 					AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
@@ -253,9 +253,9 @@ func TestOpUnionMarshalJSON(t *testing.T) {
 			expected: `{"rollup":{"newName":"testRollup","tags":["tag1","tag2"],"aggregation":["Min","Max"]}}`,
 		},
 		{
-			op: Union{
-				Type: RollupType,
-				Rollup: Rollup{
+			op: OpUnion{
+				Type: RollupOpType,
+				Rollup: RollupOp{
 					NewName:       b("testRollup"),
 					Tags:          bs("tag1", "tag2"),
 					AggregationID: aggregation.DefaultID,
@@ -273,32 +273,32 @@ func TestOpUnionMarshalJSON(t *testing.T) {
 }
 
 func TestOpUnionMarshalJSONError(t *testing.T) {
-	op := Union{}
+	op := OpUnion{}
 	_, err := json.Marshal(op)
 	require.Error(t, err)
 }
 
 func TestOpUnionMarshalJSONRoundtrip(t *testing.T) {
-	ops := []Union{
+	ops := []OpUnion{
 		{
-			Type:        AggregationType,
-			Aggregation: Aggregation{Type: aggregation.Sum},
+			Type:        AggregationOpType,
+			Aggregation: AggregationOp{Type: aggregation.Sum},
 		},
 		{
-			Type:           TransformationType,
-			Transformation: Transformation{Type: transformation.PerSecond},
+			Type:           TransformationOpType,
+			Transformation: TransformationOp{Type: transformation.PerSecond},
 		},
 		{
-			Type: RollupType,
-			Rollup: Rollup{
+			Type: RollupOpType,
+			Rollup: RollupOp{
 				NewName:       b("testRollup"),
 				Tags:          bs("tag1", "tag2"),
 				AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
 			},
 		},
 		{
-			Type: RollupType,
-			Rollup: Rollup{
+			Type: RollupOpType,
+			Rollup: RollupOp{
 				NewName:       b("testRollup"),
 				Tags:          bs("tag1", "tag2"),
 				AggregationID: aggregation.DefaultID,
@@ -309,33 +309,33 @@ func TestOpUnionMarshalJSONRoundtrip(t *testing.T) {
 	for _, op := range ops {
 		b, err := json.Marshal(op)
 		require.NoError(t, err)
-		var res Union
+		var res OpUnion
 		require.NoError(t, json.Unmarshal(b, &res))
 		require.Equal(t, op, res)
 	}
 }
 
 func TestPipelineMarshalJSON(t *testing.T) {
-	p := NewPipeline([]Union{
+	p := NewPipeline([]OpUnion{
 		{
-			Type:        AggregationType,
-			Aggregation: Aggregation{Type: aggregation.Sum},
+			Type:        AggregationOpType,
+			Aggregation: AggregationOp{Type: aggregation.Sum},
 		},
 		{
-			Type:           TransformationType,
-			Transformation: Transformation{Type: transformation.PerSecond},
+			Type:           TransformationOpType,
+			Transformation: TransformationOp{Type: transformation.PerSecond},
 		},
 		{
-			Type: RollupType,
-			Rollup: Rollup{
+			Type: RollupOpType,
+			Rollup: RollupOp{
 				NewName:       b("testRollup"),
 				Tags:          bs("tag1", "tag2"),
 				AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
 			},
 		},
 		{
-			Type: RollupType,
-			Rollup: Rollup{
+			Type: RollupOpType,
+			Rollup: RollupOp{
 				NewName:       b("testRollup"),
 				Tags:          bs("tag1", "tag2"),
 				AggregationID: aggregation.DefaultID,
@@ -353,26 +353,26 @@ func TestPipelineMarshalJSON(t *testing.T) {
 }
 
 func TestPipelineMarshalJSONRoundtrip(t *testing.T) {
-	p := NewPipeline([]Union{
+	p := NewPipeline([]OpUnion{
 		{
-			Type:        AggregationType,
-			Aggregation: Aggregation{Type: aggregation.Sum},
+			Type:        AggregationOpType,
+			Aggregation: AggregationOp{Type: aggregation.Sum},
 		},
 		{
-			Type:           TransformationType,
-			Transformation: Transformation{Type: transformation.PerSecond},
+			Type:           TransformationOpType,
+			Transformation: TransformationOp{Type: transformation.PerSecond},
 		},
 		{
-			Type: RollupType,
-			Rollup: Rollup{
+			Type: RollupOpType,
+			Rollup: RollupOp{
 				NewName:       b("testRollup"),
 				Tags:          bs("tag1", "tag2"),
 				AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
 			},
 		},
 		{
-			Type: RollupType,
-			Rollup: Rollup{
+			Type: RollupOpType,
+			Rollup: RollupOp{
 				NewName:       b("testRollup"),
 				Tags:          bs("tag1", "tag2"),
 				AggregationID: aggregation.DefaultID,
@@ -406,26 +406,26 @@ func TestPipelineUnmarshalYAML(t *testing.T) {
 	var pipeline Pipeline
 	require.NoError(t, yaml.Unmarshal([]byte(input), &pipeline))
 
-	expected := NewPipeline([]Union{
+	expected := NewPipeline([]OpUnion{
 		{
-			Type:        AggregationType,
-			Aggregation: Aggregation{Type: aggregation.Sum},
+			Type:        AggregationOpType,
+			Aggregation: AggregationOp{Type: aggregation.Sum},
 		},
 		{
-			Type:           TransformationType,
-			Transformation: Transformation{Type: transformation.PerSecond},
+			Type:           TransformationOpType,
+			Transformation: TransformationOp{Type: transformation.PerSecond},
 		},
 		{
-			Type: RollupType,
-			Rollup: Rollup{
+			Type: RollupOpType,
+			Rollup: RollupOp{
 				NewName:       b("testRollup"),
 				Tags:          bs("tag1", "tag2"),
 				AggregationID: aggregation.MustCompressTypes(aggregation.Min, aggregation.Max),
 			},
 		},
 		{
-			Type: RollupType,
-			Rollup: Rollup{
+			Type: RollupOpType,
+			Rollup: RollupOp{
 				NewName:       b("testRollup2"),
 				Tags:          bs("tag3", "tag4"),
 				AggregationID: aggregation.DefaultID,

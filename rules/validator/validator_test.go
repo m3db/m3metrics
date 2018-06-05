@@ -31,7 +31,7 @@ import (
 	"github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/metric"
-	"github.com/m3db/m3metrics/op"
+	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules/models"
 	"github.com/m3db/m3metrics/rules/validator/namespace"
@@ -327,10 +327,10 @@ func TestValidatorValidateNoDuplicateRollupRulesWithTombstone(t *testing.T) {
 				Tombstoned: true,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -346,10 +346,10 @@ func TestValidatorValidateNoDuplicateRollupRulesWithTombstone(t *testing.T) {
 				Filter: "tag1:value1",
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -375,10 +375,10 @@ func TestValidatorValidateRollupRuleInvalidFilterExpr(t *testing.T) {
 				Filter: "randomTag:*too*many*wildcards*",
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -405,10 +405,10 @@ func TestValidatorValidateRollupRuleInvalidFilterTagName(t *testing.T) {
 				Filter: "random$Tag:foo",
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -433,10 +433,10 @@ func TestValidatorValidateRollupRuleInvalidMetricType(t *testing.T) {
 				Filter: testTypeTag + ":nonexistent",
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -461,7 +461,7 @@ func TestValidatorValidateRollupRulePipelineEmptyPipeline(t *testing.T) {
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline:        op.NewPipeline([]op.Union{}),
+						Pipeline:        pipeline.NewPipeline([]pipeline.OpUnion{}),
 						StoragePolicies: testStoragePolicies(),
 					},
 				},
@@ -482,7 +482,7 @@ func TestValidatorValidateRollupRulePipelineInvalidPipelineOp(t *testing.T) {
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{},
 						}),
 						StoragePolicies: testStoragePolicies(),
@@ -505,14 +505,14 @@ func TestValidatorValidateRollupRulePipelineMultipleAggregationOps(t *testing.T)
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{Type: aggregation.Sum},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{Type: aggregation.Sum},
 							},
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{Type: aggregation.Sum},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{Type: aggregation.Sum},
 							},
 						}),
 						StoragePolicies: testStoragePolicies(),
@@ -538,14 +538,14 @@ func TestValidatorValidateRollupRulePipelineAggregationOpNotFirst(t *testing.T) 
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{Type: aggregation.Sum},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{Type: aggregation.Sum},
 							},
 						}),
 						StoragePolicies: testStoragePolicies(),
@@ -571,10 +571,10 @@ func TestValidatorValidateRollupRulePipelineAggregationOpInvalidAggregationType(
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{},
 							},
 						}),
 						StoragePolicies: testStoragePolicies(),
@@ -600,10 +600,10 @@ func TestValidatorValidateRollupRulePipelineAggregationOpDisallowedAggregationTy
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{Type: aggregation.Sum},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{Type: aggregation.Sum},
 							},
 						}),
 						StoragePolicies: testStoragePolicies(),
@@ -626,22 +626,22 @@ func TestValidatorValidateRollupRulePipelineTransformationDerivativeOrderNotSupp
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
 								},
 							},
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 						}),
 						StoragePolicies: testStoragePolicies(),
@@ -664,10 +664,10 @@ func TestValidatorValidateRollupRulePipelineInvalidTransformationType(t *testing
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{},
 							},
 						}),
 						StoragePolicies: testStoragePolicies(),
@@ -690,10 +690,10 @@ func TestValidatorValidateRollupRulePipelineNoRollupOp(t *testing.T) {
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 						}),
 						StoragePolicies: testStoragePolicies(),
@@ -716,18 +716,18 @@ func TestValidatorValidateRollupRulePipelineRollupLevelHigherThanMax(t *testing.
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
 								},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName2"),
 									Tags:          [][]byte{[]byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -754,10 +754,10 @@ func TestValidatorValidateRollupRuleRollupOpDuplicateRollupTag(t *testing.T) {
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -784,10 +784,10 @@ func TestValidatorValidateRollupRuleRollupOpMissingRequiredTag(t *testing.T) {
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -815,10 +815,10 @@ func TestValidatorValidateRollupRuleRollupOpWithInvalidMetricName(t *testing.T) 
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName$1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -845,10 +845,10 @@ func TestValidatorValidateRollupRuleRollupOpWithEmptyMetricName(t *testing.T) {
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte(""),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -875,10 +875,10 @@ func TestValidatorValidateRollupRuleRollupOpWithValidMetricName(t *testing.T) {
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte(""),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -905,10 +905,10 @@ func TestValidatorValidateRollupRuleRollupOpWithInvalidTagName(t *testing.T) {
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("foo"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2$"), []byte("$")},
 									AggregationID: aggregation.DefaultID,
@@ -935,10 +935,10 @@ func TestValidatorValidateRollupRuleRollupOpWithValidTagName(t *testing.T) {
 				Filter: testTypeTag + ":" + testCounterType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("foo"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2$"), []byte("$")},
 									AggregationID: aggregation.DefaultID,
@@ -965,10 +965,10 @@ func TestValidatorValidateRollupRuleRollupOpFirstLevelAggregationTypes(t *testin
 				Filter: testTypeTag + ":" + testTimerType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.MustCompressTypes(aggregation.Count, aggregation.Max),
@@ -1023,14 +1023,14 @@ func TestValidatorValidateRollupRuleRollupOpNonFirstLevelAggregationTypes(t *tes
 				Filter: testTypeTag + ":" + testTimerType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.MustCompressTypes(aggregation.Count, aggregation.Max),
@@ -1085,10 +1085,10 @@ func TestValidatorValidateRollupRuleRollupTargetWithStoragePolicies(t *testing.T
 				Filter: testTypeTag + ":" + testTimerType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -1141,10 +1141,10 @@ func TestValidatorValidateRollupRuleRollupTargetWithNoStoragePolicies(t *testing
 				Filter: testTypeTag + ":" + testTimerType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -1170,10 +1170,10 @@ func TestValidatorValidateRollupRuleRollupOpWithDuplicateStoragePolicies(t *test
 				Filter: testTypeTag + ":" + testTimerType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -1204,10 +1204,10 @@ func TestValidatorValidateRollupRuleDisallowedStoragePolicies(t *testing.T) {
 				Filter: testTypeTag + ":" + testTimerType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
@@ -1235,18 +1235,18 @@ func TestValidatorRollupRule(t *testing.T) {
 				Filter: testTypeTag + ":" + testGaugeType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{Type: aggregation.Last},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{Type: aggregation.Last},
 							},
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
@@ -1277,18 +1277,18 @@ func TestValidatorValidateRollupRuleDuplicateRollupIDs(t *testing.T) {
 				Filter: testTypeTag + ":" + testGaugeType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type:        op.AggregationType,
-								Aggregation: op.Aggregation{Type: aggregation.Last},
+								Type:        pipeline.AggregationOpType,
+								Aggregation: pipeline.AggregationOp{Type: aggregation.Last},
 							},
 							{
-								Type:           op.TransformationType,
-								Transformation: op.Transformation{Type: transformation.PerSecond},
+								Type:           pipeline.TransformationOpType,
+								Transformation: pipeline.TransformationOp{Type: transformation.PerSecond},
 							},
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
@@ -1304,10 +1304,10 @@ func TestValidatorValidateRollupRuleDuplicateRollupIDs(t *testing.T) {
 				Filter: testTypeTag + ":" + testGaugeType,
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
 									Tags:          [][]byte{[]byte("rtagName2"), []byte("rtagName1")},
 									AggregationID: aggregation.DefaultID,

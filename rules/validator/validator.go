@@ -28,7 +28,7 @@ import (
 	merrors "github.com/m3db/m3metrics/errors"
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/metric"
-	"github.com/m3db/m3metrics/op"
+	mpipeline "github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules"
 	"github.com/m3db/m3metrics/rules/models"
@@ -138,7 +138,7 @@ func (v *validator) validateMappingRules(mrv map[string]*models.MappingRuleView)
 func (v *validator) validateRollupRules(rrv map[string]*models.RollupRuleView) error {
 	var (
 		namesSeen = make(map[string]struct{}, len(rrv))
-		pipelines = make([]op.Pipeline, 0, len(rrv))
+		pipelines = make([]mpipeline.Pipeline, 0, len(rrv))
 	)
 	for _, rule := range rrv {
 		if rule.Tombstoned {
@@ -262,7 +262,7 @@ func (v *validator) validateStoragePolicies(
 //   be no more than the maximum transformation derivative order that is supported.
 // * The pipeline must contain at least one rollup operation and at most `n` rollup operations,
 //   where `n` is the maximum supported number of rollup levels.
-func (v *validator) validatePipeline(pipeline op.Pipeline, types []metric.Type) error {
+func (v *validator) validatePipeline(pipeline mpipeline.Pipeline, types []metric.Type) error {
 	if pipeline.IsEmpty() {
 		return errEmptyPipeline
 	}
@@ -275,7 +275,7 @@ func (v *validator) validatePipeline(pipeline op.Pipeline, types []metric.Type) 
 	for i := 0; i < numPipelineOps; i++ {
 		pipelineOp := pipeline.At(i)
 		switch pipelineOp.Type {
-		case op.AggregationType:
+		case mpipeline.AggregationOpType:
 			numAggregationOps++
 			if numAggregationOps > 1 {
 				return errMoreThanOneAggregationOpInPipeline
@@ -286,7 +286,7 @@ func (v *validator) validatePipeline(pipeline op.Pipeline, types []metric.Type) 
 			if err := v.validateAggregationOp(pipelineOp.Aggregation, types); err != nil {
 				return fmt.Errorf("invalid aggregation operation at index %d: %v", i, err)
 			}
-		case op.TransformationType:
+		case mpipeline.TransformationOpType:
 			transformOp := pipelineOp.Transformation
 			if transformOp.Type.IsBinaryTransform() {
 				transformationDerivativeOrder++
@@ -297,7 +297,7 @@ func (v *validator) validatePipeline(pipeline op.Pipeline, types []metric.Type) 
 			if err := validateTransformationOp(transformOp); err != nil {
 				return fmt.Errorf("invalid transformation operation at index %d: %v", i, err)
 			}
-		case op.RollupType:
+		case mpipeline.RollupOpType:
 			// We only care about the derivative order of transformation operations in between
 			// two consecutive rollup operations and as such we reset the derivative order when
 			// encountering a rollup operation.
@@ -320,7 +320,7 @@ func (v *validator) validatePipeline(pipeline op.Pipeline, types []metric.Type) 
 }
 
 func (v *validator) validateAggregationOp(
-	aggregationOp op.Aggregation,
+	aggregationOp mpipeline.AggregationOp,
 	types []metric.Type,
 ) error {
 	aggregationID, err := aggregation.CompressTypes(aggregationOp.Type)
@@ -330,7 +330,7 @@ func (v *validator) validateAggregationOp(
 	return v.validateAggregationID(aggregationID, firstLevelAggregationType, types)
 }
 
-func validateTransformationOp(transformationOp op.Transformation) error {
+func validateTransformationOp(transformationOp mpipeline.TransformationOp) error {
 	if !transformationOp.Type.IsValid() {
 		return fmt.Errorf("invalid transformation type: %v", transformationOp.Type)
 	}
@@ -338,7 +338,7 @@ func validateTransformationOp(transformationOp op.Transformation) error {
 }
 
 func (v *validator) validateRollupOp(
-	rollupOp op.Rollup,
+	rollupOp mpipeline.RollupOp,
 	opIdxInPipeline int,
 	types []metric.Type,
 ) error {
@@ -406,13 +406,13 @@ func (v *validator) validateRollupTags(tags [][]byte) error {
 	return nil
 }
 
-func validateNoDuplicateRollupIDIn(pipelines []op.Pipeline) error {
-	rollupOps := make([]op.Rollup, 0, len(pipelines))
+func validateNoDuplicateRollupIDIn(pipelines []mpipeline.Pipeline) error {
+	rollupOps := make([]mpipeline.RollupOp, 0, len(pipelines))
 	for _, pipeline := range pipelines {
 		numOps := pipeline.Len()
 		for i := 0; i < numOps; i++ {
 			pipelineOp := pipeline.At(i)
-			if pipelineOp.Type != op.RollupType {
+			if pipelineOp.Type != mpipeline.RollupOpType {
 				continue
 			}
 			rollupOp := pipelineOp.Rollup

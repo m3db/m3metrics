@@ -36,7 +36,7 @@ import (
 	"github.com/m3db/m3metrics/metadata"
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/metric/id"
-	"github.com/m3db/m3metrics/op"
+	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules/models"
 	xbytes "github.com/m3db/m3metrics/x/bytes"
@@ -334,10 +334,10 @@ func TestRuleSetLatest(t *testing.T) {
 				Filter:       "rtagName1:rtagValue1 rtagName2:rtagValue2",
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName: b("rName1"),
 									Tags:    bs("rtagName1", "rtagName2"),
 								},
@@ -357,10 +357,10 @@ func TestRuleSetLatest(t *testing.T) {
 				Filter:       "rtagName1:rtagValue1 rtagName2:rtagValue2",
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName: b("rName3"),
 									Tags:    bs("rtagName1", "rtagName2"),
 								},
@@ -381,10 +381,10 @@ func TestRuleSetLatest(t *testing.T) {
 				Filter:       "rtagName1:rtagValue2",
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName: b("rName4"),
 									Tags:    bs("rtagName1", "rtagName2"),
 								},
@@ -404,10 +404,10 @@ func TestRuleSetLatest(t *testing.T) {
 				Filter:       "rtagName1:rtagValue2",
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName: b("rName5"),
 									Tags:    bs("rtagName1"),
 								},
@@ -427,10 +427,10 @@ func TestRuleSetLatest(t *testing.T) {
 				Filter:       "rtagName1:rtagValue1 rtagName2:rtagValue2",
 				Targets: []models.RollupTargetView{
 					{
-						Pipeline: op.NewPipeline([]op.Union{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
-								Type: op.RollupType,
-								Rollup: op.Rollup{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
 									NewName: b("rName6"),
 									Tags:    bs("rtagName1", "rtagName2"),
 								},
@@ -746,10 +746,10 @@ func TestRuleSetAddRollupRuleNewRule(t *testing.T) {
 		Filter: "tag1:value tag2:value",
 		Targets: []models.RollupTargetView{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       b("blah"),
 							Tags:          bs("a"),
 							AggregationID: aggregation.DefaultID,
@@ -782,10 +782,10 @@ func TestRuleSetAddRollupRuleNewRule(t *testing.T) {
 		Filter:       "tag1:value tag2:value",
 		Targets: []models.RollupTargetView{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       b("blah"),
 							Tags:          bs("a"),
 							AggregationID: aggregation.DefaultID,
@@ -826,10 +826,10 @@ func TestRuleSetAddRollupRuleDuplicateRule(t *testing.T) {
 		Filter: "test:bar",
 		Targets: []models.RollupTargetView{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       b("blah"),
 							Tags:          bs("a"),
 							AggregationID: aggregation.DefaultID,
@@ -873,10 +873,10 @@ func TestRuleSetAddRollupRuleReviveRule(t *testing.T) {
 		Filter: "test:bar",
 		Targets: []models.RollupTargetView{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       b("blah"),
 							Tags:          bs("a"),
 							AggregationID: aggregation.DefaultID,
@@ -910,10 +910,10 @@ func TestRuleSetAddRollupRuleReviveRule(t *testing.T) {
 		Filter:       "test:bar",
 		Targets: []models.RollupTargetView{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       b("blah"),
 							Tags:          bs("a"),
 							AggregationID: aggregation.DefaultID,
@@ -954,10 +954,10 @@ func TestRuleSetUpdateRollupRule(t *testing.T) {
 		Filter: "test:bar",
 		Targets: []models.RollupTargetView{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       b("blah"),
 							Tags:          bs("a"),
 							AggregationID: aggregation.DefaultID,
@@ -990,10 +990,10 @@ func TestRuleSetUpdateRollupRule(t *testing.T) {
 		Filter:       "test:bar",
 		Targets: []models.RollupTargetView{
 			{
-				Pipeline: op.NewPipeline([]op.Union{
+				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
-						Type: op.RollupType,
-						Rollup: op.Rollup{
+						Type: pipeline.RollupOpType,
+						Rollup: pipeline.RollupOp{
 							NewName:       b("blah"),
 							Tags:          bs("a"),
 							AggregationID: aggregation.DefaultID,
