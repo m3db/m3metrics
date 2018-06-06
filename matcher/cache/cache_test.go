@@ -103,7 +103,7 @@ func TestCacheMatchIDCachedInvalidSourceValidInvalidateAll(t *testing.T) {
 		idHash     = testValues[1].idHash()
 		newVersion = 3
 	)
-	result := rules.NewMatchResult(0, math.MaxInt64, testMappingPoliciesList, testRollupResults)
+	result := rules.NewMatchResult(0, math.MaxInt64, testForExistingID, testForNewRollupIDs)
 	source.setVersion(newVersion)
 	source.setResult(id, result)
 
@@ -149,7 +149,7 @@ func TestCacheMatchIDCachedInvalidSourceValidInvalidateAllNoEviction(t *testing.
 		idHash     = testValues[1].idHash()
 		newVersion = 3
 	)
-	result := rules.NewMatchResult(0, math.MaxInt64, testMappingPoliciesList, testRollupResults)
+	result := rules.NewMatchResult(0, math.MaxInt64, testForExistingID, testForNewRollupIDs)
 	source.setVersion(newVersion)
 	source.setResult(id, result)
 
@@ -194,7 +194,7 @@ func TestCacheMatchIDCachedInvalidSourceValidInvalidateOneNoEviction(t *testing.
 		idHash     = testValues[1].idHash()
 		newVersion = 3
 	)
-	result := rules.NewMatchResult(0, math.MaxInt64, testMappingPoliciesList, testRollupResults)
+	result := rules.NewMatchResult(0, math.MaxInt64, testForExistingID, testForNewRollupIDs)
 	source.setVersion(newVersion)
 	source.setResult(id, result)
 
@@ -238,7 +238,7 @@ func TestCacheMatchIDCachedInvalidSourceValidWithEviction(t *testing.T) {
 	populateCache(c, input, now, source, populateBoth)
 
 	newVersion := 3
-	newResult := rules.NewMatchResult(0, math.MaxInt64, testMappingPoliciesList, testRollupResults)
+	newResult := rules.NewMatchResult(0, math.MaxInt64, testForExistingID, testForNewRollupIDs)
 	source.setVersion(newVersion)
 	for _, id := range []string{"foo", "bar", "baz", "cat", "lol"} {
 		source.setResult([]byte(id), newResult)
@@ -336,7 +336,7 @@ func TestCacheMatchParallel(t *testing.T) {
 
 	newVersion := 3
 	nowNanos := time.Now().UnixNano()
-	newResult := rules.NewMatchResult(0, nowNanos, testMappingPoliciesList, testRollupResults)
+	newResult := rules.NewMatchResult(0, nowNanos, testForExistingID, testForNewRollupIDs)
 	source.setVersion(newVersion)
 	for _, id := range []string{"foo", "baz"} {
 		source.setResult([]byte(id), newResult)
