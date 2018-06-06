@@ -1429,7 +1429,7 @@ func TestValidatorValidateRollupRuleDuplicateRollupIDs(t *testing.T) {
 								Type: pipeline.RollupOpType,
 								Rollup: pipeline.RollupOp{
 									NewName:       []byte("rName1"),
-									Tags:          [][]byte{[]byte("rtagName2"), []byte("rtagName1")},
+									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
 									AggregationID: aggregation.DefaultID,
 								},
 							},
@@ -1448,7 +1448,7 @@ func TestValidatorValidateRollupRuleDuplicateRollupIDs(t *testing.T) {
 	validator := NewValidator(opts)
 	err := validator.ValidateSnapshot(view)
 	require.Error(t, err)
-	require.True(t, strings.Contains(err.Error(), "more than one rollup operations with name 'rName1' and tags '[rtagName2 rtagName1]' exist"))
+	require.True(t, strings.Contains(err.Error(), "more than one rollup operations with name 'rName1' and tags '[rtagName1 rtagName2]' exist"))
 	_, ok := err.(errors.RuleConflictError)
 	require.True(t, ok)
 }
