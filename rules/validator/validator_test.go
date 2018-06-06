@@ -746,6 +746,126 @@ func TestValidatorValidateRollupRulePipelineRollupLevelHigherThanMax(t *testing.
 	require.True(t, strings.Contains(err.Error(), "number of rollup levels is 2 higher than supported 1"))
 }
 
+func TestValidatorValidateRollupRulePipelineRollupTagNotFoundInPrevRollupOp(t *testing.T) {
+	view := &models.RuleSetSnapshotView{
+		RollupRules: map[string]*models.RollupRuleView{
+			"rollupRule1": &models.RollupRuleView{
+				Name:   "snapshot1",
+				Filter: testTypeTag + ":" + testCounterType,
+				Targets: []models.RollupTargetView{
+					{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
+							{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
+									NewName:       []byte("rName1"),
+									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
+									AggregationID: aggregation.DefaultID,
+								},
+							},
+							{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
+									NewName:       []byte("rName2"),
+									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2"), []byte("rtagName3")},
+									AggregationID: aggregation.DefaultID,
+								},
+							},
+						}),
+						StoragePolicies: testStoragePolicies(),
+					},
+				},
+			},
+		},
+	}
+	validator := NewValidator(testValidatorOptions().SetMaxRollupLevels(100))
+	err := validator.ValidateSnapshot(view)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), "tag rtagName3 not found in previous rollup operations"))
+}
+
+func TestValidatorValidateRollupRulePipelineRollupTagUnchangedInConsecutiveRollupOps(t *testing.T) {
+	view := &models.RuleSetSnapshotView{
+		RollupRules: map[string]*models.RollupRuleView{
+			"rollupRule1": &models.RollupRuleView{
+				Name:   "snapshot1",
+				Filter: testTypeTag + ":" + testCounterType,
+				Targets: []models.RollupTargetView{
+					{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
+							{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
+									NewName:       []byte("rName1"),
+									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
+									AggregationID: aggregation.DefaultID,
+								},
+							},
+							{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
+									NewName:       []byte("rName2"),
+									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
+									AggregationID: aggregation.DefaultID,
+								},
+							},
+						}),
+						StoragePolicies: testStoragePolicies(),
+					},
+				},
+			},
+		},
+	}
+	validator := NewValidator(testValidatorOptions().SetMaxRollupLevels(100))
+	err := validator.ValidateSnapshot(view)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), "same set of 2 rollup tags in consecutive rollup operations"))
+}
+
+func TestValidatorValidateRollupRulePipelineMultiLevelRollup(t *testing.T) {
+	view := &models.RuleSetSnapshotView{
+		RollupRules: map[string]*models.RollupRuleView{
+			"rollupRule1": &models.RollupRuleView{
+				Name:   "snapshot1",
+				Filter: testTypeTag + ":" + testCounterType,
+				Targets: []models.RollupTargetView{
+					{
+						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
+							{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
+									NewName:       []byte("rName1"),
+									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2"), []byte("rtagName3")},
+									AggregationID: aggregation.DefaultID,
+								},
+							},
+							{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
+									NewName:       []byte("rName2"),
+									Tags:          [][]byte{[]byte("rtagName1"), []byte("rtagName2")},
+									AggregationID: aggregation.DefaultID,
+								},
+							},
+							{
+								Type: pipeline.RollupOpType,
+								Rollup: pipeline.RollupOp{
+									NewName:       []byte("rName2"),
+									Tags:          [][]byte{[]byte("rtagName1")},
+									AggregationID: aggregation.DefaultID,
+								},
+							},
+						}),
+						StoragePolicies: testStoragePolicies(),
+					},
+				},
+			},
+		},
+	}
+	validator := NewValidator(testValidatorOptions().SetMaxRollupLevels(3))
+	require.NoError(t, validator.ValidateSnapshot(view))
+}
+
 func TestValidatorValidateRollupRuleRollupOpDuplicateRollupTag(t *testing.T) {
 	view := &models.RuleSetSnapshotView{
 		RollupRules: map[string]*models.RollupRuleView{

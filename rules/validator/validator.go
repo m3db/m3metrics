@@ -270,6 +270,7 @@ func (v *validator) validatePipeline(pipeline mpipeline.Pipeline, types []metric
 		numAggregationOps             int
 		transformationDerivativeOrder int
 		numRollupOps                  int
+		previousRollupTags            map[string]struct{}
 		numPipelineOps                = pipeline.Len()
 	)
 	for i := 0; i < numPipelineOps; i++ {
@@ -306,8 +307,12 @@ func (v *validator) validatePipeline(pipeline mpipeline.Pipeline, types []metric
 			if numRollupOps > v.opts.MaxRollupLevels() {
 				return fmt.Errorf("number of rollup levels is %d higher than supported %d", numRollupOps, v.opts.MaxRollupLevels())
 			}
-			if err := v.validateRollupOp(pipelineOp.Rollup, i, types); err != nil {
+			if err := v.validateRollupOp(pipelineOp.Rollup, i, types, previousRollupTags); err != nil {
 				return fmt.Errorf("invalid rollup operation at index %d: %v", i, err)
+			}
+			previousRollupTags = make(map[string]struct{}, len(pipelineOp.Rollup.Tags))
+			for _, tag := range pipelineOp.Rollup.Tags {
+				previousRollupTags[string(tag)] = struct{}{}
 			}
 		default:
 			return fmt.Errorf("operation at index %d has invalid type: %v", i, pipelineOp.Type)
@@ -341,6 +346,7 @@ func (v *validator) validateRollupOp(
 	rollupOp mpipeline.RollupOp,
 	opIdxInPipeline int,
 	types []metric.Type,
+	previousRollupTags map[string]struct{},
 ) error {
 	// Validate that the rollup metric name is valid.
 	if err := v.validateRollupMetricName(rollupOp.NewName); err != nil {
@@ -348,8 +354,8 @@ func (v *validator) validateRollupOp(
 	}
 
 	// Validate that the rollup tags are valid.
-	if err := v.validateRollupTags(rollupOp.Tags); err != nil {
-		return fmt.Errorf("invalid rollup tag in tags %v: %v", rollupOp.Tags, err)
+	if err := v.validateRollupTags(rollupOp.Tags, previousRollupTags); err != nil {
+		return fmt.Errorf("invalid rollup tags %v: %v", rollupOp.Tags, err)
 	}
 
 	// Validate that the aggregation ID is valid.
@@ -374,7 +380,10 @@ func (v *validator) validateRollupMetricName(metricName []byte) error {
 	return v.opts.CheckInvalidCharactersForMetricName(string(metricName))
 }
 
-func (v *validator) validateRollupTags(tags [][]byte) error {
+func (v *validator) validateRollupTags(
+	tags [][]byte,
+	previousRollupTags map[string]struct{},
+) error {
 	// Validating that all tag names have valid characters.
 	for _, tag := range tags {
 		if err := v.opts.CheckInvalidCharactersForTagName(string(tag)); err != nil {
@@ -390,6 +399,22 @@ func (v *validator) validateRollupTags(tags [][]byte) error {
 			return fmt.Errorf("duplicate rollup tag: '%s'", tagStr)
 		}
 		rollupTags[tagStr] = struct{}{}
+	}
+
+	// Validate that the set of rollup tags are a strict subset of those in
+	// previous rollup operations.
+	// NB: `previousRollupTags` is nil for the first rollup operation.
+	if previousRollupTags != nil {
+		var numSeenTags int
+		for _, tag := range tags {
+			if _, exists := previousRollupTags[string(tag)]; !exists {
+				return fmt.Errorf("tag %s not found in previous rollup operations", tag)
+			}
+			numSeenTags++
+		}
+		if numSeenTags == len(previousRollupTags) {
+			return fmt.Errorf("same set of %d rollup tags in consecutive rollup operations", numSeenTags)
+		}
 	}
 
 	// Validating the list of rollup tags in the rule contain all required tags.

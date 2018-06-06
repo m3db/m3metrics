@@ -302,7 +302,7 @@ func (aggTypes Types) IsDefault() bool {
 	return len(aggTypes) == 0
 }
 
-// String is for debugging.
+// String returns the string representation of the list of aggregation types.
 func (aggTypes Types) String() string {
 	if len(aggTypes) == 0 {
 		return ""

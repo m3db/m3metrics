@@ -265,7 +265,8 @@ func (mc *mappingRule) proto() (*rulepb.MappingRule, error) {
 	}, nil
 }
 
-// equal to timeNanos, or nil if not found.
+// activeSnapshot returns the active rule snapshot whose cutover time is no later than
+// the time passed in, or nil if no such rule snapshot exists.
 func (mc *mappingRule) activeSnapshot(timeNanos int64) *mappingRuleSnapshot {
 	idx := mc.activeIndex(timeNanos)
 	if idx < 0 {

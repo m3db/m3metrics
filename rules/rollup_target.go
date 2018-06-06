@@ -28,7 +28,7 @@ import (
 	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules/models"
-	xbytes "github.com/m3db/m3metrics/x/bytes"
+	"github.com/m3db/m3metrics/x/bytes"
 )
 
 var (
@@ -63,7 +63,7 @@ func newRollupTargetFromV1Proto(pb *rulepb.RollupTarget) (rollupTarget, error) {
 		Type: pipeline.RollupOpType,
 		Rollup: pipeline.RollupOp{
 			NewName:       []byte(pb.Name),
-			Tags:          xbytes.ArraysFromStringArray(tags),
+			Tags:          bytes.ArraysFromStringArray(tags),
 			AggregationID: aggregationID,
 		},
 	}
