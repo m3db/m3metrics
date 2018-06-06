@@ -95,6 +95,22 @@ func newActiveRuleSet(
 	}
 }
 
+// The forward matching logic goes like this:
+//
+// Imagine you have the list of rules in the ruleset lined up vertically. Each rule may have one
+// or more snapshots, each of which represents a change to that rule (e.g., filter change, policy
+// change, etc.). These snapshots are naturally non-overlapping in time since only one snapshot
+// can be active at a given point in time. As a result, if we use the x axis to represent time,
+// then for each rule, a snapshot is active for some amount of time. IOW, if you pick a time and
+// draw a vertical line across the set of rules, the snapshots of different ruels that intersect
+// with the vertical line are the active rule snapshots for the ruleset.
+//
+// Now you have a list of times you need to perform rule matching at. Each matching time
+// corresponds to a cutover time of a rule in the ruleset, because that's when matching the metric
+// ID against this rule may lead to a different metadata including different storage policies and
+// new rollup IDs to be generated or existing rollup IDs to stop being generated. The final match
+// result is a collection of such metadata sorted by time in ascending order.
+//
 // NB(xichen): can further consolidate consecutive staged metadata to deduplicate.
 func (as *activeRuleSet) ForwardMatch(
 	id []byte,
