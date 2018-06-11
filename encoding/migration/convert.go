@@ -73,16 +73,15 @@ func ToStagedMetadatas(
 	numStagedPolicies := len(policiesList)
 	res := make(metadata.StagedMetadatas, 0, numStagedPolicies)
 	for _, sp := range policiesList {
-		if sp.IsDefault() {
-			sm := metadata.DefaultStagedMetadata
-			res = append(res, sm)
-			continue
-		}
 		sm := metadata.StagedMetadata{}
 		sm.CutoverNanos = sp.CutoverNanos
 		sm.Tombstoned = sp.Tombstoned
-		policies, _ := sp.Policies()
-		sm.Metadata = toMetadata(policies)
+		policies, isDefault := sp.Policies()
+		if isDefault {
+			sm.Metadata = metadata.DefaultMetadata
+		} else {
+			sm.Metadata = toMetadata(policies)
+		}
 		res = append(res, sm)
 	}
 	return res
