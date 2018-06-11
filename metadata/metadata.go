@@ -43,6 +43,9 @@ var (
 
 	// DefaultStagedMetadatas represents default staged metadatas.
 	DefaultStagedMetadatas = StagedMetadatas{DefaultStagedMetadata}
+
+	// DefaultVersionedStagedMetadatas represents default versioned staged metadatas.
+	DefaultVersionedStagedMetadatas = VersionedStagedMetadatas{StagedMetadatas: DefaultStagedMetadatas}
 )
 
 // PipelineMetadata contains pipeline metadata.
