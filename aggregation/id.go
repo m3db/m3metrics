@@ -118,6 +118,20 @@ func (id *ID) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalYAML unmarshals YAML-encoded data into an ID.
+func (id *ID) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var aggTypes Types
+	if err := unmarshal(&aggTypes); err != nil {
+		return err
+	}
+	tid, err := CompressTypes(aggTypes...)
+	if err != nil {
+		return fmt.Errorf("invalid aggregation types %v: %v", aggTypes, err)
+	}
+	*id = tid
+	return nil
+}
+
 // ToProto converts the aggregation id to a protobuf message in place.
 func (id ID) ToProto(pb *aggregationpb.AggregationID) error {
 	if IDLen != 1 {
