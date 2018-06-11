@@ -161,7 +161,7 @@ var (
 )
 
 func TestToStagedMetadatas(t *testing.T) {
-	require.Equal(t, testConvertStagedMetadatas, toStagedMetadatas(testConvertPoliciesList))
+	require.Equal(t, testConvertStagedMetadatas, ToStagedMetadatas(testConvertPoliciesList))
 }
 
 func TestToUnaggregatedMessageUnion(t *testing.T) {
