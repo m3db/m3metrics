@@ -67,7 +67,7 @@ func (m PipelineMetadata) Equal(other PipelineMetadata) bool {
 // IsDefault returns whether this is the default standard pipeline metadata.
 func (m PipelineMetadata) IsDefault() bool {
 	return m.AggregationID.IsDefault() &&
-		policy.IsDefaultStoragePolicies(m.StoragePolicies) &&
+		m.StoragePolicies.IsDefault() &&
 		m.Pipeline.IsEmpty()
 }
 
