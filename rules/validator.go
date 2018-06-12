@@ -28,7 +28,7 @@ type Validator interface {
 	Validate(rs RuleSet) error
 
 	// ValidateSnapshot validates a ruleset snapshot.
-	ValidateSnapshot(snapshot *models.RuleSetSnapshotView) error
+	ValidateSnapshot(snapshot models.RuleSet) error
 
 	// Close closes the validator.
 	Close()

@@ -642,6 +642,6 @@ type mockValidator struct {
 	validateFn validateFn
 }
 
-func (v *mockValidator) Validate(rs rules.RuleSet) error                             { return v.validateFn(rs) }
-func (v *mockValidator) ValidateSnapshot(snapshot *models.RuleSetSnapshotView) error { return nil }
-func (v *mockValidator) Close()                                                      {}
+func (v *mockValidator) Validate(rs rules.RuleSet) error                { return v.validateFn(rs) }
+func (v *mockValidator) ValidateSnapshot(snapshot models.RuleSet) error { return nil }
+func (v *mockValidator) Close()                                         {}

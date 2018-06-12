@@ -116,17 +116,17 @@ func newNamespace(namespace *rulepb.Namespace) (Namespace, error) {
 }
 
 // NamespaceView returns the view representation of a namespace object.
-func (n Namespace) NamespaceView(snapshotIdx int) (*models.NamespaceView, error) {
+func (n Namespace) NamespaceView(snapshotIdx int) (models.Namespace, error) {
 	if snapshotIdx < 0 || snapshotIdx >= len(n.snapshots) {
-		return nil, errNamespaceSnapshotIndexOutOfRange
+		return models.Namespace{}, errNamespaceSnapshotIndexOutOfRange
 	}
 	s := n.snapshots[snapshotIdx]
-	return &models.NamespaceView{
-		Name:               string(n.name),
-		ForRuleSetVersion:  s.forRuleSetVersion,
-		Tombstoned:         s.tombstoned,
-		LastUpdatedAtNanos: s.lastUpdatedAtNanos,
-		LastUpdatedBy:      s.lastUpdatedBy,
+	return models.Namespace{
+		ID:                  string(n.name),
+		ForRuleSetVersion:   s.forRuleSetVersion,
+		Tombstoned:          s.tombstoned,
+		LastUpdatedBy:       s.lastUpdatedBy,
+		LastUpdatedAtMillis: s.lastUpdatedAtNanos / nanosPerMilli,
 	}, nil
 }
 
@@ -234,16 +234,16 @@ func NewNamespaces(version int, namespaces *rulepb.Namespaces) (Namespaces, erro
 }
 
 // NamespacesView returns a view representation of a given Namespaces object.
-func (nss Namespaces) NamespacesView() (*models.NamespacesView, error) {
-	namespaces := make([]*models.NamespaceView, len(nss.namespaces))
+func (nss Namespaces) NamespacesView() (models.Namespaces, error) {
+	namespaces := make([]models.Namespace, len(nss.namespaces))
 	for i, n := range nss.namespaces {
 		ns, err := n.NamespaceView(len(n.snapshots) - 1)
 		if err != nil {
-			return nil, err
+			return models.Namespaces{}, err
 		}
 		namespaces[i] = ns
 	}
-	return &models.NamespacesView{
+	return models.Namespaces{
 		Version:    nss.version,
 		Namespaces: namespaces,
 	}, nil

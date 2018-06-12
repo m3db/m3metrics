@@ -67,10 +67,7 @@ func (v *validator) Validate(rs rules.RuleSet) error {
 	return v.ValidateSnapshot(latest)
 }
 
-func (v *validator) ValidateSnapshot(snapshot *models.RuleSetSnapshotView) error {
-	if snapshot == nil {
-		return nil
-	}
+func (v *validator) ValidateSnapshot(snapshot models.RuleSet) error {
 	if err := v.validateSnapshot(snapshot); err != nil {
 		return v.wrapError(err)
 	}
@@ -81,7 +78,7 @@ func (v *validator) Close() {
 	v.nsValidator.Close()
 }
 
-func (v *validator) validateSnapshot(snapshot *models.RuleSetSnapshotView) error {
+func (v *validator) validateSnapshot(snapshot models.RuleSet) error {
 	if err := v.validateNamespace(snapshot.Namespace); err != nil {
 		return err
 	}
@@ -95,7 +92,7 @@ func (v *validator) validateNamespace(ns string) error {
 	return v.nsValidator.Validate(ns)
 }
 
-func (v *validator) validateMappingRules(mrv map[string]*models.MappingRuleView) error {
+func (v *validator) validateMappingRules(mrv []models.MappingRule) error {
 	namesSeen := make(map[string]struct{}, len(mrv))
 	for _, rule := range mrv {
 		if rule.Tombstoned {
@@ -135,7 +132,7 @@ func (v *validator) validateMappingRules(mrv map[string]*models.MappingRuleView)
 	return nil
 }
 
-func (v *validator) validateRollupRules(rrv map[string]*models.RollupRuleView) error {
+func (v *validator) validateRollupRules(rrv []models.RollupRule) error {
 	var (
 		namesSeen = make(map[string]struct{}, len(rrv))
 		pipelines = make([]mpipeline.Pipeline, 0, len(rrv))

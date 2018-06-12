@@ -25,20 +25,10 @@ import (
 	"github.com/m3db/m3metrics/policy"
 )
 
-// RollupTarget is a common json serializable rollup target.
+// RollupTarget is a rollup target model.
 type RollupTarget struct {
 	Pipeline        pipeline.Pipeline      `json:"pipeline" validate:"required"`
 	StoragePolicies policy.StoragePolicies `json:"storagePolicies" validate:"required"`
-}
-
-// NewRollupTarget takes a RollupTargetView and returns the equivalent RollupTarget.
-func NewRollupTarget(t RollupTargetView) RollupTarget {
-	return RollupTarget(t)
-}
-
-// ToRollupTargetView returns the equivalent ToRollupTargetView.
-func (t RollupTarget) ToRollupTargetView() RollupTargetView {
-	return RollupTargetView(t)
 }
 
 // Equal determines whether two rollup targets are equal.
@@ -52,57 +42,16 @@ func (t *RollupTarget) Equal(other *RollupTarget) bool {
 	return t.Pipeline.Equal(other.Pipeline) && t.StoragePolicies.Equal(other.StoragePolicies)
 }
 
-// RollupTargetView is a human friendly representation of a rollup rule target at a given point in time.
-type RollupTargetView struct {
-	Pipeline        pipeline.Pipeline
-	StoragePolicies policy.StoragePolicies
-}
-
-// RollupRule is a common json serializable rollup rule. Implements Sort interface.
+// RollupRule is rollup rule model.
 type RollupRule struct {
 	ID                  string         `json:"id,omitempty"`
 	Name                string         `json:"name" validate:"required"`
+	Tombstoned          bool           `json:"tombstoned"`
+	CutoverMillis       int64          `json:"cutoverMillis,omitempty"`
 	Filter              string         `json:"filter" validate:"required"`
 	Targets             []RollupTarget `json:"targets" validate:"required,dive,required"`
-	CutoverMillis       int64          `json:"cutoverMillis,omitempty"`
 	LastUpdatedBy       string         `json:"lastUpdatedBy"`
 	LastUpdatedAtMillis int64          `json:"lastUpdatedAtMillis"`
-}
-
-// NewRollupRule takes a RollupRuleView and returns the equivalent RollupRule.
-func NewRollupRule(rrv *RollupRuleView) RollupRule {
-	targets := make([]RollupTarget, len(rrv.Targets))
-	for i, t := range rrv.Targets {
-		targets[i] = NewRollupTarget(t)
-	}
-	return RollupRule{
-		ID:                  rrv.ID,
-		Name:                rrv.Name,
-		Filter:              rrv.Filter,
-		Targets:             targets,
-		CutoverMillis:       rrv.CutoverNanos / nanosPerMilli,
-		LastUpdatedBy:       rrv.LastUpdatedBy,
-		LastUpdatedAtMillis: rrv.LastUpdatedAtNanos / nanosPerMilli,
-	}
-}
-
-// ToRollupRuleView returns the equivalent ToRollupRuleView.
-func (r RollupRule) ToRollupRuleView() *RollupRuleView {
-	targets := make([]RollupTargetView, len(r.Targets))
-	for i, t := range r.Targets {
-		targets[i] = t.ToRollupTargetView()
-	}
-
-	return &RollupRuleView{
-		ID:                 r.ID,
-		Name:               r.Name,
-		Tombstoned:         false,
-		CutoverNanos:       r.CutoverMillis * nanosPerMilli,
-		Filter:             r.Filter,
-		Targets:            targets,
-		LastUpdatedBy:      r.LastUpdatedBy,
-		LastUpdatedAtNanos: r.LastUpdatedAtMillis * nanosPerMilli,
-	}
 }
 
 // Equal determines whether two rollup rules are equal.
@@ -119,21 +68,9 @@ func (r *RollupRule) Equal(other *RollupRule) bool {
 		rollupTargets(r.Targets).Equal(other.Targets)
 }
 
-// RollupRuleView is a human friendly representation of a rollup rule at a given point in time.
-type RollupRuleView struct {
-	ID                 string
-	Name               string
-	Tombstoned         bool
-	CutoverNanos       int64
-	Filter             string
-	Targets            []RollupTargetView
-	LastUpdatedBy      string
-	LastUpdatedAtNanos int64
-}
-
-// RollupRuleViews belonging to a ruleset indexed by uuid.
+// RollupRules belong to a ruleset indexed by uuid.
 // Each value contains the entire snapshot history of the rule.
-type RollupRuleViews map[string][]*RollupRuleView
+type RollupRules map[string][]RollupRule
 
 type rollupTargets []RollupTarget
 
@@ -149,22 +86,9 @@ func (t rollupTargets) Equal(other rollupTargets) bool {
 	return true
 }
 
-type rollupRulesByNameAsc []RollupRule
+// RollupRulesByNameAsc sorts rollup rules by name in ascending order.
+type RollupRulesByNameAsc []RollupRule
 
-func (a rollupRulesByNameAsc) Len() int           { return len(a) }
-func (a rollupRulesByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a rollupRulesByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }
-
-// RollupRuleSnapshots contains a list of rollup rule snapshots.
-type RollupRuleSnapshots struct {
-	RollupRules []RollupRule `json:"rollupRules"`
-}
-
-// NewRollupRuleSnapshots returns a new RollupRuleSnapshots object.
-func NewRollupRuleSnapshots(hist []*RollupRuleView) RollupRuleSnapshots {
-	rollupRules := make([]RollupRule, len(hist))
-	for i, view := range hist {
-		rollupRules[i] = NewRollupRule(view)
-	}
-	return RollupRuleSnapshots{RollupRules: rollupRules}
-}
+func (a RollupRulesByNameAsc) Len() int           { return len(a) }
+func (a RollupRulesByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a RollupRulesByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }
