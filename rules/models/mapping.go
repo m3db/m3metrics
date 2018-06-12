@@ -63,3 +63,8 @@ type MappingRulesByNameAsc []MappingRule
 func (a MappingRulesByNameAsc) Len() int           { return len(a) }
 func (a MappingRulesByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a MappingRulesByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
+// MappingRuleSnapshots contains a list of mapping rule snapshots.
+type MappingRuleSnapshots struct {
+	MappingRules []MappingRule `json:"mappingRules"`
+}

@@ -92,3 +92,8 @@ type RollupRulesByNameAsc []RollupRule
 func (a RollupRulesByNameAsc) Len() int           { return len(a) }
 func (a RollupRulesByNameAsc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a RollupRulesByNameAsc) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
+// RollupRuleSnapshots contains a list of rollup rule snapshots.
+type RollupRuleSnapshots struct {
+	RollupRules []RollupRule `json:"rollupRules"`
+}
