@@ -35,7 +35,7 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/transformationpb"
 	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/view"
 	"github.com/m3db/m3metrics/transformation"
 	xtime "github.com/m3db/m3x/time"
 
@@ -740,13 +740,13 @@ func TestRollupRuleRollupRuleView(t *testing.T) {
 	res, err := testRollupRule2.rollupRuleView(1)
 	require.NoError(t, err)
 
-	expected := models.RollupRule{
+	expected := view.RollupRule{
 		ID:            "12669817-13ae-40e6-ba2f-33087b262c68",
 		Name:          "bar",
 		Tombstoned:    true,
 		CutoverMillis: 67890,
 		Filter:        "tag3:value3 tag4:value4",
-		Targets: []models.RollupTarget{
+		Targets: []view.RollupTarget{
 			{
 				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
@@ -781,14 +781,14 @@ func TestNewRollupRuleHistory(t *testing.T) {
 	history, err := testRollupRule2.history()
 	require.NoError(t, err)
 
-	expected := []models.RollupRule{
+	expected := []view.RollupRule{
 		{
 			ID:            "12669817-13ae-40e6-ba2f-33087b262c68",
 			Name:          "bar",
 			Tombstoned:    true,
 			CutoverMillis: 67890,
 			Filter:        "tag3:value3 tag4:value4",
-			Targets: []models.RollupTarget{
+			Targets: []view.RollupTarget{
 				{
 					Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 						{
@@ -814,7 +814,7 @@ func TestNewRollupRuleHistory(t *testing.T) {
 			Tombstoned:    false,
 			CutoverMillis: 12345,
 			Filter:        "tag1:value1 tag2:value2",
-			Targets: []models.RollupTarget{
+			Targets: []view.RollupTarget{
 				{
 					Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 						{

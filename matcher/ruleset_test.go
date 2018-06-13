@@ -32,7 +32,7 @@ import (
 	"github.com/m3db/m3metrics/matcher/cache"
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/rules"
-	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/view"
 
 	"github.com/stretchr/testify/require"
 )
@@ -266,9 +266,9 @@ func (r *mockRuleSet) Tombstoned() bool                           { return r.tom
 func (r *mockRuleSet) Proto() (*rulepb.RuleSet, error)            { return nil, nil }
 func (r *mockRuleSet) ActiveSet(timeNanos int64) rules.Matcher    { return r.matcher }
 func (r *mockRuleSet) ToMutableRuleSet() rules.MutableRuleSet     { return nil }
-func (r *mockRuleSet) MappingRules() (models.MappingRules, error) { return nil, nil }
-func (r *mockRuleSet) RollupRules() (models.RollupRules, error)   { return nil, nil }
-func (r *mockRuleSet) Latest() (models.RuleSet, error)            { return models.RuleSet{}, nil }
+func (r *mockRuleSet) MappingRules() (view.MappingRules, error) { return nil, nil }
+func (r *mockRuleSet) RollupRules() (view.RollupRules, error)   { return nil, nil }
+func (r *mockRuleSet) Latest() (view.RuleSet, error)            { return view.RuleSet{}, nil }
 
 func testRuleSet() (kv.Store, cache.Cache, *ruleSet) {
 	store := mem.NewStore()

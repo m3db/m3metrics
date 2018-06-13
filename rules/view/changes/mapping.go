@@ -18,33 +18,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package models
+package changes
 
-import (
-	"sort"
-)
+import "github.com/m3db/m3metrics/rules/view"
 
-// RuleSet is a snapshot of the rule set at a given point in time.
-type RuleSet struct {
-	Namespace     string        `json:"id"`
-	Version       int           `json:"version"`
-	CutoverMillis int64         `json:"cutoverMillis"`
-	MappingRules  []MappingRule `json:"mappingRules"`
-	RollupRules   []RollupRule  `json:"rollupRules"`
+// MappingRuleChange is a mapping rule diff.
+type MappingRuleChange struct {
+	Op       Op                `json:"op"`
+	RuleID   *string           `json:"ruleID,omitempty"`
+	RuleData *view.MappingRule `json:"ruleData,omitempty"`
 }
 
-// Sort sorts the rules in the ruleset.
-func (r *RuleSet) Sort() {
-	sort.Sort(MappingRulesByNameAsc(r.MappingRules))
-	sort.Sort(RollupRulesByNameAsc(r.RollupRules))
-}
+type mappingRuleChangesByOpAscNameAscIDAsc []MappingRuleChange
 
-// RuleSets is a collection of rulesets.
-type RuleSets map[string]*RuleSet
-
-// Sort sorts each ruleset based on it's own sort method.
-func (rss RuleSets) Sort() {
-	for _, rs := range rss {
-		rs.Sort()
+func (a mappingRuleChangesByOpAscNameAscIDAsc) Len() int      { return len(a) }
+func (a mappingRuleChangesByOpAscNameAscIDAsc) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a mappingRuleChangesByOpAscNameAscIDAsc) Less(i, j int) bool {
+	if a[i].Op < a[j].Op {
+		return true
 	}
+	if a[i].Op > a[j].Op {
+		return false
+	}
+	// For adds and changes.
+	if a[i].RuleData != nil && a[j].RuleData != nil {
+		return a[i].RuleData.Name < a[j].RuleData.Name
+	}
+	// For deletes.
+	if a[i].RuleID != nil && a[j].RuleID != nil {
+		return *a[i].RuleID < *a[j].RuleID
+	}
+	// This should not happen
+	return false
 }

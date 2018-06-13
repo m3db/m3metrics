@@ -32,7 +32,7 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/policypb"
 	"github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/view"
 	xtime "github.com/m3db/m3x/time"
 
 	"github.com/google/go-cmp/cmp"
@@ -539,7 +539,7 @@ func TestMappingRuleMappingRuleView(t *testing.T) {
 	res, err := testMappingRule2.mappingRuleView(1)
 	require.NoError(t, err)
 
-	expected := models.MappingRule{
+	expected := view.MappingRule{
 		ID:            "12669817-13ae-40e6-ba2f-33087b262c68",
 		Name:          "bar",
 		Tombstoned:    true,
@@ -567,7 +567,7 @@ func TestNewMappingRuleHistory(t *testing.T) {
 	history, err := testMappingRule2.history()
 	require.NoError(t, err)
 
-	expected := []models.MappingRule{
+	expected := []view.MappingRule{
 		{
 			ID:            "12669817-13ae-40e6-ba2f-33087b262c68",
 			Name:          "bar",

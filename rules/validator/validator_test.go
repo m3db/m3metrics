@@ -33,7 +33,7 @@ import (
 	"github.com/m3db/m3metrics/metric"
 	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/view"
 	"github.com/m3db/m3metrics/rules/validator/namespace"
 	"github.com/m3db/m3metrics/rules/validator/namespace/kv"
 	"github.com/m3db/m3metrics/transformation"
@@ -71,7 +71,7 @@ func TestValidatorInvalidNamespace(t *testing.T) {
 	v := NewValidator(opts)
 	defer v.Close()
 
-	view := models.RuleSet{Namespace: "baz"}
+	view := view.RuleSet{Namespace: "baz"}
 	require.Error(t, v.ValidateSnapshot(view))
 }
 
@@ -83,13 +83,13 @@ func TestValidatorValidNamespace(t *testing.T) {
 	v := NewValidator(opts)
 	defer v.Close()
 
-	view := models.RuleSet{Namespace: "foo"}
+	view := view.RuleSet{Namespace: "foo"}
 	require.NoError(t, v.ValidateSnapshot(view))
 }
 
 func TestValidatorValidateDuplicateMappingRules(t *testing.T) {
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:            "snapshot1",
 				Filter:          "tag1:value1",
@@ -110,8 +110,8 @@ func TestValidatorValidateDuplicateMappingRules(t *testing.T) {
 }
 
 func TestValidatorValidateNoDuplicateMappingRulesWithTombstone(t *testing.T) {
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:            "snapshot1",
 				Filter:          "tag1:value1",
@@ -131,8 +131,8 @@ func TestValidatorValidateNoDuplicateMappingRulesWithTombstone(t *testing.T) {
 }
 
 func TestValidatorValidateMappingRuleInvalidFilterExpr(t *testing.T) {
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:   "snapshot1",
 				Filter: "randomTag:*too*many*wildcards*",
@@ -145,8 +145,8 @@ func TestValidatorValidateMappingRuleInvalidFilterExpr(t *testing.T) {
 
 func TestValidatorValidateMappingRuleInvalidFilterTagName(t *testing.T) {
 	invalidChars := []rune{'$'}
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:   "snapshot1",
 				Filter: "random$Tag:foo",
@@ -158,8 +158,8 @@ func TestValidatorValidateMappingRuleInvalidFilterTagName(t *testing.T) {
 }
 
 func TestValidatorValidateMappingRuleInvalidMetricType(t *testing.T) {
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:            "snapshot1",
 				Filter:          testTypeTag + ":nonexistent",
@@ -173,8 +173,8 @@ func TestValidatorValidateMappingRuleInvalidMetricType(t *testing.T) {
 }
 
 func TestValidatorValidateMappingRuleInvalidAggregationType(t *testing.T) {
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:          "snapshot1",
 				Filter:        testTypeTag + ":" + testCounterType,
@@ -189,8 +189,8 @@ func TestValidatorValidateMappingRuleInvalidAggregationType(t *testing.T) {
 
 func TestValidatorValidateMappingRuleFirstLevelAggregationType(t *testing.T) {
 	testAggregationTypes := []aggregation.Type{aggregation.Count, aggregation.Max}
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:            "snapshot1",
 				Filter:          testTypeTag + ":" + testTimerType,
@@ -231,8 +231,8 @@ func TestValidatorValidateMappingRuleFirstLevelAggregationType(t *testing.T) {
 }
 
 func TestValidatorValidateMappingRuleNoStoragePolicies(t *testing.T) {
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
@@ -247,8 +247,8 @@ func TestValidatorValidateMappingRuleNoStoragePolicies(t *testing.T) {
 }
 
 func TestValidatorValidateMappingRuleDuplicateStoragePolicies(t *testing.T) {
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
@@ -267,8 +267,8 @@ func TestValidatorValidateMappingRuleDuplicateStoragePolicies(t *testing.T) {
 }
 
 func TestValidatorValidateMappingRuleDisallowedStoragePolicies(t *testing.T) {
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
@@ -284,8 +284,8 @@ func TestValidatorValidateMappingRuleDisallowedStoragePolicies(t *testing.T) {
 }
 
 func TestValidatorValidateMappingRule(t *testing.T) {
-	view := models.RuleSet{
-		MappingRules: []models.MappingRule{
+	view := view.RuleSet{
+		MappingRules: []view.MappingRule{
 			{
 				Name:            "snapshot1",
 				Filter:          testTypeTag + ":" + testCounterType,
@@ -299,8 +299,8 @@ func TestValidatorValidateMappingRule(t *testing.T) {
 }
 
 func TestValidatorValidateDuplicateRollupRules(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: "tag1:value1",
@@ -319,13 +319,13 @@ func TestValidatorValidateDuplicateRollupRules(t *testing.T) {
 }
 
 func TestValidatorValidateNoDuplicateRollupRulesWithTombstone(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:       "snapshot1",
 				Filter:     "tag1:value1",
 				Tombstoned: true,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -344,7 +344,7 @@ func TestValidatorValidateNoDuplicateRollupRulesWithTombstone(t *testing.T) {
 			{
 				Name:   "snapshot1",
 				Filter: "tag1:value1",
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -368,12 +368,12 @@ func TestValidatorValidateNoDuplicateRollupRulesWithTombstone(t *testing.T) {
 }
 
 func TestValidatorValidateRollupRuleInvalidFilterExpr(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: "randomTag:*too*many*wildcards*",
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -398,12 +398,12 @@ func TestValidatorValidateRollupRuleInvalidFilterExpr(t *testing.T) {
 
 func TestValidatorValidateRollupRuleInvalidFilterTagName(t *testing.T) {
 	invalidChars := []rune{'$'}
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: "random$Tag:foo",
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -426,12 +426,12 @@ func TestValidatorValidateRollupRuleInvalidFilterTagName(t *testing.T) {
 }
 
 func TestValidatorValidateRollupRuleInvalidMetricType(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":nonexistent",
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -454,12 +454,12 @@ func TestValidatorValidateRollupRuleInvalidMetricType(t *testing.T) {
 }
 
 func TestValidatorValidateRollupRulePipelineEmptyPipeline(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline:        pipeline.NewPipeline([]pipeline.OpUnion{}),
 						StoragePolicies: testStoragePolicies(),
@@ -475,12 +475,12 @@ func TestValidatorValidateRollupRulePipelineEmptyPipeline(t *testing.T) {
 }
 
 func TestValidatorValidateRollupRulePipelineInvalidPipelineOp(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{},
@@ -498,12 +498,12 @@ func TestValidatorValidateRollupRulePipelineInvalidPipelineOp(t *testing.T) {
 }
 
 func TestValidatorValidateRollupRulePipelineMultipleAggregationOps(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -531,12 +531,12 @@ func TestValidatorValidateRollupRulePipelineMultipleAggregationOps(t *testing.T)
 }
 
 func TestValidatorValidateRollupRulePipelineAggregationOpNotFirst(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -564,12 +564,12 @@ func TestValidatorValidateRollupRulePipelineAggregationOpNotFirst(t *testing.T) 
 }
 
 func TestValidatorValidateRollupRulePipelineAggregationOpInvalidAggregationType(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -593,12 +593,12 @@ func TestValidatorValidateRollupRulePipelineAggregationOpInvalidAggregationType(
 }
 
 func TestValidatorValidateRollupRulePipelineAggregationOpDisallowedAggregationType(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -619,12 +619,12 @@ func TestValidatorValidateRollupRulePipelineAggregationOpDisallowedAggregationTy
 }
 
 func TestValidatorValidateRollupRulePipelineTransformationDerivativeOrderNotSupported(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -657,12 +657,12 @@ func TestValidatorValidateRollupRulePipelineTransformationDerivativeOrderNotSupp
 }
 
 func TestValidatorValidateRollupRulePipelineInvalidTransformationType(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -683,12 +683,12 @@ func TestValidatorValidateRollupRulePipelineInvalidTransformationType(t *testing
 }
 
 func TestValidatorValidateRollupRulePipelineNoRollupOp(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -709,12 +709,12 @@ func TestValidatorValidateRollupRulePipelineNoRollupOp(t *testing.T) {
 }
 
 func TestValidatorValidateRollupRulePipelineRollupLevelHigherThanMax(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -747,12 +747,12 @@ func TestValidatorValidateRollupRulePipelineRollupLevelHigherThanMax(t *testing.
 }
 
 func TestValidatorValidateRollupRulePipelineRollupTagNotFoundInPrevRollupOp(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -785,12 +785,12 @@ func TestValidatorValidateRollupRulePipelineRollupTagNotFoundInPrevRollupOp(t *t
 }
 
 func TestValidatorValidateRollupRulePipelineRollupTagUnchangedInConsecutiveRollupOps(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -823,12 +823,12 @@ func TestValidatorValidateRollupRulePipelineRollupTagUnchangedInConsecutiveRollu
 }
 
 func TestValidatorValidateRollupRulePipelineMultiLevelRollup(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -867,12 +867,12 @@ func TestValidatorValidateRollupRulePipelineMultiLevelRollup(t *testing.T) {
 }
 
 func TestValidatorValidateRollupRuleRollupOpDuplicateRollupTag(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -897,12 +897,12 @@ func TestValidatorValidateRollupRuleRollupOpDuplicateRollupTag(t *testing.T) {
 }
 
 func TestValidatorValidateRollupRuleRollupOpMissingRequiredTag(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -928,12 +928,12 @@ func TestValidatorValidateRollupRuleRollupOpMissingRequiredTag(t *testing.T) {
 
 func TestValidatorValidateRollupRuleRollupOpWithInvalidMetricName(t *testing.T) {
 	invalidChars := []rune{'$'}
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -958,12 +958,12 @@ func TestValidatorValidateRollupRuleRollupOpWithInvalidMetricName(t *testing.T) 
 
 func TestValidatorValidateRollupRuleRollupOpWithEmptyMetricName(t *testing.T) {
 	invalidChars := []rune{'$'}
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -988,12 +988,12 @@ func TestValidatorValidateRollupRuleRollupOpWithEmptyMetricName(t *testing.T) {
 
 func TestValidatorValidateRollupRuleRollupOpWithValidMetricName(t *testing.T) {
 	invalidChars := []rune{' ', '%'}
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1018,12 +1018,12 @@ func TestValidatorValidateRollupRuleRollupOpWithValidMetricName(t *testing.T) {
 
 func TestValidatorValidateRollupRuleRollupOpWithInvalidTagName(t *testing.T) {
 	invalidChars := []rune{'$'}
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1048,12 +1048,12 @@ func TestValidatorValidateRollupRuleRollupOpWithInvalidTagName(t *testing.T) {
 
 func TestValidatorValidateRollupRuleRollupOpWithValidTagName(t *testing.T) {
 	invalidChars := []rune{' ', '%'}
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testCounterType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1078,12 +1078,12 @@ func TestValidatorValidateRollupRuleRollupOpWithValidTagName(t *testing.T) {
 
 func TestValidatorValidateRollupRuleRollupOpFirstLevelAggregationTypes(t *testing.T) {
 	testAggregationTypes := []aggregation.Type{aggregation.Count, aggregation.Max}
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testTimerType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1136,12 +1136,12 @@ func TestValidatorValidateRollupRuleRollupOpFirstLevelAggregationTypes(t *testin
 
 func TestValidatorValidateRollupRuleRollupOpNonFirstLevelAggregationTypes(t *testing.T) {
 	testAggregationTypes := []aggregation.Type{aggregation.Count, aggregation.Max}
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testTimerType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1198,12 +1198,12 @@ func TestValidatorValidateRollupRuleRollupOpNonFirstLevelAggregationTypes(t *tes
 
 func TestValidatorValidateRollupRuleRollupTargetWithStoragePolicies(t *testing.T) {
 	storagePolicies := testStoragePolicies()
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testTimerType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1254,12 +1254,12 @@ func TestValidatorValidateRollupRuleRollupTargetWithStoragePolicies(t *testing.T
 }
 
 func TestValidatorValidateRollupRuleRollupTargetWithNoStoragePolicies(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testTimerType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1283,12 +1283,12 @@ func TestValidatorValidateRollupRuleRollupTargetWithNoStoragePolicies(t *testing
 }
 
 func TestValidatorValidateRollupRuleRollupOpWithDuplicateStoragePolicies(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testTimerType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1317,12 +1317,12 @@ func TestValidatorValidateRollupRuleRollupOpWithDuplicateStoragePolicies(t *test
 }
 
 func TestValidatorValidateRollupRuleDisallowedStoragePolicies(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testTimerType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1348,12 +1348,12 @@ func TestValidatorValidateRollupRuleDisallowedStoragePolicies(t *testing.T) {
 }
 
 func TestValidatorRollupRule(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testGaugeType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1390,12 +1390,12 @@ func TestValidatorRollupRule(t *testing.T) {
 }
 
 func TestValidatorValidateRollupRuleDuplicateRollupIDs(t *testing.T) {
-	view := models.RuleSet{
-		RollupRules: []models.RollupRule{
+	view := view.RuleSet{
+		RollupRules: []view.RollupRule{
 			{
 				Name:   "snapshot1",
 				Filter: testTypeTag + ":" + testGaugeType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -1422,7 +1422,7 @@ func TestValidatorValidateRollupRuleDuplicateRollupIDs(t *testing.T) {
 			{
 				Name:   "snapshot2",
 				Filter: testTypeTag + ":" + testGaugeType,
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{

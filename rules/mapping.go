@@ -30,7 +30,7 @@ import (
 	"github.com/m3db/m3metrics/filters"
 	"github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/view"
 
 	"github.com/pborman/uuid"
 )
@@ -383,9 +383,9 @@ func (mc *mappingRule) activeIndex(timeNanos int64) int {
 	return idx
 }
 
-func (mc *mappingRule) history() ([]models.MappingRule, error) {
+func (mc *mappingRule) history() ([]view.MappingRule, error) {
 	lastIdx := len(mc.snapshots) - 1
-	views := make([]models.MappingRule, len(mc.snapshots))
+	views := make([]view.MappingRule, len(mc.snapshots))
 	// Snapshots are stored oldest -> newest. History should start with newest.
 	for i := 0; i < len(mc.snapshots); i++ {
 		mrs, err := mc.mappingRuleView(lastIdx - i)
@@ -397,13 +397,13 @@ func (mc *mappingRule) history() ([]models.MappingRule, error) {
 	return views, nil
 }
 
-func (mc *mappingRule) mappingRuleView(snapshotIdx int) (models.MappingRule, error) {
+func (mc *mappingRule) mappingRuleView(snapshotIdx int) (view.MappingRule, error) {
 	if snapshotIdx < 0 || snapshotIdx >= len(mc.snapshots) {
-		return models.MappingRule{}, errMappingRuleSnapshotIndexOutOfRange
+		return view.MappingRule{}, errMappingRuleSnapshotIndexOutOfRange
 	}
 
 	mrs := mc.snapshots[snapshotIdx].clone()
-	return models.MappingRule{
+	return view.MappingRule{
 		ID:                  mc.uuid,
 		Name:                mrs.name,
 		Tombstoned:          mrs.tombstoned,

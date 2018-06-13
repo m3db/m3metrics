@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/m3db/m3metrics/generated/proto/rulepb"
-	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/view"
 
 	"github.com/stretchr/testify/require"
 )
@@ -94,7 +94,7 @@ func TestNamespaceView(t *testing.T) {
 		},
 	}
 
-	expected := []models.Namespace{
+	expected := []view.Namespace{
 		{
 			ID:                  "foo",
 			ForRuleSetVersion:   123,
@@ -493,9 +493,9 @@ func TestNamespacesView(t *testing.T) {
 		},
 	}
 
-	expected := models.Namespaces{
+	expected := view.Namespaces{
 		Version: 1,
-		Namespaces: []models.Namespace{
+		Namespaces: []view.Namespace{
 			{
 				ID:                  "foo",
 				ForRuleSetVersion:   456,

@@ -38,8 +38,8 @@ import (
 	"github.com/m3db/m3metrics/metric/id"
 	"github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3metrics/rules/models"
-	"github.com/m3db/m3metrics/rules/models/changes"
+	"github.com/m3db/m3metrics/rules/view"
+	"github.com/m3db/m3metrics/rules/view/changes"
 	xbytes "github.com/m3db/m3metrics/x/bytes"
 	xerrors "github.com/m3db/m3x/errors"
 	xtime "github.com/m3db/m3x/time"
@@ -273,11 +273,11 @@ func TestRuleSetLatest(t *testing.T) {
 	latest, err := rs.Latest()
 	require.NoError(t, err)
 
-	expected := models.RuleSet{
+	expected := view.RuleSet{
 		Namespace:     "testNamespace",
 		Version:       123,
 		CutoverMillis: 998234,
-		MappingRules: []models.MappingRule{
+		MappingRules: []view.MappingRule{
 			{
 				ID:            "mappingRule1",
 				Name:          "mappingRule1.snapshot3",
@@ -321,13 +321,13 @@ func TestRuleSetLatest(t *testing.T) {
 				},
 			},
 		},
-		RollupRules: []models.RollupRule{
+		RollupRules: []view.RollupRule{
 			{
 				ID:         "rollupRule1",
 				Name:       "rollupRule1.snapshot3",
 				Tombstoned: false,
 				Filter:     "rtagName1:rtagValue1 rtagName2:rtagValue2",
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -349,7 +349,7 @@ func TestRuleSetLatest(t *testing.T) {
 				Name:       "rollupRule3.snapshot2",
 				Tombstoned: false,
 				Filter:     "rtagName1:rtagValue1 rtagName2:rtagValue2",
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -372,7 +372,7 @@ func TestRuleSetLatest(t *testing.T) {
 				Name:       "rollupRule4.snapshot1",
 				Tombstoned: false,
 				Filter:     "rtagName1:rtagValue2",
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -394,7 +394,7 @@ func TestRuleSetLatest(t *testing.T) {
 				Name:       "rollupRule5.snapshot1",
 				Tombstoned: false,
 				Filter:     "rtagName1:rtagValue2",
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -416,7 +416,7 @@ func TestRuleSetLatest(t *testing.T) {
 				Name:       "rollupRule6.snapshot1",
 				Tombstoned: false,
 				Filter:     "rtagName1:rtagValue1 rtagName2:rtagValue2",
-				Targets: []models.RollupTarget{
+				Targets: []view.RollupTarget{
 					{
 						Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 							{
@@ -473,7 +473,7 @@ func TestRuleSetAddMappingRuleInvalidFilter(t *testing.T) {
 	require.NoError(t, err)
 	rs := res.(*ruleSet)
 
-	view := models.MappingRule{
+	view := view.MappingRule{
 		Name:   "testInvalidFilter",
 		Filter: "tag1:value1 tag2:abc[def",
 		StoragePolicies: policy.StoragePolicies{
@@ -502,7 +502,7 @@ func TestRuleSetAddMappingRuleNewRule(t *testing.T) {
 	_, err = rs.getMappingRuleByName("foo")
 	require.Equal(t, errRuleNotFound, err)
 
-	view := models.MappingRule{
+	view := view.MappingRule{
 		Name:   "foo",
 		Filter: "tag1:value tag2:value",
 		StoragePolicies: policy.StoragePolicies{
@@ -553,7 +553,7 @@ func TestRuleSetAddMappingRuleDuplicateRule(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mr)
 
-	view := models.MappingRule{
+	view := view.MappingRule{
 		Name:   "mappingRule5.snapshot1",
 		Filter: "tag1:value tag2:value",
 		StoragePolicies: policy.StoragePolicies{
@@ -586,7 +586,7 @@ func TestRuleSetAddMappingRuleReviveRule(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mr)
 
-	view := models.MappingRule{
+	view := view.MappingRule{
 		Name:          "mappingRule2.snapshot3",
 		Filter:        "test:bar",
 		AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
@@ -642,7 +642,7 @@ func TestRuleSetUpdateMappingRule(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, mrs, "mappingRule5")
 
-	view := models.MappingRule{
+	view := view.MappingRule{
 		ID:     "mappingRule5",
 		Name:   "mappingRule5.snapshot2",
 		Filter: "tag3:value",
@@ -729,10 +729,10 @@ func TestRuleSetAddRollupRuleNewRule(t *testing.T) {
 	_, err = rs.getRollupRuleByName("foo")
 	require.Equal(t, errRuleNotFound, err)
 
-	view := models.RollupRule{
+	view := view.RollupRule{
 		Name:   "foo",
 		Filter: "tag1:value tag2:value",
-		Targets: []models.RollupTarget{
+		Targets: []view.RollupTarget{
 			{
 				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
@@ -808,10 +808,10 @@ func TestRuleSetAddRollupRuleDuplicateRule(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, r)
 
-	view := models.RollupRule{
+	view := view.RollupRule{
 		Name:   "rollupRule5.snapshot1",
 		Filter: "test:bar",
-		Targets: []models.RollupTarget{
+		Targets: []view.RollupTarget{
 			{
 				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
@@ -855,10 +855,10 @@ func TestRuleSetAddRollupRuleReviveRule(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rr)
 
-	view := models.RollupRule{
+	view := view.RollupRule{
 		Name:   "rollupRule3.snapshot4",
 		Filter: "test:bar",
-		Targets: []models.RollupTarget{
+		Targets: []view.RollupTarget{
 			{
 				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
@@ -934,11 +934,11 @@ func TestRuleSetUpdateRollupRule(t *testing.T) {
 	rr, err := rs.getRollupRuleByID("rollupRule5")
 	require.NoError(t, err)
 
-	view := models.RollupRule{
+	view := view.RollupRule{
 		ID:     "rollupRule5",
 		Name:   "rollupRule5.snapshot2",
 		Filter: "test:bar",
-		Targets: []models.RollupTarget{
+		Targets: []view.RollupTarget{
 			{
 				Pipeline: pipeline.NewPipeline([]pipeline.OpUnion{
 					{
@@ -1101,7 +1101,7 @@ func TestApplyRuleSetChanges(t *testing.T) {
 		MappingRuleChanges: []changes.MappingRuleChange{
 			{
 				Op: changes.AddOp,
-				RuleData: &models.MappingRule{
+				RuleData: &view.MappingRule{
 					ID:   "mrID1",
 					Name: "mappingRuleAdd",
 				},
@@ -1109,7 +1109,7 @@ func TestApplyRuleSetChanges(t *testing.T) {
 			{
 				Op:     changes.ChangeOp,
 				RuleID: ptr("mappingRule1"),
-				RuleData: &models.MappingRule{
+				RuleData: &view.MappingRule{
 					ID:   "mappingRule1",
 					Name: "updatedMappingRule",
 				},
@@ -1122,7 +1122,7 @@ func TestApplyRuleSetChanges(t *testing.T) {
 		RollupRuleChanges: []changes.RollupRuleChange{
 			{
 				Op: changes.AddOp,
-				RuleData: &models.RollupRule{
+				RuleData: &view.RollupRule{
 					ID:   "rrID1",
 					Name: "rollupRuleAdd",
 				},
@@ -1130,7 +1130,7 @@ func TestApplyRuleSetChanges(t *testing.T) {
 			{
 				Op:     changes.ChangeOp,
 				RuleID: ptr("rollupRule1"),
-				RuleData: &models.RollupRule{
+				RuleData: &view.RollupRule{
 					ID:   "rollupRule1",
 					Name: "updatedRollupRule",
 				},
@@ -1185,7 +1185,7 @@ func TestApplyMappingRuleChangesAddFailure(t *testing.T) {
 		MappingRuleChanges: []changes.MappingRuleChange{
 			{
 				Op: changes.AddOp,
-				RuleData: &models.MappingRule{
+				RuleData: &view.MappingRule{
 					ID:   "mappingRule1",
 					Name: "mappingRule1.snapshot3",
 				},
@@ -1218,7 +1218,7 @@ func TestApplyRollupRuleChangesAddFailure(t *testing.T) {
 		RollupRuleChanges: []changes.RollupRuleChange{
 			{
 				Op: changes.AddOp,
-				RuleData: &models.RollupRule{
+				RuleData: &view.RollupRule{
 					ID:   "rollupRule1",
 					Name: "rollupRule1.snapshot3",
 				},
@@ -1312,7 +1312,7 @@ func TestApplyMappingRuleChangesUpdateFailure(t *testing.T) {
 			{
 				Op:     changes.ChangeOp,
 				RuleID: ptr("invalidMappingRule"),
-				RuleData: &models.MappingRule{
+				RuleData: &view.MappingRule{
 					ID:   "invalidMappingRule",
 					Name: "updatedMappingRule",
 				},
@@ -1342,7 +1342,7 @@ func TestApplyRollupRuleChangesUpdateFailure(t *testing.T) {
 			{
 				Op:     changes.ChangeOp,
 				RuleID: ptr("rollupRule1"),
-				RuleData: &models.RollupRule{
+				RuleData: &view.RollupRule{
 					ID:   "invalidRollupRule",
 					Name: "updatedRollupRule",
 				},

@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/m3db/m3metrics/generated/proto/rulepb"
-	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/view"
 	xerrors "github.com/m3db/m3x/errors"
 )
 
@@ -116,12 +116,12 @@ func newNamespace(namespace *rulepb.Namespace) (Namespace, error) {
 }
 
 // NamespaceView returns the view representation of a namespace object.
-func (n Namespace) NamespaceView(snapshotIdx int) (models.Namespace, error) {
+func (n Namespace) NamespaceView(snapshotIdx int) (view.Namespace, error) {
 	if snapshotIdx < 0 || snapshotIdx >= len(n.snapshots) {
-		return models.Namespace{}, errNamespaceSnapshotIndexOutOfRange
+		return view.Namespace{}, errNamespaceSnapshotIndexOutOfRange
 	}
 	s := n.snapshots[snapshotIdx]
-	return models.Namespace{
+	return view.Namespace{
 		ID:                  string(n.name),
 		ForRuleSetVersion:   s.forRuleSetVersion,
 		Tombstoned:          s.tombstoned,
@@ -234,16 +234,16 @@ func NewNamespaces(version int, namespaces *rulepb.Namespaces) (Namespaces, erro
 }
 
 // NamespacesView returns a view representation of a given Namespaces object.
-func (nss Namespaces) NamespacesView() (models.Namespaces, error) {
-	namespaces := make([]models.Namespace, len(nss.namespaces))
+func (nss Namespaces) NamespacesView() (view.Namespaces, error) {
+	namespaces := make([]view.Namespace, len(nss.namespaces))
 	for i, n := range nss.namespaces {
 		ns, err := n.NamespaceView(len(n.snapshots) - 1)
 		if err != nil {
-			return models.Namespaces{}, err
+			return view.Namespaces{}, err
 		}
 		namespaces[i] = ns
 	}
-	return models.Namespaces{
+	return view.Namespaces{
 		Version:    nss.version,
 		Namespaces: namespaces,
 	}, nil

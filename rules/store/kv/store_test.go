@@ -33,7 +33,7 @@ import (
 	"github.com/m3db/m3metrics/generated/proto/policypb"
 	"github.com/m3db/m3metrics/generated/proto/rulepb"
 	"github.com/m3db/m3metrics/rules"
-	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/view"
 
 	"github.com/stretchr/testify/require"
 )
@@ -643,5 +643,5 @@ type mockValidator struct {
 }
 
 func (v *mockValidator) Validate(rs rules.RuleSet) error                { return v.validateFn(rs) }
-func (v *mockValidator) ValidateSnapshot(snapshot models.RuleSet) error { return nil }
+func (v *mockValidator) ValidateSnapshot(snapshot view.RuleSet) error { return nil }
 func (v *mockValidator) Close()                                         {}

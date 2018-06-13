@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Uber Technologies, Inc.
+// Copyright (c) 2018 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,18 +18,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package rules
+package view
 
-import "github.com/m3db/m3metrics/rules/view"
+// Namespace is a common json serializable namespace.
+type Namespace struct {
+	ID                  string `json:"id" validate:"required"`
+	ForRuleSetVersion   int    `json:"forRuleSetVersion"`
+	Tombstoned          bool   `json:"tombstoned"`
+	LastUpdatedBy       string `json:"lastUpdatedBy"`
+	LastUpdatedAtMillis int64  `json:"lastUpdatedAtMillis"`
+}
 
-// Validator validates a ruleset.
-type Validator interface {
-	// Validate validates a ruleset.
-	Validate(rs RuleSet) error
-
-	// ValidateSnapshot validates a ruleset snapshot.
-	ValidateSnapshot(snapshot view.RuleSet) error
-
-	// Close closes the validator.
-	Close()
+// Namespaces is a common json serializable list of namespaces.
+type Namespaces struct {
+	Version    int         `json:"version"`
+	Namespaces []Namespace `json:"namespaces"`
 }

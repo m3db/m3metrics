@@ -31,7 +31,7 @@ import (
 	mpipeline "github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3metrics/rules"
-	"github.com/m3db/m3metrics/rules/models"
+	"github.com/m3db/m3metrics/rules/view"
 	"github.com/m3db/m3metrics/rules/validator/namespace"
 )
 
@@ -67,7 +67,7 @@ func (v *validator) Validate(rs rules.RuleSet) error {
 	return v.ValidateSnapshot(latest)
 }
 
-func (v *validator) ValidateSnapshot(snapshot models.RuleSet) error {
+func (v *validator) ValidateSnapshot(snapshot view.RuleSet) error {
 	if err := v.validateSnapshot(snapshot); err != nil {
 		return v.wrapError(err)
 	}
@@ -78,7 +78,7 @@ func (v *validator) Close() {
 	v.nsValidator.Close()
 }
 
-func (v *validator) validateSnapshot(snapshot models.RuleSet) error {
+func (v *validator) validateSnapshot(snapshot view.RuleSet) error {
 	if err := v.validateNamespace(snapshot.Namespace); err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func (v *validator) validateNamespace(ns string) error {
 	return v.nsValidator.Validate(ns)
 }
 
-func (v *validator) validateMappingRules(mrv []models.MappingRule) error {
+func (v *validator) validateMappingRules(mrv []view.MappingRule) error {
 	namesSeen := make(map[string]struct{}, len(mrv))
 	for _, rule := range mrv {
 		if rule.Tombstoned {
@@ -132,7 +132,7 @@ func (v *validator) validateMappingRules(mrv []models.MappingRule) error {
 	return nil
 }
 
-func (v *validator) validateRollupRules(rrv []models.RollupRule) error {
+func (v *validator) validateRollupRules(rrv []view.RollupRule) error {
 	var (
 		namesSeen = make(map[string]struct{}, len(rrv))
 		pipelines = make([]mpipeline.Pipeline, 0, len(rrv))
