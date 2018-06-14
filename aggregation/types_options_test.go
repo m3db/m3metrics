@@ -79,7 +79,7 @@ func TestOptionsSetTimerQuantileTypeStringFn(t *testing.T) {
 }
 
 func TestOptionSetCounterTypeStringTranformFn(t *testing.T) {
-	o := NewTypesOptions().SetCounterTypeStringTransformFn(emptyTransformFn)
+	o := NewTypesOptions().SetCounterTypeStringTransformFn(EmptyTransform)
 	require.Equal(t, []byte(nil), o.TypeStringForCounter(Last))
 	require.Equal(t, []byte(nil), o.TypeStringForCounter(Min))
 	require.Equal(t, []byte(nil), o.TypeStringForCounter(Max))
@@ -92,7 +92,7 @@ func TestOptionSetCounterTypeStringTranformFn(t *testing.T) {
 }
 
 func TestOptionSetTimerTypeStringTranformFn(t *testing.T) {
-	o := NewTypesOptions().SetTimerTypeStringTransformFn(suffixTransformFn)
+	o := NewTypesOptions().SetTimerTypeStringTransformFn(SuffixTransform)
 	require.Equal(t, []byte(".last"), o.TypeStringForTimer(Last))
 	require.Equal(t, []byte(".lower"), o.TypeStringForTimer(Min))
 	require.Equal(t, []byte(".upper"), o.TypeStringForTimer(Max))
@@ -108,7 +108,7 @@ func TestOptionSetTimerTypeStringTranformFn(t *testing.T) {
 }
 
 func TestOptionSetGaugeTypeStringTranformFn(t *testing.T) {
-	o := NewTypesOptions().SetGaugeTypeStringTransformFn(emptyTransformFn)
+	o := NewTypesOptions().SetGaugeTypeStringTransformFn(EmptyTransform)
 	require.Equal(t, []byte(nil), o.TypeStringForGauge(Last))
 	require.Equal(t, []byte(nil), o.TypeStringForGauge(Min))
 	require.Equal(t, []byte(nil), o.TypeStringForGauge(Max))
@@ -122,9 +122,9 @@ func TestOptionSetGaugeTypeStringTranformFn(t *testing.T) {
 
 func TestOptionSetAllTypeStringTranformFns(t *testing.T) {
 	o := NewTypesOptions().
-		SetCounterTypeStringTransformFn(emptyTransformFn).
-		SetTimerTypeStringTransformFn(suffixTransformFn).
-		SetGaugeTypeStringTransformFn(emptyTransformFn)
+		SetCounterTypeStringTransformFn(EmptyTransform).
+		SetTimerTypeStringTransformFn(SuffixTransform).
+		SetGaugeTypeStringTransformFn(EmptyTransform)
 
 	require.Equal(t, []byte(nil), o.TypeStringForCounter(Last))
 	require.Equal(t, []byte(nil), o.TypeStringForCounter(Min))

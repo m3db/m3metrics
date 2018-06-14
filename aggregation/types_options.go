@@ -168,9 +168,9 @@ func NewTypesOptions() TypesOptions {
 		defaultGaugeAggregationTypes:   defaultDefaultGaugeAggregationTypes,
 		defaultTimerAggregationTypes:   defaultDefaultTimerAggregationTypes,
 		quantileTypeStringFn:           defaultQuantileTypeStringFn,
-		counterTypeStringTransformFn:   noopTransformFn,
-		timerTypeStringTransformFn:     noopTransformFn,
-		gaugeTypeStringTransformFn:     noopTransformFn,
+		counterTypeStringTransformFn:   NoOpTransform,
+		timerTypeStringTransformFn:     NoOpTransform,
+		gaugeTypeStringTransformFn:     NoOpTransform,
 	}
 	o.initPools()
 	o.computeAllDerived()
@@ -364,6 +364,12 @@ func defaultQuantileTypeStringFn(quantile float64) []byte {
 	return []byte("p" + str)
 }
 
-func noopTransformFn(b []byte) []byte   { return b }
-func emptyTransformFn(b []byte) []byte  { return nil }
-func suffixTransformFn(b []byte) []byte { return append([]byte("."), b...) }
+// NoOpTransform returns the input byte slice as is.
+func NoOpTransform(b []byte) []byte { return b }
+
+// EmptyTransform transforms the input byte slice to an empty byte slice.
+func EmptyTransform(b []byte) []byte { return nil }
+
+// SuffixTransform transforms the input byte slice to a suffix by prepending
+// a dot at the beginning.
+func SuffixTransform(b []byte) []byte { return append([]byte("."), b...) }

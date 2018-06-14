@@ -145,11 +145,11 @@ func (t *transformFnType) UnmarshalYAML(unmarshal func(interface{}) error) error
 func (t transformFnType) TransformFn() (TypeStringTransformFn, error) {
 	switch t {
 	case noopTransformType:
-		return noopTransformFn, nil
+		return NoOpTransform, nil
 	case emptyTransformType:
-		return emptyTransformFn, nil
+		return EmptyTransform, nil
 	case suffixTransformType:
-		return suffixTransformFn, nil
+		return SuffixTransform, nil
 	default:
 		return nil, fmt.Errorf("invalid type string transform function type: %s", string(t))
 	}
