@@ -813,7 +813,6 @@ func TestUnaggregatedIteratorNextOnClose(t *testing.T) {
 	require.False(t, it.Next())
 	require.True(t, iterator.closed)
 	require.Equal(t, encoding.UnaggregatedMessageUnion{}, iterator.msg)
-	require.Nil(t, it.Err())
 
 	// Verify that closing a second time is a no op.
 	it.Close()
