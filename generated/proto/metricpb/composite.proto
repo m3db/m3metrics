@@ -60,7 +60,7 @@ message MetricWithMetadatas {
     COUNTER_WITH_METADATAS = 1;
     BATCH_TIMER_WITH_METADATAS = 2;
     GAUGE_WITH_METADATAS = 3;
-    TIMED_METRIC_WITH_FORWARD_METADATA = 4;
+    FORWARDED_METRIC_WITH_METADATA = 4;
   }
   Type type = 1;
   CounterWithMetadatas counter_with_metadatas = 2;

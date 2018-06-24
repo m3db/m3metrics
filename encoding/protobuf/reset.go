@@ -36,7 +36,7 @@ func resetMetricWithMetadatasProto(pb *metricpb.MetricWithMetadatas) {
 	resetCounterWithMetadatasProto(pb.CounterWithMetadatas)
 	resetBatchTimerWithMetadatasProto(pb.BatchTimerWithMetadatas)
 	resetGaugeWithMetadatasProto(pb.GaugeWithMetadatas)
-	resetTimedMetricWithForwardMetadataProto(pb.TimedMetricWithForwardMetadata)
+	resetForwardedMetricWithMetadataProto(pb.ForwardedMetricWithMetadata)
 }
 
 func resetCounterWithMetadatasProto(pb *metricpb.CounterWithMetadatas) {
@@ -63,11 +63,11 @@ func resetGaugeWithMetadatasProto(pb *metricpb.GaugeWithMetadatas) {
 	resetMetadatas(&pb.Metadatas)
 }
 
-func resetTimedMetricWithForwardMetadataProto(pb *metricpb.TimedMetricWithForwardMetadata) {
+func resetForwardedMetricWithMetadataProto(pb *metricpb.ForwardedMetricWithMetadata) {
 	if pb == nil {
 		return
 	}
-	resetTimedMetric(&pb.Metric)
+	resetForwardedMetric(&pb.Metric)
 	resetForwardMetadata(&pb.Metadata)
 }
 
@@ -95,13 +95,14 @@ func resetGauge(pb *metricpb.Gauge) {
 	pb.Value = 0.0
 }
 
-func resetTimedMetric(pb *metricpb.TimedMetric) {
+func resetForwardedMetric(pb *metricpb.ForwardedMetric) {
 	if pb == nil {
 		return
 	}
+	pb.Type = metricpb.MetricType_UNKNOWN
 	pb.Id = pb.Id[:0]
 	pb.TimeNanos = 0
-	pb.Value = 0.0
+	pb.Values = pb.Values[:0]
 }
 
 func resetMetadatas(pb *metricpb.StagedMetadatas) {
