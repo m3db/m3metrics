@@ -525,6 +525,18 @@ var (
 			},
 		},
 	}
+	testDropMustDropPolicyPipelineMetadata = PipelineMetadata{
+		AggregationID:   aggregation.DefaultID,
+		StoragePolicies: []policy.StoragePolicy{},
+		Pipeline:        applied.DefaultPipeline,
+		DropPolicy:      policy.DropMust,
+	}
+	testDropExceptIfMatchOtherDropPolicyPipelineMetadata = PipelineMetadata{
+		AggregationID:   aggregation.DefaultID,
+		StoragePolicies: []policy.StoragePolicy{},
+		Pipeline:        applied.DefaultPipeline,
+		DropPolicy:      policy.DropMust,
+	}
 )
 
 func TestStagedMetadatasIsDefault(t *testing.T) {
@@ -1046,8 +1058,8 @@ func TestVersionedStagedMetadatasMarshalJSON(t *testing.T) {
 		`{"version":12,` +
 			`"stagedMetadatas":` +
 			`[{"metadata":{"pipelines":[` +
-			`{"aggregation":["Sum"],"storagePolicies":["1s:1h","1m:12h"]},` +
-			`{"aggregation":null,"storagePolicies":["10s:1h"]}]},` +
+			`{"aggregation":["Sum"],"storagePolicies":["1s:1h","1m:12h"],"dropPolicy":0},` +
+			`{"aggregation":null,"storagePolicies":["10s:1h"],"dropPolicy":0}]},` +
 			`"cutoverNanos":4567,` +
 			`"tombstoned":true}]}`
 	require.Equal(t, expected, string(res))
@@ -1068,12 +1080,14 @@ func TestVersionedStagedMetadatasMarshalJSONRoundtrip(t *testing.T) {
 								policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour),
 								policy.NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour),
 							},
+							DropPolicy: policy.DropNone,
 						},
 						{
 							AggregationID: aggregation.DefaultID,
 							StoragePolicies: []policy.StoragePolicy{
 								policy.NewStoragePolicy(10*time.Second, xtime.Second, time.Hour),
 							},
+							DropPolicy: policy.DropNone,
 						},
 					},
 				},
@@ -1085,4 +1099,12 @@ func TestVersionedStagedMetadatasMarshalJSONRoundtrip(t *testing.T) {
 	var res VersionedStagedMetadatas
 	require.NoError(t, json.Unmarshal(b, &res))
 	require.Equal(t, vs, res)
+}
+
+func TestDropMustDropPolicyPipelineMetadata(t *testing.T) {
+	require.True(t, testDropMustDropPolicyPipelineMetadata.IsDropPolicyApplied())
+}
+
+func TestDropExceptIfMatchOtherDropPolicyPipelineMetadata(t *testing.T) {
+	require.True(t, testDropExceptIfMatchOtherDropPolicyPipelineMetadata.IsDropPolicyApplied())
 }

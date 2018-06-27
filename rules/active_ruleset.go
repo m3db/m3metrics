@@ -32,6 +32,7 @@ import (
 	metricID "github.com/m3db/m3metrics/metric/id"
 	mpipeline "github.com/m3db/m3metrics/pipeline"
 	"github.com/m3db/m3metrics/pipeline/applied"
+	"github.com/m3db/m3metrics/policy"
 	xerrors "github.com/m3db/m3x/errors"
 )
 
@@ -230,6 +231,7 @@ func (as *activeRuleSet) mappingsForNonRollupID(
 		pipeline := metadata.PipelineMetadata{
 			AggregationID:   snapshot.aggregationID,
 			StoragePolicies: snapshot.storagePolicies.Clone(),
+			DropPolicy:      snapshot.dropPolicy,
 		}
 		pipelines = append(pipelines, pipeline)
 	}
@@ -692,8 +694,36 @@ func (res *ruleMatchResults) unique() *ruleMatchResults {
 	if len(res.pipelines) == 0 {
 		return res
 	}
+
+	// First resolve any drop policies
+	dropExceptIfOtherMatchPipelines := 0
+	nonDropPipelines := 0
+	for i := range res.pipelines {
+		switch res.pipelines[i].DropPolicy {
+		case policy.DropMust:
+			// Immediately return, the result is a must drop
+			res.pipelines = metadata.DropPipelineMetadatas
+			return res
+		case policy.DropExceptIfOtherMatch:
+			dropExceptIfOtherMatchPipelines++
+			continue
+		}
+		nonDropPipelines++
+	}
+	if dropExceptIfOtherMatchPipelines > 0 && nonDropPipelines == 0 {
+		// A drop policy is effective as no other non-drop pipelines
+		res.pipelines = metadata.DropPipelineMetadatas
+		return res
+	}
+
+	// Otherwise merge as per usual
 	curr := 0
 	for i := 1; i < len(res.pipelines); i++ {
+		// Skip any drop policies as they are no longer relevant, already evaluated
+		if res.pipelines[i].DropPolicy != policy.DefaultDropPolicy {
+			continue
+		}
+
 		foundDup := false
 		for j := 0; j <= curr; j++ {
 			if res.pipelines[j].Equal(res.pipelines[i]) {

@@ -359,6 +359,7 @@ func (rs *ruleSet) AddMappingRule(mrv view.MappingRule, meta UpdateMetadata) (st
 			mrv.Filter,
 			mrv.AggregationID,
 			mrv.StoragePolicies,
+			mrv.DropPolicy,
 			meta,
 		); err != nil {
 			return "", xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "add", mrv.Name))
@@ -370,6 +371,7 @@ func (rs *ruleSet) AddMappingRule(mrv view.MappingRule, meta UpdateMetadata) (st
 			mrv.Filter,
 			mrv.AggregationID,
 			mrv.StoragePolicies,
+			mrv.DropPolicy,
 			meta,
 		); err != nil {
 			return "", xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "revive", mrv.Name))
@@ -389,6 +391,7 @@ func (rs *ruleSet) UpdateMappingRule(mrv view.MappingRule, meta UpdateMetadata) 
 		mrv.Filter,
 		mrv.AggregationID,
 		mrv.StoragePolicies,
+		mrv.DropPolicy,
 		meta,
 	); err != nil {
 		return xerrors.Wrap(err, fmt.Sprintf(ruleActionErrorFmt, "update", mrv.Name))

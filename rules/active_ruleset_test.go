@@ -21,6 +21,7 @@
 package rules
 
 import (
+	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -37,6 +38,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -456,6 +458,58 @@ func TestActiveRuleSetForwardMatchWithMappingRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			id:            "shouldDropTagName1=shouldDropTagValue1",
+			matchFrom:     25000,
+			matchTo:       25001,
+			expireAtNanos: 30000,
+			forExistingIDResult: metadata.StagedMetadatas{
+				metadata.StagedMetadata{
+					CutoverNanos: 20000,
+					Tombstoned:   false,
+					Metadata: metadata.Metadata{
+						Pipelines: metadata.DropPipelineMetadatas,
+					},
+				},
+			},
+		},
+		{
+			id:            "shouldDrop2TagName1=shouldDrop2TagValue1",
+			matchFrom:     25000,
+			matchTo:       25001,
+			expireAtNanos: 30000,
+			forExistingIDResult: metadata.StagedMetadatas{
+				metadata.StagedMetadata{
+					CutoverNanos: 20000,
+					Tombstoned:   false,
+					Metadata: metadata.Metadata{
+						Pipelines: metadata.DropPipelineMetadatas,
+					},
+				},
+			},
+		},
+		{
+			id:            "shouldNotDropTagName1=shouldNotDropTagValue1",
+			matchFrom:     25000,
+			matchTo:       25001,
+			expireAtNanos: 30000,
+			forExistingIDResult: metadata.StagedMetadatas{
+				metadata.StagedMetadata{
+					CutoverNanos: 20000,
+					Tombstoned:   false,
+					Metadata: metadata.Metadata{
+						Pipelines: []metadata.PipelineMetadata{
+							{
+								AggregationID: aggregation.DefaultID,
+								StoragePolicies: policy.StoragePolicies{
+									policy.NewStoragePolicy(10*time.Second, xtime.Second, 24*time.Hour),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	as := newActiveRuleSet(
@@ -467,11 +521,13 @@ func TestActiveRuleSetForwardMatchWithMappingRules(t *testing.T) {
 		nil,
 		aggregation.NewTypesOptions(),
 	)
-	for _, input := range inputs {
-		res := as.ForwardMatch(b(input.id), input.matchFrom, input.matchTo)
-		require.Equal(t, input.expireAtNanos, res.expireAtNanos)
-		require.Equal(t, input.forExistingIDResult, res.ForExistingIDAt(0))
-		require.Equal(t, 0, res.NumNewRollupIDs())
+	for i, input := range inputs {
+		t.Run(fmt.Sprintf("input %d", i), func(t *testing.T) {
+			res := as.ForwardMatch(b(input.id), input.matchFrom, input.matchTo)
+			require.Equal(t, input.expireAtNanos, res.expireAtNanos)
+			require.Equal(t, input.forExistingIDResult, res.ForExistingIDAt(0))
+			require.Equal(t, 0, res.NumNewRollupIDs())
+		})
 	}
 }
 
@@ -1228,15 +1284,17 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 		nil,
 		aggregation.NewTypesOptions(),
 	)
-	for _, input := range inputs {
-		res := as.ForwardMatch(b(input.id), input.matchFrom, input.matchTo)
-		require.Equal(t, input.expireAtNanos, res.expireAtNanos)
-		require.Equal(t, input.forExistingIDResult, res.ForExistingIDAt(0))
-		require.Equal(t, len(input.forNewRollupIDsResult), res.NumNewRollupIDs())
-		for i := 0; i < len(input.forNewRollupIDsResult); i++ {
-			rollup := res.ForNewRollupIDsAt(i, 0)
-			require.True(t, cmp.Equal(input.forNewRollupIDsResult[i], rollup, testIDWithMetadatasCmpOpts...))
-		}
+	for i, input := range inputs {
+		t.Run(fmt.Sprintf("input %d", i), func(t *testing.T) {
+			res := as.ForwardMatch(b(input.id), input.matchFrom, input.matchTo)
+			require.Equal(t, input.expireAtNanos, res.expireAtNanos)
+			require.Equal(t, input.forExistingIDResult, res.ForExistingIDAt(0))
+			require.Equal(t, len(input.forNewRollupIDsResult), res.NumNewRollupIDs())
+			for i := 0; i < len(input.forNewRollupIDsResult); i++ {
+				rollup := res.ForNewRollupIDsAt(i, 0)
+				require.True(t, cmp.Equal(input.forNewRollupIDsResult[i], rollup, testIDWithMetadatasCmpOpts...))
+			}
+		})
 	}
 }
 
@@ -2256,6 +2314,62 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			id:            "rtagName1=rtagValue1,rtagName2=rtagValue2,rtagName3=rtagValue3,shouldDropTagName1=shouldDropTagValue1",
+			matchFrom:     35000,
+			matchTo:       35001,
+			expireAtNanos: 38000,
+			forExistingIDResult: metadata.StagedMetadatas{
+				metadata.StagedMetadata{
+					CutoverNanos: 35000,
+					Tombstoned:   false,
+					Metadata: metadata.Metadata{
+						Pipelines: metadata.DropPipelineMetadatas,
+					},
+				},
+			},
+			forNewRollupIDsResult: []IDWithMetadatas{
+				{
+					ID: b("rName2|rtagName1=rtagValue1,rtagName2=rtagValue2"),
+					Metadatas: metadata.StagedMetadatas{
+						{
+							CutoverNanos: 35000,
+							Tombstoned:   false,
+							Metadata: metadata.Metadata{
+								Pipelines: []metadata.PipelineMetadata{
+									{
+										AggregationID: aggregation.DefaultID,
+										StoragePolicies: policy.StoragePolicies{
+											policy.NewStoragePolicy(45*time.Second, xtime.Second, 12*time.Hour),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					ID: b("rName3|rtagName1=rtagValue1,rtagName2=rtagValue2"),
+					Metadatas: metadata.StagedMetadatas{
+						{
+							CutoverNanos: 35000,
+							Tombstoned:   false,
+							Metadata: metadata.Metadata{
+								Pipelines: []metadata.PipelineMetadata{
+									{
+										AggregationID: aggregation.DefaultID,
+										StoragePolicies: policy.StoragePolicies{
+											policy.NewStoragePolicy(10*time.Second, xtime.Second, 2*time.Hour),
+											policy.NewStoragePolicy(time.Minute, xtime.Minute, time.Hour),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	as := newActiveRuleSet(
@@ -2267,15 +2381,17 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 		nil,
 		aggregation.NewTypesOptions(),
 	)
-	for _, input := range inputs {
-		res := as.ForwardMatch(b(input.id), input.matchFrom, input.matchTo)
-		require.Equal(t, input.expireAtNanos, res.expireAtNanos)
-		require.Equal(t, input.forExistingIDResult, res.ForExistingIDAt(0))
-		require.Equal(t, len(input.forNewRollupIDsResult), res.NumNewRollupIDs())
-		for i := 0; i < len(input.forNewRollupIDsResult); i++ {
-			rollup := res.ForNewRollupIDsAt(i, 0)
-			require.True(t, cmp.Equal(input.forNewRollupIDsResult[i], rollup, testIDWithMetadatasCmpOpts...))
-		}
+	for i, input := range inputs {
+		t.Run(fmt.Sprintf("input %d", i), func(t *testing.T) {
+			res := as.ForwardMatch(b(input.id), input.matchFrom, input.matchTo)
+			assert.Equal(t, input.expireAtNanos, res.expireAtNanos)
+			assert.Equal(t, input.forExistingIDResult, res.ForExistingIDAt(0))
+			require.Equal(t, len(input.forNewRollupIDsResult), res.NumNewRollupIDs(), "failed num rollup ids expected=%d, actual=%d", len(input.forNewRollupIDsResult), res.NumNewRollupIDs())
+			for i := 0; i < len(input.forNewRollupIDsResult); i++ {
+				rollup := res.ForNewRollupIDsAt(i, 0)
+				assert.True(t, cmp.Equal(input.forNewRollupIDsResult[i], rollup, testIDWithMetadatasCmpOpts...))
+			}
+		})
 	}
 }
 
@@ -2909,6 +3025,24 @@ func testMappingRules(t *testing.T) []*mappingRule {
 		testTagsFilterOptions(),
 	)
 	require.NoError(t, err)
+	filter3, err := filters.NewTagsFilter(
+		filters.TagFilterValueMap{"shouldDropTagName1": filters.FilterValue{Pattern: "shouldDropTagValue1"}},
+		filters.Conjunction,
+		testTagsFilterOptions(),
+	)
+	require.NoError(t, err)
+	filter4, err := filters.NewTagsFilter(
+		filters.TagFilterValueMap{"shouldDrop2TagName1": filters.FilterValue{Pattern: "shouldDrop2TagValue1"}},
+		filters.Conjunction,
+		testTagsFilterOptions(),
+	)
+	require.NoError(t, err)
+	filter5, err := filters.NewTagsFilter(
+		filters.TagFilterValueMap{"shouldNotDropTagName1": filters.FilterValue{Pattern: "shouldNotDropTagValue1"}},
+		filters.Conjunction,
+		testTagsFilterOptions(),
+	)
+	require.NoError(t, err)
 
 	mappingRule1 := &mappingRule{
 		uuid: "mappingRule1",
@@ -3057,7 +3191,91 @@ func testMappingRules(t *testing.T) []*mappingRule {
 		},
 	}
 
-	return []*mappingRule{mappingRule1, mappingRule2, mappingRule3, mappingRule4, mappingRule5}
+	// Mapping rule 6 and 7 should combine to effectively be a drop when combined as
+	// mapping rule 7 explicitly says must be dropped
+	mappingRule6 := &mappingRule{
+		uuid: "mappingRule6",
+		snapshots: []*mappingRuleSnapshot{
+			&mappingRuleSnapshot{
+				name:          "mappingRule6.snapshot1",
+				tombstoned:    false,
+				cutoverNanos:  20000,
+				filter:        filter3,
+				aggregationID: aggregation.DefaultID,
+				storagePolicies: policy.StoragePolicies{
+					policy.NewStoragePolicy(10*time.Second, xtime.Second, 24*time.Hour),
+				},
+			},
+		},
+	}
+
+	mappingRule7 := &mappingRule{
+		uuid: "mappingRule7",
+		snapshots: []*mappingRuleSnapshot{
+			&mappingRuleSnapshot{
+				name:            "mappingRule7.snapshot1",
+				tombstoned:      false,
+				cutoverNanos:    20000,
+				filter:          filter3,
+				aggregationID:   aggregation.DefaultID,
+				storagePolicies: policy.StoragePolicies{},
+				dropPolicy:      policy.DropMust,
+			},
+		},
+	}
+
+	// Mapping rule 8 should effectively be a drop since no other mapping rules match and
+	// mapping rule 8 explicitly says must be dropped except if there is another match
+	mappingRule8 := &mappingRule{
+		uuid: "mappingRule8",
+		snapshots: []*mappingRuleSnapshot{
+			&mappingRuleSnapshot{
+				name:            "mappingRule8.snapshot1",
+				tombstoned:      false,
+				cutoverNanos:    20000,
+				filter:          filter4,
+				aggregationID:   aggregation.DefaultID,
+				storagePolicies: policy.StoragePolicies{},
+				dropPolicy:      policy.DropExceptIfOtherMatch,
+			},
+		},
+	}
+
+	// Mapping rule 10 and 11 should combine to effectively be a no-drop when combined as
+	// mapping rule 11 explicitly says drop only if no other drops
+	mappingRule9 := &mappingRule{
+		uuid: "mappingRule9",
+		snapshots: []*mappingRuleSnapshot{
+			&mappingRuleSnapshot{
+				name:          "mappingRule9.snapshot1",
+				tombstoned:    false,
+				cutoverNanos:  20000,
+				filter:        filter5,
+				aggregationID: aggregation.DefaultID,
+				storagePolicies: policy.StoragePolicies{
+					policy.NewStoragePolicy(10*time.Second, xtime.Second, 24*time.Hour),
+				},
+			},
+		},
+	}
+
+	mappingRule10 := &mappingRule{
+		uuid: "mappingRule10",
+		snapshots: []*mappingRuleSnapshot{
+			&mappingRuleSnapshot{
+				name:            "mappingRule10.snapshot1",
+				tombstoned:      false,
+				cutoverNanos:    20000,
+				filter:          filter5,
+				aggregationID:   aggregation.DefaultID,
+				storagePolicies: policy.StoragePolicies{},
+				dropPolicy:      policy.DropExceptIfOtherMatch,
+			},
+		},
+	}
+
+	return []*mappingRule{mappingRule1, mappingRule2, mappingRule3, mappingRule4,
+		mappingRule5, mappingRule6, mappingRule7, mappingRule8, mappingRule9, mappingRule10}
 }
 
 func testRollupRules(t *testing.T) []*rollupRule {
