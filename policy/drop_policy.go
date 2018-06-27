@@ -45,6 +45,7 @@ var validDropPolicies = []DropPolicy{
 	DropExceptIfOtherMatch,
 }
 
+// IsDefault returns whether the drop policy is the default drop none policy.
 func (p DropPolicy) IsDefault() bool {
 	return p == DropNone
 }
