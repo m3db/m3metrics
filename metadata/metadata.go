@@ -127,7 +127,7 @@ func (m *PipelineMetadata) FromProto(pb metricpb.PipelineMetadata) error {
 // PipelineMetadatas is a list of pipeline metadatas.
 type PipelineMetadatas []PipelineMetadata
 
-// Equal returns true if two piplien metadatas are considered equal.
+// Equal returns true if two pipline metadatas are considered equal.
 func (metadatas PipelineMetadatas) Equal(other PipelineMetadatas) bool {
 	if len(metadatas) != len(other) {
 		return false
