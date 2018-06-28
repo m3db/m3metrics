@@ -251,6 +251,12 @@ func (sm StagedMetadata) IsDefault() bool {
 	return sm.CutoverNanos == 0 && !sm.Tombstoned && sm.Metadata.IsDefault()
 }
 
+// IsDropPolicyApplied returns whether this is the default staged metadata
+// but with the drop policy applied.
+func (sm StagedMetadata) IsDropPolicyApplied() bool {
+	return !sm.Tombstoned && sm.Metadata.IsDropPolicyApplied()
+}
+
 // ToProto converts the staged metadata to a protobuf message in place.
 func (sm StagedMetadata) ToProto(pb *metricpb.StagedMetadata) error {
 	if err := sm.Metadata.ToProto(&pb.Metadata); err != nil {
