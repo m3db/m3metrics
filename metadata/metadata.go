@@ -49,6 +49,15 @@ var (
 
 	// DropPipelineMetadatas is the drop policy list of pipeline metadatas.
 	DropPipelineMetadatas = []PipelineMetadata{DropPipelineMetadata}
+
+	// DropMetadata is the drop policy metadata.
+	DropMetadata = Metadata{Pipelines: DropPipelineMetadatas}
+
+	// DropStagedMetadata is the drop policy staged metadata.
+	DropStagedMetadata = StagedMetadata{Metadata: DropMetadata}
+
+	// DropStagedMetadatas is the drop policy staged metadatas.
+	DropStagedMetadatas = StagedMetadatas{DropStagedMetadata}
 )
 
 // PipelineMetadata contains pipeline metadata.
