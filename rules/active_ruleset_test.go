@@ -38,11 +38,13 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var (
+	testStagedMetadatasCmptOpts = []cmp.Option{
+		cmpopts.EquateEmpty(),
+	}
 	testIDWithMetadatasCmpOpts = []cmp.Option{
 		cmpopts.EquateEmpty(),
 	}
@@ -521,11 +523,12 @@ func TestActiveRuleSetForwardMatchWithMappingRules(t *testing.T) {
 		nil,
 		aggregation.NewTypesOptions(),
 	)
+
 	for i, input := range inputs {
 		t.Run(fmt.Sprintf("input %d", i), func(t *testing.T) {
 			res := as.ForwardMatch(b(input.id), input.matchFrom, input.matchTo)
 			require.Equal(t, input.expireAtNanos, res.expireAtNanos)
-			require.Equal(t, input.forExistingIDResult, res.ForExistingIDAt(0))
+			require.True(t, cmp.Equal(input.forExistingIDResult, res.ForExistingIDAt(0), testStagedMetadatasCmptOpts...))
 			require.Equal(t, 0, res.NumNewRollupIDs())
 		})
 	}
@@ -544,6 +547,7 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 					Tombstoned:   false,
 					Metadata: metadata.Metadata{
 						Pipelines: []metadata.PipelineMetadata{
+							metadata.DefaultPipelineMetadata,
 							{
 								AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 								StoragePolicies: policy.StoragePolicies{
@@ -711,6 +715,7 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 					Tombstoned:   false,
 					Metadata: metadata.Metadata{
 						Pipelines: []metadata.PipelineMetadata{
+							metadata.DefaultPipelineMetadata,
 							{
 								AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 								StoragePolicies: policy.StoragePolicies{
@@ -736,6 +741,7 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 					Tombstoned:   false,
 					Metadata: metadata.Metadata{
 						Pipelines: []metadata.PipelineMetadata{
+							metadata.DefaultPipelineMetadata,
 							{
 								AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 								StoragePolicies: policy.StoragePolicies{
@@ -783,6 +789,7 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 					Tombstoned:   false,
 					Metadata: metadata.Metadata{
 						Pipelines: []metadata.PipelineMetadata{
+							metadata.DefaultPipelineMetadata,
 							{
 								AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
 								StoragePolicies: policy.StoragePolicies{
@@ -830,6 +837,7 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 					Tombstoned:   false,
 					Metadata: metadata.Metadata{
 						Pipelines: []metadata.PipelineMetadata{
+							metadata.DefaultPipelineMetadata,
 							{
 								AggregationID: aggregation.DefaultID,
 								StoragePolicies: policy.StoragePolicies{
@@ -881,6 +889,7 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 					Tombstoned:   false,
 					Metadata: metadata.Metadata{
 						Pipelines: []metadata.PipelineMetadata{
+							metadata.DefaultPipelineMetadata,
 							{
 								AggregationID: aggregation.DefaultID,
 								StoragePolicies: policy.StoragePolicies{
@@ -932,6 +941,7 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 					Tombstoned:   false,
 					Metadata: metadata.Metadata{
 						Pipelines: []metadata.PipelineMetadata{
+							metadata.DefaultPipelineMetadata,
 							{
 								AggregationID: aggregation.DefaultID,
 								StoragePolicies: policy.StoragePolicies{
@@ -961,6 +971,7 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 					Tombstoned:   false,
 					Metadata: metadata.Metadata{
 						Pipelines: []metadata.PipelineMetadata{
+							metadata.DefaultPipelineMetadata,
 							{
 								AggregationID: aggregation.DefaultID,
 								StoragePolicies: policy.StoragePolicies{
@@ -1284,11 +1295,12 @@ func TestActiveRuleSetForwardMatchWithRollupRules(t *testing.T) {
 		nil,
 		aggregation.NewTypesOptions(),
 	)
+
 	for i, input := range inputs {
 		t.Run(fmt.Sprintf("input %d", i), func(t *testing.T) {
 			res := as.ForwardMatch(b(input.id), input.matchFrom, input.matchTo)
 			require.Equal(t, input.expireAtNanos, res.expireAtNanos)
-			require.Equal(t, input.forExistingIDResult, res.ForExistingIDAt(0))
+			require.True(t, cmp.Equal(input.forExistingIDResult, res.ForExistingIDAt(0), testStagedMetadatasCmptOpts...))
 			require.Equal(t, len(input.forNewRollupIDsResult), res.NumNewRollupIDs())
 			for i := 0; i < len(input.forNewRollupIDsResult); i++ {
 				rollup := res.ForNewRollupIDsAt(i, 0)
@@ -2381,15 +2393,16 @@ func TestActiveRuleSetForwardMatchWithMappingRulesAndRollupRules(t *testing.T) {
 		nil,
 		aggregation.NewTypesOptions(),
 	)
+
 	for i, input := range inputs {
 		t.Run(fmt.Sprintf("input %d", i), func(t *testing.T) {
 			res := as.ForwardMatch(b(input.id), input.matchFrom, input.matchTo)
-			assert.Equal(t, input.expireAtNanos, res.expireAtNanos)
-			assert.Equal(t, input.forExistingIDResult, res.ForExistingIDAt(0))
-			require.Equal(t, len(input.forNewRollupIDsResult), res.NumNewRollupIDs(), "failed num rollup ids expected=%d, actual=%d", len(input.forNewRollupIDsResult), res.NumNewRollupIDs())
+			require.Equal(t, input.expireAtNanos, res.expireAtNanos)
+			require.True(t, cmp.Equal(input.forExistingIDResult, res.ForExistingIDAt(0), testStagedMetadatasCmptOpts...))
+			require.Equal(t, len(input.forNewRollupIDsResult), res.NumNewRollupIDs())
 			for i := 0; i < len(input.forNewRollupIDsResult); i++ {
 				rollup := res.ForNewRollupIDsAt(i, 0)
-				assert.True(t, cmp.Equal(input.forNewRollupIDsResult[i], rollup, testIDWithMetadatasCmpOpts...))
+				require.True(t, cmp.Equal(input.forNewRollupIDsResult[i], rollup, testIDWithMetadatasCmpOpts...))
 			}
 		})
 	}
@@ -2807,7 +2820,7 @@ func TestActiveRuleSetReverseMatchWithMappingRulesForNonRollupID(t *testing.T) {
 	for _, input := range inputs {
 		res := as.ReverseMatch(b(input.id), input.matchFrom, input.matchTo, input.metricType, input.aggregationType)
 		require.Equal(t, input.expireAtNanos, res.expireAtNanos)
-		require.Equal(t, input.forExistingIDResult, res.ForExistingIDAt(0))
+		require.True(t, cmp.Equal(input.forExistingIDResult, res.ForExistingIDAt(0), testStagedMetadatasCmptOpts...))
 	}
 }
 
