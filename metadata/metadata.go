@@ -319,6 +319,12 @@ func (sms StagedMetadatas) IsDefault() bool {
 	return len(sms) == 1 && sms[0].IsDefault()
 }
 
+// IsDropPolicyApplied returns whether the list of staged metadata is the
+// default list but with the drop policy applied.
+func (sms StagedMetadatas) IsDropPolicyApplied() bool {
+	return len(sms) == 1 && sms[0].IsDropPolicyApplied()
+}
+
 // ToProto converts the staged metadatas to a protobuf message in place.
 func (sms StagedMetadatas) ToProto(pb *metricpb.StagedMetadatas) error {
 	numMetadatas := len(sms)
