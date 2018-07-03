@@ -133,7 +133,7 @@ type metricTypesValidationConfiguration struct {
 	Allowed []metric.Type `yaml:"allowed"`
 
 	// Metric types that support multiple aggregation types.
-	MultiAggregationTypesEnabledFor *[]metric.Type `yaml:"MultiAggregationTypesEnabledFor"`
+	MultiAggregationTypesEnabledFor *[]metric.Type `yaml:"multiAggregationTypesEnabledFor"`
 }
 
 // NewMetricTypesFn creates a new metric types fn from the given configuration.
