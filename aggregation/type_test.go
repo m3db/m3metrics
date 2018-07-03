@@ -95,8 +95,8 @@ func TestTypesMarshalJSON(t *testing.T) {
 			expected: `["Min"]`,
 		},
 		{
-			expected: `["Mean","Max","P99","P9999"]`,
 			types:    Types{Mean, Max, P99, P9999},
+			expected: `["Mean","Max","P99","P9999"]`,
 		},
 		{
 			types:       Types{Type(1000)},
