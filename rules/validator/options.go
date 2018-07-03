@@ -158,6 +158,7 @@ type options struct {
 // NewOptions create a new set of validator options.
 func NewOptions() Options {
 	return &options{
+		multiAggregationTypesEnableFor:   map[metric.Type]struct{}{metric.TimerType: struct{}{}},
 		maxTransformationDerivativeOrder: defaultMaxTransformationDerivativeOrder,
 		maxRollupLevels:                  defaultMaxRollupLevels,
 		namespaceValidator:               static.NewNamespaceValidator(static.Valid),
