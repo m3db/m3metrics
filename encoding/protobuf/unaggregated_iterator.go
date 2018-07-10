@@ -146,6 +146,9 @@ func (it *unaggregatedIterator) decodeMessage(size int) error {
 	case metricpb.MetricWithMetadatas_FORWARDED_METRIC_WITH_METADATA:
 		it.msg.Type = encoding.ForwardedMetricWithMetadataType
 		it.err = it.msg.ForwardedMetricWithMetadata.FromProto(it.pb.ForwardedMetricWithMetadata)
+	case metricpb.MetricWithMetadatas_RAW_BYTES_WITH_CONN_WRITE_TIME:
+		it.msg.Type = encoding.RawBytesWithConnWriteTimeType
+		it.err = it.msg.RawBytesWithConnWriteTime.FromProto(it.pb.RawBytesWithConnWriteTime)
 	default:
 		it.err = fmt.Errorf("unrecognized message type: %v", it.pb.Type)
 	}

@@ -34,6 +34,7 @@ import (
 
 var (
 	errNilForwardedMetricWithMetadataProto = errors.New("nil forwarded metric with metadata proto message")
+	errNilRawBytesWithConnWriteTimeProto   = errors.New("nil raw bytes with conn write time proto message")
 )
 
 // Metric is a metric, which is essentially a named value at certain time.
@@ -191,4 +192,23 @@ func (fm *ForwardedMetricWithMetadata) FromProto(pb *metricpb.ForwardedMetricWit
 		return err
 	}
 	return fm.ForwardMetadata.FromProto(pb.Metadata)
+}
+
+type RawBytesWithConnWriteTime struct {
+	Data             []byte
+	ConnWriteAtNanos int64
+}
+
+func (rc RawBytesWithConnWriteTime) ToProto(pb *metricpb.RawBytesWithConnWriteTime) {
+	pb.Data = rc.Data
+	pb.ConnWriteAtNanos = rc.ConnWriteAtNanos
+}
+
+func (rc *RawBytesWithConnWriteTime) FromProto(pb *metricpb.RawBytesWithConnWriteTime) error {
+	if pb == nil {
+		return errNilRawBytesWithConnWriteTimeProto
+	}
+	rc.Data = pb.Data
+	rc.ConnWriteAtNanos = pb.ConnWriteAtNanos
+	return nil
 }

@@ -55,4 +55,5 @@ message ForwardMetadata {
   pipelinepb.AppliedPipeline pipeline = 3 [(gogoproto.nullable) = false];
   uint32 source_id = 4;
   int32 num_forwarded_times = 5;
+  int64 flush_at_nanos = 6;
 }

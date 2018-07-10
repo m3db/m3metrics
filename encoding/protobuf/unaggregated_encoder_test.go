@@ -197,6 +197,7 @@ var (
 		}),
 		SourceID:          1234,
 		NumForwardedTimes: 3,
+		FlushAtNanos:      1234,
 	}
 	testForwardMetadata2 = metadata.ForwardMetadata{
 		AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
@@ -218,6 +219,7 @@ var (
 		}),
 		SourceID:          897,
 		NumForwardedTimes: 2,
+		FlushAtNanos:      5678,
 	}
 	testCounter1Proto = metricpb.Counter{
 		Id:    []byte("testCounter1"),
@@ -428,6 +430,7 @@ var (
 		},
 		SourceId:          1234,
 		NumForwardedTimes: 3,
+		FlushAtNanos:      1234,
 	}
 	testForwardMetadata2Proto = metricpb.ForwardMetadata{
 		AggregationId: aggregationpb.AggregationID{Id: aggregation.MustCompressTypes(aggregation.Sum)[0]},
@@ -459,6 +462,7 @@ var (
 		},
 		SourceId:          897,
 		NumForwardedTimes: 2,
+		FlushAtNanos:      5678,
 	}
 	testCmpOpts = []cmp.Option{
 		cmpopts.EquateEmpty(),

@@ -207,6 +207,8 @@ type ForwardMetadata struct {
 
 	// Number of times this metric has been forwarded.
 	NumForwardedTimes int
+
+	FlushAtNanos int64
 }
 
 // ToProto converts the forward metadata to a protobuf message in place.
@@ -222,6 +224,7 @@ func (m ForwardMetadata) ToProto(pb *metricpb.ForwardMetadata) error {
 	}
 	pb.SourceId = m.SourceID
 	pb.NumForwardedTimes = int32(m.NumForwardedTimes)
+	pb.FlushAtNanos = m.FlushAtNanos
 	return nil
 }
 
@@ -238,6 +241,7 @@ func (m *ForwardMetadata) FromProto(pb metricpb.ForwardMetadata) error {
 	}
 	m.SourceID = pb.SourceId
 	m.NumForwardedTimes = int(pb.NumForwardedTimes)
+	m.FlushAtNanos = pb.FlushAtNanos
 	return nil
 }
 

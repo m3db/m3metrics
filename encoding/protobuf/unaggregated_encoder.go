@@ -67,6 +67,7 @@ type unaggregatedEncoder struct {
 	bm   metricpb.BatchTimerWithMetadatas
 	gm   metricpb.GaugeWithMetadatas
 	fm   metricpb.ForwardedMetricWithMetadata
+	rt   metricpb.RawBytesWithConnWriteTime
 	buf  []byte
 	used int
 
@@ -124,6 +125,8 @@ func (enc *unaggregatedEncoder) EncodeMessage(msg encoding.UnaggregatedMessageUn
 		return enc.encodeGaugeWithMetadatas(msg.GaugeWithMetadatas)
 	case encoding.ForwardedMetricWithMetadataType:
 		return enc.encodeForwardedMetricWithMetadata(msg.ForwardedMetricWithMetadata)
+	case encoding.RawBytesWithConnWriteTimeType:
+		return enc.encodeRawBytesWithConnWriteTime(msg.RawBytesWithConnWriteTime)
 	default:
 		return fmt.Errorf("unknown message type: %v", msg.Type)
 	}
@@ -169,6 +172,15 @@ func (enc *unaggregatedEncoder) encodeForwardedMetricWithMetadata(fm aggregated.
 	mm := metricpb.MetricWithMetadatas{
 		Type: metricpb.MetricWithMetadatas_FORWARDED_METRIC_WITH_METADATA,
 		ForwardedMetricWithMetadata: &enc.fm,
+	}
+	return enc.encodeMetricWithMetadatas(mm)
+}
+
+func (enc *unaggregatedEncoder) encodeRawBytesWithConnWriteTime(rt aggregated.RawBytesWithConnWriteTime) error {
+	rt.ToProto(&enc.rt)
+	mm := metricpb.MetricWithMetadatas{
+		Type: metricpb.MetricWithMetadatas_RAW_BYTES_WITH_CONN_WRITE_TIME,
+		RawBytesWithConnWriteTime: &enc.rt,
 	}
 	return enc.encodeMetricWithMetadatas(mm)
 }

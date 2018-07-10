@@ -37,6 +37,7 @@ func resetMetricWithMetadatasProto(pb *metricpb.MetricWithMetadatas) {
 	resetBatchTimerWithMetadatasProto(pb.BatchTimerWithMetadatas)
 	resetGaugeWithMetadatasProto(pb.GaugeWithMetadatas)
 	resetForwardedMetricWithMetadataProto(pb.ForwardedMetricWithMetadata)
+	resetRawBytesWithConnWriteTime(pb.RawBytesWithConnWriteTime)
 }
 
 func resetCounterWithMetadatasProto(pb *metricpb.CounterWithMetadatas) {
@@ -69,6 +70,14 @@ func resetForwardedMetricWithMetadataProto(pb *metricpb.ForwardedMetricWithMetad
 	}
 	resetForwardedMetric(&pb.Metric)
 	resetForwardMetadata(&pb.Metadata)
+}
+
+func resetRawBytesWithConnWriteTime(pb *metricpb.RawBytesWithConnWriteTime) {
+	if pb == nil {
+		return
+	}
+	pb.Data = pb.Data[:0]
+	pb.ConnWriteAtNanos = 0
 }
 
 func resetCounter(pb *metricpb.Counter) {
@@ -121,4 +130,5 @@ func resetForwardMetadata(pb *metricpb.ForwardMetadata) {
 	pb.Pipeline.Ops = pb.Pipeline.Ops[:0]
 	pb.SourceId = 0
 	pb.NumForwardedTimes = 0
+	pb.FlushAtNanos = 0
 }

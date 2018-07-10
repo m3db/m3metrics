@@ -236,6 +236,10 @@ func TestUnaggregatedIteratorDecodeStress(t *testing.T) {
 			ForwardedMetric: testForwardedMetric1,
 			ForwardMetadata: testForwardMetadata1,
 		},
+		aggregated.RawBytesWithConnWriteTime{
+			Data:             []byte("foobar"),
+			ConnWriteAtNanos: 12345,
+		},
 		unaggregated.CounterWithMetadatas{
 			Counter:         testCounter2,
 			StagedMetadatas: testStagedMetadatas1,
@@ -251,6 +255,10 @@ func TestUnaggregatedIteratorDecodeStress(t *testing.T) {
 		aggregated.ForwardedMetricWithMetadata{
 			ForwardedMetric: testForwardedMetric2,
 			ForwardMetadata: testForwardMetadata1,
+		},
+		aggregated.RawBytesWithConnWriteTime{
+			Data:             []byte("baz"),
+			ConnWriteAtNanos: 67890,
 		},
 		unaggregated.CounterWithMetadatas{
 			Counter:         testCounter1,
@@ -268,6 +276,10 @@ func TestUnaggregatedIteratorDecodeStress(t *testing.T) {
 			ForwardedMetric: testForwardedMetric1,
 			ForwardMetadata: testForwardMetadata2,
 		},
+		aggregated.RawBytesWithConnWriteTime{
+			Data:             []byte("foobarbaz"),
+			ConnWriteAtNanos: 13579,
+		},
 		unaggregated.CounterWithMetadatas{
 			Counter:         testCounter2,
 			StagedMetadatas: testStagedMetadatas2,
@@ -283,6 +295,10 @@ func TestUnaggregatedIteratorDecodeStress(t *testing.T) {
 		aggregated.ForwardedMetricWithMetadata{
 			ForwardedMetric: testForwardedMetric2,
 			ForwardMetadata: testForwardMetadata2,
+		},
+		aggregated.RawBytesWithConnWriteTime{
+			Data:             []byte("oqiwjrajsdfadf"),
+			ConnWriteAtNanos: 24680,
 		},
 	}
 
@@ -311,6 +327,11 @@ func TestUnaggregatedIteratorDecodeStress(t *testing.T) {
 				msg = encoding.UnaggregatedMessageUnion{
 					Type: encoding.ForwardedMetricWithMetadataType,
 					ForwardedMetricWithMetadata: input,
+				}
+			case aggregated.RawBytesWithConnWriteTime:
+				msg = encoding.UnaggregatedMessageUnion{
+					Type: encoding.RawBytesWithConnWriteTimeType,
+					RawBytesWithConnWriteTime: input,
 				}
 			default:
 				require.Fail(t, "unrecognized type %T", input)
@@ -343,6 +364,9 @@ func TestUnaggregatedIteratorDecodeStress(t *testing.T) {
 		case aggregated.ForwardedMetricWithMetadata:
 			require.Equal(t, encoding.ForwardedMetricWithMetadataType, res.Type)
 			require.True(t, cmp.Equal(expectedRes, res.ForwardedMetricWithMetadata, testCmpOpts...))
+		case aggregated.RawBytesWithConnWriteTime:
+			require.Equal(t, encoding.RawBytesWithConnWriteTimeType, res.Type)
+			require.True(t, cmp.Equal(expectedRes, res.RawBytesWithConnWriteTime, testCmpOpts...))
 		default:
 			require.Fail(t, "unknown input type: %T", inputs[j])
 		}
