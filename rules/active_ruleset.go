@@ -43,7 +43,14 @@ type Matcher interface {
 
 	// ReverseMatch reverse matches the applicable policies for a metric id between [fromNanos, toNanos),
 	// with aware of the metric type and aggregation type for the given id.
-	ReverseMatch(id []byte, fromNanos, toNanos int64, mt metric.Type, at aggregation.Type) MatchResult
+	ReverseMatch(
+		id []byte,
+		fromNanos, toNanos int64,
+		mt metric.Type,
+		at aggregation.Type,
+		isMultiAggregationTypesAllowed bool,
+		aggTypesOpts aggregation.TypesOptions,
+	) MatchResult
 }
 
 type activeRuleSet struct {
@@ -54,7 +61,6 @@ type activeRuleSet struct {
 	tagsFilterOpts  filters.TagsFilterOptions
 	newRollupIDFn   metricID.NewIDFn
 	isRollupIDFn    metricID.MatchIDFn
-	aggTypeOpts     aggregation.TypesOptions
 }
 
 func newActiveRuleSet(
@@ -64,7 +70,6 @@ func newActiveRuleSet(
 	tagsFilterOpts filters.TagsFilterOptions,
 	newRollupIDFn metricID.NewIDFn,
 	isRollupIDFn metricID.MatchIDFn,
-	aggOpts aggregation.TypesOptions,
 ) *activeRuleSet {
 	uniqueCutoverTimes := make(map[int64]struct{})
 	for _, mappingRule := range mappingRules {
@@ -92,7 +97,6 @@ func newActiveRuleSet(
 		tagsFilterOpts:  tagsFilterOpts,
 		newRollupIDFn:   newRollupIDFn,
 		isRollupIDFn:    isRollupIDFn,
-		aggTypeOpts:     aggOpts,
 	}
 }
 
@@ -126,7 +130,7 @@ func (as *activeRuleSet) ForwardMatch(
 	)
 	for nextIdx < len(as.cutoverTimesAsc) && nextCutoverNanos < toNanos {
 		nextMatchRes := as.forwardMatchAt(id, nextCutoverNanos)
-		forExistingID = append(forExistingID, nextMatchRes.forExistingID)
+		forExistingID = mergeResultsForExistingID(forExistingID, nextMatchRes.forExistingID, nextCutoverNanos)
 		forNewRollupIDs = mergeResultsForNewRollupIDs(forNewRollupIDs, nextMatchRes.forNewRollupIDs, nextCutoverNanos)
 		nextIdx++
 		nextCutoverNanos = as.cutoverNanosAt(nextIdx)
@@ -139,13 +143,13 @@ func (as *activeRuleSet) ForwardMatch(
 	return NewMatchResult(as.version, nextCutoverNanos, forExistingID, forNewRollupIDs)
 }
 
-// TODO(xichen): look into whether we should simply pass in the aggregation type options
-// here as opposed to setting it in the active ruleset options.
 func (as *activeRuleSet) ReverseMatch(
 	id []byte,
 	fromNanos, toNanos int64,
 	mt metric.Type,
 	at aggregation.Type,
+	isMultiAggregationTypesAllowed bool,
+	aggTypesOpts aggregation.TypesOptions,
 ) MatchResult {
 	var (
 		nextIdx          = as.nextCutoverIdx(fromNanos)
@@ -160,12 +164,12 @@ func (as *activeRuleSet) ReverseMatch(
 		isRollupID = as.isRollupIDFn(name, tags)
 	}
 
-	if currForExistingID, found := as.reverseMappingsFor(id, name, tags, isRollupID, fromNanos, mt, at); found {
-		forExistingID = append(forExistingID, currForExistingID)
+	if currForExistingID, found := as.reverseMappingsFor(id, name, tags, isRollupID, fromNanos, mt, at, isMultiAggregationTypesAllowed, aggTypesOpts); found {
+		forExistingID = mergeResultsForExistingID(forExistingID, currForExistingID, fromNanos)
 	}
 	for nextIdx < len(as.cutoverTimesAsc) && nextCutoverNanos < toNanos {
-		if nextForExistingID, found := as.reverseMappingsFor(id, name, tags, isRollupID, nextCutoverNanos, mt, at); found {
-			forExistingID = append(forExistingID, nextForExistingID)
+		if nextForExistingID, found := as.reverseMappingsFor(id, name, tags, isRollupID, nextCutoverNanos, mt, at, isMultiAggregationTypesAllowed, aggTypesOpts); found {
+			forExistingID = mergeResultsForExistingID(forExistingID, nextForExistingID, nextCutoverNanos)
 		}
 		nextIdx++
 		nextCutoverNanos = as.cutoverNanosAt(nextIdx)
@@ -481,11 +485,13 @@ func (as *activeRuleSet) reverseMappingsFor(
 	timeNanos int64,
 	mt metric.Type,
 	at aggregation.Type,
+	isMultiAggregationTypesAllowed bool,
+	aggTypesOpts aggregation.TypesOptions,
 ) (metadata.StagedMetadata, bool) {
 	if !isRollupID {
-		return as.reverseMappingsForNonRollupID(id, timeNanos, mt, at)
+		return as.reverseMappingsForNonRollupID(id, timeNanos, mt, at, aggTypesOpts)
 	}
-	return as.reverseMappingsForRollupID(name, tags, timeNanos, mt, at)
+	return as.reverseMappingsForRollupID(name, tags, timeNanos, mt, at, isMultiAggregationTypesAllowed, aggTypesOpts)
 }
 
 // reverseMappingsForNonRollupID returns the staged metadata for the given non-rollup ID at
@@ -495,9 +501,13 @@ func (as *activeRuleSet) reverseMappingsForNonRollupID(
 	timeNanos int64,
 	mt metric.Type,
 	at aggregation.Type,
+	aggTypesOpts aggregation.TypesOptions,
 ) (metadata.StagedMetadata, bool) {
 	mappingRes := as.mappingsForNonRollupID(id, timeNanos).forExistingID
-	filteredPipelines := filteredPipelinesWithAggregationType(mappingRes.pipelines, mt, at, as.aggTypeOpts)
+	// Always filter pipelines with aggregation types because for non rollup IDs, it is possible
+	// that none of the rules would match based on the aggregation types, in which case we fall
+	// back to the default staged metadata.
+	filteredPipelines := filteredPipelinesWithAggregationType(mappingRes.pipelines, mt, at, aggTypesOpts)
 	if len(filteredPipelines) == 0 {
 		return metadata.DefaultStagedMetadata, false
 	}
@@ -525,6 +535,8 @@ func (as *activeRuleSet) reverseMappingsForRollupID(
 	timeNanos int64,
 	mt metric.Type,
 	at aggregation.Type,
+	isMultiAggregationTypesAllowed bool,
+	aggTypesOpts aggregation.TypesOptions,
 ) (metadata.StagedMetadata, bool) {
 	for _, rollupRule := range as.rollupRules {
 		snapshot := rollupRule.activeSnapshot(timeNanos)
@@ -555,7 +567,16 @@ func (as *activeRuleSet) reverseMappingsForRollupID(
 					AggregationID:   rollupOp.AggregationID,
 					StoragePolicies: target.StoragePolicies.Clone(),
 				}
-				filteredPipelines := filteredPipelinesWithAggregationType([]metadata.PipelineMetadata{pipeline}, mt, at, as.aggTypeOpts)
+				// Only further filter the pipelines with aggregation types if the given metric type
+				// supports multiple aggregation types. This is because if a metric type only supports
+				// a single aggregation type, this is the only pipline that could possibly produce this
+				// rollup metric and as such is chosen. The aggregation type passed in is not used because
+				// it maybe not be accurate because it may not be possible to infer the actual aggregation
+				// type only from the metric ID.
+				filteredPipelines := []metadata.PipelineMetadata{pipeline}
+				if isMultiAggregationTypesAllowed {
+					filteredPipelines = filteredPipelinesWithAggregationType(filteredPipelines, mt, at, aggTypesOpts)
+				}
 				if len(filteredPipelines) == 0 {
 					return metadata.DefaultStagedMetadata, false
 				}
@@ -618,6 +639,31 @@ func filteredPipelinesWithAggregationType(
 		cur++
 	}
 	return pipelines[:cur]
+}
+
+// mergeResultsForExistingID merges the next staged metadata into the current list of staged
+// metadatas while ensuring the cutover times of the staged metadatas are non-decreasing. This
+// is needed because the cutover times of staged metadata results produced by mapping rule matching
+// may not always be in ascending order. For example, if at time T0 a metric matches against a
+// mapping rule, and the filter of such rule changed at T1 such that the metric no longer matches
+// the rule, this would indicate the staged metadata at T0 would have a cutover time of T0,
+// whereas the staged metadata at T1 would have a cutover time of 0 (due to no rule match),
+// in which case we need to set the cutover time of the staged metadata at T1 to T1 to ensure
+// the mononicity of cutover times.
+func mergeResultsForExistingID(
+	currMetadatas metadata.StagedMetadatas,
+	nextMetadata metadata.StagedMetadata,
+	nextCutoverNanos int64,
+) metadata.StagedMetadatas {
+	if len(currMetadatas) == 0 {
+		return metadata.StagedMetadatas{nextMetadata}
+	}
+	currCutoverNanos := currMetadatas[len(currMetadatas)-1].CutoverNanos
+	if currCutoverNanos > nextMetadata.CutoverNanos {
+		nextMetadata.CutoverNanos = nextCutoverNanos
+	}
+	currMetadatas = append(currMetadatas, nextMetadata)
+	return currMetadatas
 }
 
 // mergeResultsForNewRollupIDs merges the current list of staged metadatas for new rollup IDs
