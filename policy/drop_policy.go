@@ -31,9 +31,9 @@ const (
 	// DropMust specifies to always drop matched metrics, irregardless of
 	// other rules.
 	DropMust
-	// DropExceptIfOtherMatch specifies to drop matched metrics, but only if no
+	// DropIfOnlyMatch specifies to drop matched metrics, but only if no
 	// other rules match.
-	DropExceptIfOtherMatch
+	DropIfOnlyMatch
 
 	// DefaultDropPolicy is to drop none.
 	DefaultDropPolicy = DropNone
@@ -42,7 +42,7 @@ const (
 var validDropPolicies = []DropPolicy{
 	DropNone,
 	DropMust,
-	DropExceptIfOtherMatch,
+	DropIfOnlyMatch,
 }
 
 // IsDefault returns whether the drop policy is the default drop none policy.
@@ -56,7 +56,7 @@ func (p DropPolicy) String() string {
 		return "drop_none"
 	case DropMust:
 		return "drop_must"
-	case DropExceptIfOtherMatch:
+	case DropIfOnlyMatch:
 		return "drop_except_if_other_match"
 	}
 	return DropNone.String()

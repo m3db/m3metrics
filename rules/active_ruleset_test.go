@@ -3336,7 +3336,7 @@ func testMappingRules(t *testing.T) []*mappingRule {
 				filter:          filter6,
 				aggregationID:   aggregation.DefaultID,
 				storagePolicies: policy.StoragePolicies{},
-				dropPolicy:      policy.DropExceptIfOtherMatch,
+				dropPolicy:      policy.DropIfOnlyMatch,
 			},
 		},
 	}
@@ -3369,7 +3369,7 @@ func testMappingRules(t *testing.T) []*mappingRule {
 				filter:          filter7,
 				aggregationID:   aggregation.DefaultID,
 				storagePolicies: policy.StoragePolicies{},
-				dropPolicy:      policy.DropExceptIfOtherMatch,
+				dropPolicy:      policy.DropIfOnlyMatch,
 			},
 		},
 	}

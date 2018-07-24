@@ -125,7 +125,7 @@ func TestMappingRuleNotEqual(t *testing.T) {
 			StoragePolicies: policy.StoragePolicies{
 				policy.NewStoragePolicy(10*time.Second, xtime.Second, time.Hour),
 			},
-			DropPolicy: policy.DropExceptIfOtherMatch,
+			DropPolicy: policy.DropIfOnlyMatch,
 		},
 	}
 	for i := 0; i < len(rules); i++ {

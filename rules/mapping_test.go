@@ -182,7 +182,7 @@ var (
 		LastUpdatedAtNanos: 67890000000,
 		LastUpdatedBy:      "someone-else",
 		StoragePolicies:    []*policypb.StoragePolicy{},
-		DropPolicy:         policypb.DropPolicy_DROP_EXCEPT_IF_OTHER_MATCH,
+		DropPolicy:         policypb.DropPolicy_DROP_IF_ONLY_MATCH,
 	}
 	testMappingRule1V1Proto = &rulepb.MappingRule{
 		Uuid: "12669817-13ae-40e6-ba2f-33087b262c68",
@@ -278,7 +278,7 @@ var (
 		rawFilter:          "tag1:value1 tag2:value2",
 		aggregationID:      aggregation.DefaultID,
 		storagePolicies:    policy.StoragePolicies{},
-		dropPolicy:         policy.DropExceptIfOtherMatch,
+		dropPolicy:         policy.DropIfOnlyMatch,
 		lastUpdatedAtNanos: 67890000000,
 		lastUpdatedBy:      "someone-else",
 	}

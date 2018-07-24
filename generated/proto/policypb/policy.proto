@@ -48,5 +48,5 @@ message Policy {
 enum DropPolicy {
   NONE = 0;
   DROP_MUST = 1;
-  DROP_EXCEPT_IF_OTHER_MATCH = 2;
+  DROP_IF_ONLY_MATCH = 2;
 }

@@ -748,7 +748,7 @@ func (res *ruleMatchResults) unique() *ruleMatchResults {
 	}
 
 	// First resolve any drop policies
-	dropExceptIfOtherMatchPipelines := 0
+	DropIfOnlyMatchPipelines := 0
 	nonDropPipelines := 0
 	for i := range res.pipelines {
 		switch res.pipelines[i].DropPolicy {
@@ -756,13 +756,13 @@ func (res *ruleMatchResults) unique() *ruleMatchResults {
 			// Immediately return, the result is a must drop
 			res.pipelines = metadata.DropPipelineMetadatas
 			return res
-		case policy.DropExceptIfOtherMatch:
-			dropExceptIfOtherMatchPipelines++
+		case policy.DropIfOnlyMatch:
+			DropIfOnlyMatchPipelines++
 			continue
 		}
 		nonDropPipelines++
 	}
-	if dropExceptIfOtherMatchPipelines > 0 && nonDropPipelines == 0 {
+	if DropIfOnlyMatchPipelines > 0 && nonDropPipelines == 0 {
 		// A drop policy is effective as no other non-drop pipelines
 		res.pipelines = metadata.DropPipelineMetadatas
 		return res
