@@ -2853,6 +2853,64 @@ func TestActiveRuleSetReverseMatchWithMappingRulesForNonRollupID(t *testing.T) {
 				},
 			},
 		},
+		{
+			id:            "shouldDropTagName1=shouldDropTagValue1",
+			matchFrom:     25000,
+			matchTo:       25001,
+			metricType:      metric.CounterType,
+			aggregationType: aggregation.Sum,
+			expireAtNanos: 30000,
+			forExistingIDResult: metadata.StagedMetadatas{
+				metadata.StagedMetadata{
+					CutoverNanos: 20000,
+					Tombstoned:   false,
+					Metadata: metadata.Metadata{
+						Pipelines: metadata.DropPipelineMetadatas,
+					},
+				},
+			},
+		},
+		{
+			id:            "shouldDrop2TagName1=shouldDrop2TagValue1",
+			matchFrom:     25000,
+			matchTo:       25001,
+			metricType:      metric.CounterType,
+			aggregationType: aggregation.Sum,
+			expireAtNanos: 30000,
+			forExistingIDResult: metadata.StagedMetadatas{
+				metadata.StagedMetadata{
+					CutoverNanos: 20000,
+					Tombstoned:   false,
+					Metadata: metadata.Metadata{
+						Pipelines: metadata.DropPipelineMetadatas,
+					},
+				},
+			},
+		},
+		{
+			id:            "shouldNotDropTagName1=shouldNotDropTagValue1",
+			matchFrom:     25000,
+			matchTo:       25001,
+			metricType:      metric.CounterType,
+			aggregationType: aggregation.Sum,
+			expireAtNanos: 30000,
+			forExistingIDResult: metadata.StagedMetadatas{
+				metadata.StagedMetadata{
+					CutoverNanos: 20000,
+					Tombstoned:   false,
+					Metadata: metadata.Metadata{
+						Pipelines: []metadata.PipelineMetadata{
+							{
+								AggregationID: aggregation.DefaultID,
+								StoragePolicies: policy.StoragePolicies{
+									policy.NewStoragePolicy(10*time.Second, xtime.Second, 24*time.Hour),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	isMultiAggregationTypesAllowed := true
@@ -2865,10 +2923,13 @@ func TestActiveRuleSetReverseMatchWithMappingRulesForNonRollupID(t *testing.T) {
 		mockNewID,
 		func([]byte, []byte) bool { return false },
 	)
-	for _, input := range inputs {
-		res := as.ReverseMatch(b(input.id), input.matchFrom, input.matchTo, input.metricType, input.aggregationType, isMultiAggregationTypesAllowed, aggTypesOpts)
-		require.Equal(t, input.expireAtNanos, res.expireAtNanos)
-		require.True(t, cmp.Equal(input.forExistingIDResult, res.ForExistingIDAt(0), testStagedMetadatasCmptOpts...))
+	for i, input := range inputs {
+		t.Run(fmt.Sprintf("input %d", i), func(t *testing.T) {
+			res := as.ReverseMatch(b(input.id), input.matchFrom, input.matchTo,
+			input.metricType, input.aggregationType, isMultiAggregationTypesAllowed, aggTypesOpts)
+			require.Equal(t, input.expireAtNanos, res.expireAtNanos)
+			require.True(t, cmp.Equal(input.forExistingIDResult, res.ForExistingIDAt(0), testStagedMetadatasCmptOpts...))
+		})
 	}
 }
 

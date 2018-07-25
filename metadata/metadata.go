@@ -180,6 +180,68 @@ func (metadatas PipelineMetadatas) Clone() PipelineMetadatas {
 	return cloned
 }
 
+// ApplyOrRemoveDropPoliciesResult is the result of applying or removing
+// the drop policies for pipelines.
+type ApplyOrRemoveDropPoliciesResult uint
+
+const (
+	// AppliedEffectiveDropPolicyResult is the result of applying the drop
+	// policy and returning just the single drop policy pipeline.
+	AppliedEffectiveDropPolicyResult ApplyOrRemoveDropPoliciesResult = iota
+	// RemovedIneffectiveDropPoliciesResult is the result of no drop policies
+	// being effective and returning the pipelines without any drop policies.
+	RemovedIneffectiveDropPoliciesResult
+)
+
+// ApplyOrRemoveDropPolicies applies or removes any drop policies, if
+// effective then just the drop pipeline is returned otherwise if not
+// effective it returns the drop policy pipelines that were not effective.
+func (metadatas PipelineMetadatas) ApplyOrRemoveDropPolicies() (
+	PipelineMetadatas,
+	ApplyOrRemoveDropPoliciesResult,
+) {
+	// Check drop policies
+	dropIfOnlyMatchPipelines := 0
+	nonDropPipelines := 0
+	for i := range metadatas {
+		switch metadatas[i].DropPolicy {
+		case policy.DropMust:
+			// Immediately return, result is a drop
+			return DropPipelineMetadatas, AppliedEffectiveDropPolicyResult
+		case policy.DropIfOnlyMatch:
+			dropIfOnlyMatchPipelines++
+			continue
+		}
+		nonDropPipelines++
+	}
+
+	if dropIfOnlyMatchPipelines == 0 {
+		// No drop if only match pipelines, no need to remove anything
+		return metadatas, RemovedIneffectiveDropPoliciesResult
+	}
+
+	if nonDropPipelines == 0 {
+		// Drop is effective as no other non drop pipelines, result is a drop
+		return DropPipelineMetadatas, AppliedEffectiveDropPolicyResult
+	}
+
+	// Remove all non-default drop policies as they must not be effective
+	result := metadatas
+	for i := len(result) - 1; i >= 0; i-- {
+		if !result[i].DropPolicy.IsDefault() {
+			// Remove by moving to tail and decrementing length so we can do in
+			// place to avoid allocations of a new slice
+			if lastElem := i == len(result)-1; lastElem {
+				result = result[0:i]
+			} else {
+				result = append(result[0:i], result[i+1:]...)
+			}
+		}
+	}
+
+	return result, RemovedIneffectiveDropPoliciesResult
+}
+
 // Metadata represents the metadata associated with a metric.
 type Metadata struct {
 	Pipelines PipelineMetadatas `json:"pipelines"`

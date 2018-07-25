@@ -22,6 +22,7 @@ package metadata
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -1135,4 +1136,125 @@ func TestDropMustDropPolicyPipelineMetadata(t *testing.T) {
 
 func TestDropExceptIfMatchOtherDropPolicyPipelineMetadata(t *testing.T) {
 	require.True(t, testDropExceptIfMatchOtherDropPolicyPipelineMetadata.IsDropPolicyApplied())
+}
+
+func TestApplyOrRemoveDropPoliciesDropMust(t *testing.T) {
+	input := PipelineMetadatas{
+		{
+			AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
+			StoragePolicies: []policy.StoragePolicy{
+				policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour),
+				policy.NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour),
+			},
+			DropPolicy: policy.DropNone,
+		},
+		{
+			AggregationID:   aggregation.DefaultID,
+			StoragePolicies: nil,
+			DropPolicy:      policy.DropMust,
+		},
+		{
+			AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
+			StoragePolicies: []policy.StoragePolicy{
+				policy.NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour),
+				policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 24*time.Hour),
+			},
+			DropPolicy: policy.DropNone,
+		},
+	}
+	output, result := input.ApplyOrRemoveDropPolicies()
+	require.Equal(t, AppliedEffectiveDropPolicyResult, result)
+	require.Equal(t, 1, len(output))
+	require.True(t, output[0].Equal(DropPipelineMetadata))
+}
+
+func TestApplyOrRemoveDropPoliciesDropIfOnlyMatchEffective(t *testing.T) {
+	input := PipelineMetadatas{
+		{
+			AggregationID:   aggregation.DefaultID,
+			StoragePolicies: nil,
+			DropPolicy:      policy.DropIfOnlyMatch,
+		},
+	}
+	output, result := input.ApplyOrRemoveDropPolicies()
+	require.Equal(t, AppliedEffectiveDropPolicyResult, result)
+	require.Equal(t, 1, len(output))
+	require.True(t, output[0].Equal(DropPipelineMetadata))
+}
+
+func TestApplyOrRemoveDropPoliciesDropIfOnlyMatchMiddleIneffective(t *testing.T) {
+	validRules := PipelineMetadatas{
+		{
+			AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
+			StoragePolicies: []policy.StoragePolicy{
+				policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour),
+				policy.NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour),
+			},
+			DropPolicy: policy.DropNone,
+		},
+		{
+			AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
+			StoragePolicies: []policy.StoragePolicy{
+				policy.NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour),
+				policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 24*time.Hour),
+			},
+			DropPolicy: policy.DropNone,
+		},
+	}
+
+	// Run test for every single insertion point
+	for i := 0; i < len(validRules)+1; i++ {
+		t.Run(fmt.Sprintf("test insert drop if only rule at %d", i),
+			func(t *testing.T) {
+				var (
+					copy  = append(PipelineMetadatas(nil), validRules...)
+					input PipelineMetadatas
+				)
+				for j := 0; j < len(validRules)+1; j++ {
+					if j == i {
+						// Insert the drop if only match rule at this position
+						input = append(input, PipelineMetadata{
+							AggregationID:   aggregation.DefaultID,
+							StoragePolicies: nil,
+							DropPolicy:      policy.DropIfOnlyMatch,
+						})
+					} else {
+						input = append(input, copy[0])
+						copy = copy[1:]
+					}
+				}
+
+				output, result := input.ApplyOrRemoveDropPolicies()
+				require.Equal(t, RemovedIneffectiveDropPoliciesResult, result)
+				require.Equal(t, 2, len(output))
+				require.True(t, output[0].Equal(validRules[0]))
+				require.True(t, output[1].Equal(validRules[1]))
+			})
+	}
+}
+
+func TestApplyOrRemoveDropPoliciesDropIfOnlyMatchNone(t *testing.T) {
+	input := PipelineMetadatas{
+		{
+			AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
+			StoragePolicies: []policy.StoragePolicy{
+				policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour),
+				policy.NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour),
+			},
+			DropPolicy: policy.DropNone,
+		},
+		{
+			AggregationID: aggregation.MustCompressTypes(aggregation.Sum),
+			StoragePolicies: []policy.StoragePolicy{
+				policy.NewStoragePolicy(time.Minute, xtime.Minute, 12*time.Hour),
+				policy.NewStoragePolicy(10*time.Minute, xtime.Minute, 24*time.Hour),
+			},
+			DropPolicy: policy.DropNone,
+		},
+	}
+	output, result := input.ApplyOrRemoveDropPolicies()
+	require.Equal(t, RemovedIneffectiveDropPoliciesResult, result)
+	require.Equal(t, 2, len(output))
+	require.True(t, output[0].Equal(input[0]))
+	require.True(t, output[1].Equal(input[1]))
 }
