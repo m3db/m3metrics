@@ -126,8 +126,8 @@ func (v *validator) validateMappingRules(mrv []view.MappingRule) error {
 
 		// Validate the drop policy is valid.
 		if !rule.DropPolicy.IsValid() {
-			return fmt.Errorf("mapping rule '%s' has an invalid drop policy: value=%d, valid_values=%v",
-				rule.Name, int(rule.DropPolicy), policy.ValidDropPolicies())
+			return fmt.Errorf("mapping rule '%s' has an invalid drop policy: value=%d, string=%s, valid_values=%v",
+				rule.Name, int(rule.DropPolicy), rule.DropPolicy.String(), policy.ValidDropPolicies())
 		}
 
 		// Validate the storage policies if drop policy not active, otherwise ensure none.
