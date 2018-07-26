@@ -1164,11 +1164,7 @@ func TestApplyOrRemoveDropPoliciesDropMust(t *testing.T) {
 	}
 	output, result := input.ApplyOrRemoveDropPolicies()
 	require.Equal(t, AppliedEffectiveDropPolicyResult, result)
-	require.True(t, output.Equal(PipelineMetadatas{PipelineMetadata{
-		AggregationID:   aggregation.DefaultID,
-		StoragePolicies: nil,
-		DropPolicy:      policy.DropMust,
-	}}))
+	require.True(t, output.Equal(DropPipelineMetadatas))
 }
 
 func TestApplyOrRemoveDropPoliciesDropIfOnlyMatchEffective(t *testing.T) {
@@ -1181,7 +1177,7 @@ func TestApplyOrRemoveDropPoliciesDropIfOnlyMatchEffective(t *testing.T) {
 	}
 	output, result := input.ApplyOrRemoveDropPolicies()
 	require.Equal(t, AppliedEffectiveDropPolicyResult, result)
-	require.True(t, output.Equal(input))
+	require.True(t, output.Equal(DropPipelineMetadatas))
 }
 
 func TestApplyOrRemoveDropPoliciesDropIfOnlyMatchMiddleIneffective(t *testing.T) {

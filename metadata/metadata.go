@@ -202,16 +202,14 @@ func (metadatas PipelineMetadatas) ApplyOrRemoveDropPolicies() (
 ) {
 	// Check drop policies
 	dropIfOnlyMatchPipelines := 0
-	firstDropIfOnlyMatchPipelineIdx := -1
 	nonDropPipelines := 0
 	for i := range metadatas {
 		switch metadatas[i].DropPolicy {
 		case policy.DropMust:
 			// Immediately return, result is a drop
-			return PipelineMetadatas{metadatas[i]}, AppliedEffectiveDropPolicyResult
+			return DropPipelineMetadatas, AppliedEffectiveDropPolicyResult
 		case policy.DropIfOnlyMatch:
 			dropIfOnlyMatchPipelines++
-			firstDropIfOnlyMatchPipelineIdx = i
 			continue
 		}
 		nonDropPipelines++
@@ -224,8 +222,7 @@ func (metadatas PipelineMetadatas) ApplyOrRemoveDropPolicies() (
 
 	if nonDropPipelines == 0 {
 		// Drop is effective as no other non drop pipelines, result is a drop
-		metadata := metadatas[firstDropIfOnlyMatchPipelineIdx]
-		return PipelineMetadatas{metadata}, AppliedEffectiveDropPolicyResult
+		return DropPipelineMetadatas, AppliedEffectiveDropPolicyResult
 	}
 
 	// Remove all non-default drop policies as they must not be effective
