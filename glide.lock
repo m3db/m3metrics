@@ -1,5 +1,5 @@
-hash: 1977d0127a6fbc138c17c0b53f147111c998e2abc296b44093cb64d333247ce8
-updated: 2018-09-05T17:21:30.876256-04:00
+hash: 2b7aa163b74e4dd17cd8979ac1e7a34c019117581efe33c56f7787ccd3af9577
+updated: 2018-09-24T11:56:40.818342-04:00
 imports:
 - name: github.com/apache/thrift
   version: 9549b25c77587b29be4e0b5c258221a4ed85d37a
@@ -88,7 +88,7 @@ imports:
   subpackages:
   - context
 - name: google.golang.org/appengine
-  version: 267c27e7492265b84fc6719503b14a1e17975d79
+  version: 2e4a801b39fc199db615bfca7d0b9f8cd9580599
   subpackages:
   - datastore
   - internal

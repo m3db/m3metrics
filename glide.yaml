@@ -27,7 +27,7 @@ import:
   - proto
 
 - package: github.com/gogo/protobuf
-  version: ^v1.1.1
+  version: ^v1
 
 - package: github.com/uber-go/atomic
   version: e682c1008ac17bf26d2e4b5ad6cdd08520ed0b22
